@@ -33,7 +33,7 @@ export const ProfileModal: React.FC = () => {
         }
     }, [isProfileModalOpen, profileTab]);
 
-    const [settingsView, setSettingsView] = useState<'menu' | 'password' | 'terms' | 'privacy'>('menu');
+    const [settingsView, setSettingsView] = useState<'menu' | 'password' | 'terms' | 'privacy' | 'profile'>('menu');
     const [followingStats, setFollowingStats] = useState<FollowingStat[]>([]);
     const [loadingStats, setLoadingStats] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
@@ -42,6 +42,10 @@ export const ProfileModal: React.FC = () => {
         current: '',
         new: '',
         confirm: ''
+    });
+    const [profileData, setProfileData] = useState({
+        name: user?.name || '',
+        bio: user?.bio || ''
     });
 
     const [notificationSettings, setNotificationSettings] = useState(() => {
@@ -123,6 +127,26 @@ export const ProfileModal: React.FC = () => {
         setSettingsView('menu');
     };
 
+    const handleProfileUpdate = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!token || updating) return;
+        setUpdating(true);
+        try {
+            const updatedUser = await backend.updateUser({ 
+                name: profileData.name, 
+                bio: profileData.bio 
+            }, token);
+            updateUser(updatedUser.user || updatedUser);
+            alert("Profile updated successfully!");
+            setSettingsView('menu');
+        } catch (e) {
+            console.error("Profile update failed:", e);
+            alert("Failed to update profile.");
+        } finally {
+            setUpdating(false);
+        }
+    };
+
     const generateCSV = () => {
         const header = "Transaction ID,Date,Plan,Amount,Status\n";
         const rows = MOCK_HISTORY.map(row => `${row.id},${row.date},${row.plan},${row.amount},${row.status}`).join("\n");
@@ -150,6 +174,20 @@ export const ProfileModal: React.FC = () => {
                                 </span>
                             </div>
                         </div>
+                    </div>
+
+                    <div className="mb-6 space-y-2">
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="w-full border-white/10 hover:bg-white/5 text-[10px] uppercase tracking-widest font-black h-9 rounded-xl"
+                            onClick={() => {
+                                closeProfileModal();
+                                router.push(`/user/${user.id}`);
+                            }}
+                        >
+                            <Eye size={14} className="mr-2" /> View Public Profile
+                        </Button>
                     </div>
 
                     <nav className="grid grid-cols-3 md:flex md:flex-col gap-1 md:space-y-1 md:flex-1">
@@ -347,6 +385,13 @@ export const ProfileModal: React.FC = () => {
                                         </h3>
                                         <div className="space-y-3">
                                             <button 
+                                                onClick={() => setSettingsView('profile')}
+                                                className="w-full flex items-center justify-between p-3 bg-surface/30 border border-white/5 rounded-lg hover:bg-surface/50 text-left transition-colors"
+                                            >
+                                                <span className="text-sm text-gray-300">Edit Public Profile</span>
+                                                <ChevronRight size={16} className="text-gray-500" />
+                                            </button>
+                                            <button 
                                                 onClick={() => setSettingsView('password')}
                                                 className="w-full flex items-center justify-between p-3 bg-surface/30 border border-white/5 rounded-lg hover:bg-surface/50 text-left transition-colors"
                                             >
@@ -381,11 +426,44 @@ export const ProfileModal: React.FC = () => {
                                         </button>
                                         <h3 className="text-xl font-bold text-white">
                                             {settingsView === 'password' ? 'Change Password' : 
+                                             settingsView === 'profile' ? 'Edit Public Profile' :
                                              settingsView === 'privacy' ? 'Privacy Policy' : 'Terms & Conditions'}
                                         </h3>
                                     </div>
 
-                                    {settingsView === 'password' ? (
+                                    {settingsView === 'profile' ? (
+                                        <form className="space-y-5" onSubmit={handleProfileUpdate}>
+                                            <div className="space-y-4">
+                                                <div className="space-y-1.5">
+                                                    <label className="text-[10px] font-mono text-gray-500 uppercase tracking-wider ml-1">Broadcast Name</label>
+                                                    <input 
+                                                        type="text" 
+                                                        required
+                                                        value={profileData.name}
+                                                        onChange={(e) => setProfileData({...profileData, name: e.target.value})}
+                                                        className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 focus:bg-white/[0.08] transition-all" 
+                                                        placeholder="Your public name"
+                                                    />
+                                                </div>
+
+                                                <div className="space-y-1.5">
+                                                    <label className="text-[10px] font-mono text-gray-500 uppercase tracking-wider ml-1">Public Bio</label>
+                                                    <textarea 
+                                                        value={profileData.bio}
+                                                        onChange={(e) => setProfileData({...profileData, bio: e.target.value})}
+                                                        className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 focus:bg-white/[0.08] transition-all min-h-[100px] resize-none" 
+                                                        placeholder="Tell the community about yourself..."
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="pt-2">
+                                                <Button type="submit" disabled={updating} className="w-full font-bold py-6 rounded-xl shadow-lg shadow-primary/20">
+                                                    {updating ? 'Updating Broadcast...' : 'Update Public Profile'}
+                                                </Button>
+                                            </div>
+                                        </form>
+                                    ) : settingsView === 'password' ? (
                                         <form className="space-y-5" onSubmit={handlePasswordUpdate}>
                                             <div className="space-y-4">
                                                 <div className="space-y-1.5">

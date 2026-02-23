@@ -26,6 +26,8 @@ export async function GET(req: Request) {
         id: true,
         email: true,
         name: true,
+        bio: true,
+        profilePath: true,
         role: true,
         notificationSettings: true,
       }
@@ -62,19 +64,23 @@ export async function PUT(req: Request) {
     }
 
     const body = await req.json();
-    const { name, email, notificationSettings } = body;
+    const { name, email, bio, profilePath, notificationSettings } = body;
 
     const updatedUser = await prisma.user.update({
       where: { id: decoded.userId },
       data: {
         ...(name && { name }),
         ...(email && { email }),
+        ...(bio && { bio }),
+        ...(profilePath && { profilePath }),
         ...(notificationSettings && { notificationSettings }),
       },
       select: {
         id: true,
         email: true,
         name: true,
+        bio: true,
+        profilePath: true,
         role: true,
         notificationSettings: true,
       }

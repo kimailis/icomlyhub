@@ -14,6 +14,8 @@ import { useUI } from '@/app/providers/UIProvider';
 import { backend } from '@/lib/api';
 import dynamic from 'next/dynamic';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import PostWall from '@/app/components/social/PostWall';
+import CommentSection from '@/app/components/social/CommentSection';
 
 interface CelebProfileViewProps {
     profile: CelebProfileType & { totalArticles?: number, actualFollowerCount?: number };
@@ -23,7 +25,9 @@ export default function CelebProfileView({ profile }: CelebProfileViewProps) {
   const router = useRouter();
   const { user, token, updateUser } = useAuth();
   const { openAuthModal } = useUI();
+  const [activeTab, setActiveTab] = useState<'insights' | 'scoops' | 'community'>('insights');
   const [visibleScoops, setVisibleScoops] = useState(3);
+  const [expandedScoopId, setExpandedScoopId] = useState<string | null>(null);
   const [following, setFollowing] = useState(user?.following?.includes(profile.id) || false);
   const [loadingFollow, setLoadingFollow] = useState(false);
 
@@ -124,130 +128,173 @@ export default function CelebProfileView({ profile }: CelebProfileViewProps) {
         </div>
       </section>
 
-      {/* Analytics Section */}
-      <section className="bg-surface/30 border border-white/5 rounded-3xl p-6 md:p-8">
-          <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-              <Activity className="text-primary" size={20} /> Buzz Velocity (30-Day Trend)
-          </h2>
-          <div className="h-[250px] w-full">
-              {profile.noiseHistory && profile.noiseHistory.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={profile.noiseHistory}>
-                          <defs>
-                              <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="5%" stopColor="#d946ef" stopOpacity={0.3}/>
-                                  <stop offset="95%" stopColor="#d946ef" stopOpacity={0}/>
-                              </linearGradient>
-                          </defs>
-                          <XAxis 
-                            dataKey="date" 
-                            hide 
-                          />
-                          <YAxis domain={[0, 100]} hide />
-                          <Tooltip 
-                            contentStyle={{ backgroundColor: '#18181b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
-                            itemStyle={{ color: '#d946ef' }}
-                            labelStyle={{ display: 'none' }}
-                          />
-                          <Area 
-                            type="monotone" 
-                            dataKey="score" 
-                            stroke="#d946ef" 
-                            strokeWidth={3}
-                            fillOpacity={1} 
-                            fill="url(#colorScore)" 
-                            animationDuration={1500}
-                          />
-                      </AreaChart>
-                  </ResponsiveContainer>
-              ) : (
-                  <div className="h-full flex items-center justify-center text-gray-600 font-mono text-xs">
-                      INSUFFICIENT HISTORICAL DATA
-                  </div>
-              )}
-          </div>
-      </section>
+      {/* Tab Navigation */}
+      <div className="flex items-center gap-1 p-1 bg-white/5 rounded-2xl border border-white/10 w-fit">
+          <button 
+            onClick={() => setActiveTab('insights')}
+            className={`px-6 py-2 rounded-xl text-xs font-bold transition-all ${activeTab === 'insights' ? 'bg-primary text-white' : 'text-gray-500 hover:text-gray-300'}`}
+          >
+            Insights
+          </button>
+          <button 
+            onClick={() => setActiveTab('scoops')}
+            className={`px-6 py-2 rounded-xl text-xs font-bold transition-all ${activeTab === 'scoops' ? 'bg-primary text-white' : 'text-gray-500 hover:text-gray-300'}`}
+          >
+            Latest Scoops
+          </button>
+          <button 
+            onClick={() => setActiveTab('community')}
+            className={`px-6 py-2 rounded-xl text-xs font-bold transition-all ${activeTab === 'community' ? 'bg-primary text-white' : 'text-gray-500 hover:text-gray-300'}`}
+          >
+            Community Wall
+          </button>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Column */}
           <div className="lg:col-span-2 space-y-10">
               
-              {/* Profile Details (Life Summary etc) */}
-              {(profile.lifeSummary || profile.hobbies) && (
-                  <section className="space-y-4">
-                      <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                          <Info className="text-primary" size={20} /> Profile
-                      </h2>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {profile.lifeSummary && (
-                              <div className="bg-surface/30 border border-white/5 rounded-2xl p-5 space-y-2">
-                                  <h3 className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Biography</h3>
-                                  <p className="text-gray-400 text-xs leading-relaxed">{profile.lifeSummary}</p>
-                              </div>
-                          )}
-                          {profile.hobbies && (
-                            <div className="bg-surface/30 border border-white/5 rounded-2xl p-5 space-y-2">
-                                <h3 className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Interests</h3>
-                                <p className="text-gray-400 text-xs leading-relaxed">{profile.hobbies}</p>
+              {activeTab === 'insights' && (
+                <div className="space-y-10 animate-fade-in">
+                    {/* Analytics Section */}
+                    <section className="bg-surface/30 border border-white/5 rounded-3xl p-6 md:p-8">
+                        <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                            <Activity className="text-primary" size={20} /> Buzz Velocity (30-Day Trend)
+                        </h2>
+                        <div className="h-[250px] w-full">
+                            {profile.noiseHistory && profile.noiseHistory.length > 0 ? (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={profile.noiseHistory}>
+                                        <defs>
+                                            <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#d946ef" stopOpacity={0.3}/>
+                                                <stop offset="95%" stopColor="#d946ef" stopOpacity={0}/>
+                                            </linearGradient>
+                                        </defs>
+                                        <XAxis dataKey="date" hide />
+                                        <YAxis domain={[0, 100]} hide />
+                                        <Tooltip 
+                                            contentStyle={{ backgroundColor: '#18181b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
+                                            itemStyle={{ color: '#d946ef' }}
+                                            labelStyle={{ display: 'none' }}
+                                        />
+                                        <Area type="monotone" dataKey="score" stroke="#d946ef" strokeWidth={3} fillOpacity={1} fill="url(#colorScore)" animationDuration={1500} />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            ) : (
+                                <div className="h-full flex items-center justify-center text-gray-600 font-mono text-xs">
+                                    INSUFFICIENT HISTORICAL DATA
+                                </div>
+                            )}
+                        </div>
+                    </section>
+
+                    {/* Profile Details (Life Summary etc) */}
+                    {(profile.lifeSummary || profile.hobbies) && (
+                        <section className="space-y-4">
+                            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                                <Info className="text-primary" size={20} /> Profile
+                            </h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {profile.lifeSummary && (
+                                    <div className="bg-surface/30 border border-white/5 rounded-2xl p-5 space-y-2">
+                                        <h3 className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Biography</h3>
+                                        <p className="text-gray-400 text-xs leading-relaxed">{profile.lifeSummary}</p>
+                                    </div>
+                                )}
+                                {profile.hobbies && (
+                                    <div className="bg-surface/30 border border-white/5 rounded-2xl p-5 space-y-2">
+                                        <h3 className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Interests</h3>
+                                        <p className="text-gray-400 text-xs leading-relaxed">{profile.hobbies}</p>
+                                    </div>
+                                )}
                             </div>
-                          )}
-                      </div>
-                  </section>
+                        </section>
+                    )}
+                </div>
               )}
 
-              {/* Latest Stories */}
-              <section className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                        <Activity className="text-primary" size={20} /> Latest Scoops
-                    </h2>
-                    <span className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">
-                        Total Scoops: {profile.totalArticles || profile.recentStories.length}
-                    </span>
+              {activeTab === 'scoops' && (
+                <section className="space-y-6 animate-fade-in">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                            <Activity className="text-primary" size={20} /> Latest Scoops
+                        </h2>
+                        <span className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">
+                            Total Scoops: {profile.totalArticles || profile.recentStories.length}
+                        </span>
+                    </div>
+                    
+                    <div className="space-y-6">
+                        {profile.recentStories.length === 0 ? (
+                            <div className="p-12 text-center bg-surface/20 rounded-3xl border border-white/5 text-gray-500 text-sm">
+                                No recent stories found.
+                            </div>
+                        ) : (
+                            <>
+                            {profile.recentStories.slice(0, visibleScoops).map((story, i) => (
+                                <div key={i} className="group p-6 rounded-3xl bg-surface/40 border border-white/5 hover:border-primary/20 hover:bg-surface/60 transition-all space-y-4">
+                                    <div>
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <span className="text-[10px] font-bold text-primary uppercase">{story.source}</span>
+                                            <span className="text-gray-600 text-[10px]">•</span>
+                                            <span className="text-[10px] text-gray-500">{story.publishedAt}</span>
+                                        </div>
+                                        <h3 className="font-bold text-lg text-white mb-2 group-hover:text-primary transition-colors">{story.title}</h3>
+                                        <p className="text-sm text-gray-400 leading-relaxed mb-4">{story.snippet}</p>
+                                        <a 
+                                            href={story.url} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-2 text-xs text-primary font-bold hover:underline"
+                                        >
+                                            View Full Story <ExternalLink size={12} />
+                                        </a>
+                                    </div>
+
+                                    <div className="flex items-center gap-6 pt-4 border-t border-white/5">
+                                        <div className="flex items-center gap-4">
+                                            <button className="flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-primary transition-colors">
+                                                <ThumbsUp size={14} /> 0
+                                            </button>
+                                            <button className="text-gray-500 hover:text-red-500 transition-colors">
+                                                <ThumbsDown size={14} />
+                                            </button>
+                                        </div>
+                                        <button 
+                                            onClick={() => setExpandedScoopId(expandedScoopId === (story as any).id ? null : (story as any).id)}
+                                            className="flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-white transition-colors"
+                                        >
+                                            <MessageSquare size={14} /> Comments
+                                        </button>
+                                    </div>
+
+                                    {expandedScoopId === (story as any).id && (
+                                        <div className="mt-4 pt-4 border-t border-white/5">
+                                            <CommentSection articleId={(story as any).id} />
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                            
+                            {visibleScoops < profile.recentStories.length && (
+                                <div className="pt-4 flex justify-center">
+                                    <Button variant="secondary" className="w-full md:w-auto min-w-[200px]" onClick={() => setVisibleScoops(prev => prev + 5)}>
+                                        Load More Scoops
+                                    </Button>
+                                </div>
+                            )}
+                            </>
+                        )}
+                    </div>
+                </section>
+              )}
+
+              {activeTab === 'community' && (
+                  <div className="animate-fade-in">
+                      <PostWall targetCelebId={profile.id} />
                   </div>
-                  
-                  <div className="space-y-4">
-                      {profile.recentStories.length === 0 ? (
-                          <div className="p-8 text-center bg-surface/20 rounded-2xl border border-white/5 text-gray-500 text-sm">
-                              No recent stories found.
-                          </div>
-                      ) : (
-                        <>
-                          {profile.recentStories.slice(0, visibleScoops).map((story, i) => (
-                              <div key={i} className="group p-5 rounded-2xl bg-surface/40 border border-white/5 hover:border-primary/20 hover:bg-surface/60 transition-all">
-                                  <div className="flex items-center gap-3 mb-2">
-                                      <span className="text-[10px] font-bold text-primary uppercase">{story.source}</span>
-                                      <span className="text-gray-600 text-[10px]">•</span>
-                                      <span className="text-[10px] text-gray-500">{story.publishedAt}</span>
-                                  </div>
-                                  <h3 className="font-bold text-lg text-white mb-2 group-hover:text-primary transition-colors">{story.title}</h3>
-                                  <p className="text-sm text-gray-400 leading-relaxed mb-4">{story.snippet}</p>
-                                  <a 
-                                      href={story.url} 
-                                      target="_blank" 
-                                      rel="noopener noreferrer"
-                                      className="inline-flex items-center gap-2 text-xs text-primary font-bold hover:underline"
-                                  >
-                                      View Full Story <ExternalLink size={12} />
-                                  </a>
-                              </div>
-                          ))}
-                          
-                          {visibleScoops < profile.recentStories.length && (
-                              <div className="pt-4 flex justify-center">
-                                  <Button 
-                                      variant="secondary" 
-                                      className="w-full md:w-auto min-w-[200px]"
-                                      onClick={() => setVisibleScoops(prev => prev + 5)}
-                                  >
-                                      Load More Scoops
-                                  </Button>
-                              </div>
-                          )}
-                        </>
-                      )}
-                  </div>
-              </section>
+              )}
           </div>
 
           {/* Sidebar */}

@@ -4,8 +4,13 @@ export interface User {
   name: string;
   email: string;
   avatarUrl?: string;
+  profilePath?: string;
+  bio?: string;
   plan: 'free' | 'pro' | 'insider';
   following: string[]; // List of celeb IDs
+  followerCount?: number;
+  followingCount?: number;
+  postCount?: number;
   notificationSettings: {
     email: boolean;
     push: boolean;
