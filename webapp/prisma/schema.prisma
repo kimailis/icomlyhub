@@ -1,0 +1,298 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String   // Hashed
+  name      String?
+  role      String   @default("free") // free, pro, insider
+  createdAt DateTime @default(now())
+  
+  // Profile Fields
+  bio         String?  @db.Text
+  profilePath String?  // Path to profile picture
+  
+  // Relations
+  following       Follow[]
+  userFollowers   UserFollow[] @relation("UserToUserFollowers")
+  userFollowing   UserFollow[] @relation("UserToUserFollowing")
+  passwordResetTokens PasswordResetToken[]
+  posts           Post[]       @relation("UserPosts")
+  receivedPosts   Post[]       @relation("ReceivedPosts")
+  comments        Comment[]
+  likes           Like[]
+
+  // Stripe Integration
+  stripeCustomerId       String?   @unique
+  stripeSubscriptionId   String?   @unique
+  stripePriceId          String?
+  stripeCurrentPeriodEnd DateTime?
+
+  // User Settings (JSON blob for flexibility)
+  notificationSettings   String?   @db.Text  // JSON: { email: bool, push: bool, weeklyDigest: bool }
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique  // Hashed OTP
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model UserFollow {
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower    User @relation("UserToUserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User @relation("UserToUserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+}
+
+model Post {
+  id          String   @id @default(uuid())
+  content     String   @db.Text
+  picPath     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Author
+  userId      String
+  user        User     @relation("UserPosts", fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Target (Profile where post is left)
+  targetUserId String?
+  targetUser   User?    @relation("ReceivedPosts", fields: [targetUserId], references: [id], onDelete: Cascade)
+  
+  targetCelebId String?
+  targetCeleb   Celebrity? @relation(fields: [targetCelebId], references: [id], onDelete: Cascade)
+
+  // Meta
+  baseRating  Int      @default(0)
+  verified    Boolean  @default(false) // For user created feed items
+
+  // Relations
+  comments    Comment[]
+  likes       Like[]
+
+  @@index([userId])
+  @@index([targetUserId])
+  @@index([targetCelebId])
+  @@index([createdAt(sort: Desc)])
+}
+
+model Comment {
+  id          String   @id @default(uuid())
+  content     String   @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Targets (a comment belongs to ONE of these)
+  postId      String?
+  post        Post?      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  
+  articleId   String?
+  article     Article?   @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  
+  sightingId  String?
+  sighting    Sighting?  @relation(fields: [sightingId], references: [id], onDelete: Cascade)
+
+  likes       Like[]
+
+  @@index([userId])
+  @@index([postId])
+  @@index([articleId])
+  @@index([sightingId])
+}
+
+model Like {
+  id          String   @id @default(uuid())
+  createdAt   DateTime @default(now())
+  isUpvote    Boolean  @default(true) // true for upvote, false for downvote
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Targets (a like belongs to ONE of these)
+  postId      String?
+  post        Post?      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  
+  commentId   String?
+  comment     Comment?   @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  
+  articleId   String?
+  article     Article?   @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  
+  sightingId  String?
+  sighting    Sighting?  @relation(fields: [sightingId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@unique([userId, commentId])
+  @@unique([userId, articleId])
+  @@unique([userId, sightingId])
+}
+
+model Celebrity {
+  id             String   @id // Slug (e.g., "taylor-swift")
+  name           String
+  bio            String   @db.Text
+  imageUrl       String
+  noiseRating    Int      // 0-100
+  trendDirection String   // up, down, flat
+  lastUpdated    DateTime @default(now())
+  followerCount  Int      @default(0)
+
+  // Enhanced Bio Fields (Public)
+  lifeSummary       String?  @db.Text  // Wikipedia-sourced career summary
+  hobbies           String?  @db.Text  // Known hobbies and interests
+  relationshipStatus String? @db.Text  // Current relationship info
+  bioLastUpdated    DateTime?
+
+  // Metadata Fields
+  nationality    String?  // "American", "British", "Japanese"
+  country        String?  // "USA", "UK", "Japan"
+  region         String?  // "North America", "Europe", "Asia"
+  primaryCity    String?  // "Los Angeles", "London", "Tokyo"
+  category       String?  // "Actor", "Musician", "Athlete", "Influencer"
+  verified       Boolean  @default(false)
+
+  // Relations
+  articles      Article[]
+  sightings     Sighting[]
+  noiseHistory  NoiseHistory[]
+  followers     Follow[]
+  osintData     CelebrityOsint?
+  posts         Post[]
+
+  @@index([noiseRating(sort: Desc)])
+  @@index([lastUpdated])
+  @@index([country])
+  @@index([region])
+}
+
+// Subscriber-only OSINT data
+model CelebrityOsint {
+  id              String   @id @default(uuid())
+  celebrityId     String   @unique
+  celebrity       Celebrity @relation(fields: [celebrityId], references: [id], onDelete: Cascade)
+  
+  // OSINT Fields (Premium Only) - null if unavailable
+  reportedPhone    String?   // Last known phone from public sources
+  currentAddress   String?   // Approximate current residence area
+  currentCar       String?   // Known vehicles
+  frequentedPlaces String?   @db.Text  // JSON array of shops/restaurants
+  socialHandles    String?   @db.Text  // JSON object of social accounts
+  additionalIntel  String?   @db.Text  // Other verified details
+  
+  lastUpdated      DateTime @default(now())
+  dataQuality      Int      @default(50)  // Confidence score 0-100
+  
+  @@index([celebrityId])
+}
+
+model Article {
+  id          String   @id @default(uuid())
+  headline    String
+  summary     String   @db.Text
+  source      String
+  sourceUrl   String
+  publishedAt DateTime
+  impactScore Int
+  category    String   // Career, Romance, Scandal
+  
+  celebrityId String
+  celebrity   Celebrity @relation(fields: [celebrityId], references: [id], onDelete: Cascade)
+
+  // Relations
+  comments    Comment[]
+  likes       Like[]
+}
+
+model Sighting {
+  id          String   @id @default(uuid())
+  location    String
+  lat         Float
+  lng         Float
+  confidence  Float
+  date        DateTime
+  snippet     String
+  
+  // New Fields
+  country     String?  // "USA", "France", "Japan"
+  region      String?  // "North America", "Europe", "Asia"
+  city        String?  // "Los Angeles", "Paris", "Tokyo"
+  verified    Boolean  @default(false)
+
+  celebrityId String
+  celebrity   Celebrity @relation(fields: [celebrityId], references: [id], onDelete: Cascade)
+
+  // Relations
+  comments    Comment[]
+  likes       Like[]
+
+  @@index([date(sort: Desc)])
+  @@index([celebrityId, date(sort: Desc)])
+  @@index([lat, lng])
+  @@index([country])
+  @@index([region])
+}
+
+model NoiseHistory {
+  id          String   @id @default(uuid())
+  score       Int
+  date        DateTime @default(now())
+  
+  celebrityId String
+  celebrity   Celebrity @relation(fields: [celebrityId], references: [id], onDelete: Cascade)
+
+  @@index([celebrityId, date(sort: Desc)]) // For noise charts
+  @@index([date]) // For time-based cleanup
+}
+
+// Aggregation table for daily stats
+model DailyStats {
+  id                String   @id @default(uuid())
+  date              DateTime @unique @default(now())
+  totalArticles     Int      @default(0)
+  totalSightings    Int      @default(0)
+  avgNoiseRating    Float    @default(0)
+  topCelebId        String?
+  topCategory       String?
+  
+  @@index([date(sort: Desc)])
+}
+
+model Follow {
+  userId      String
+  celebrityId String
+  createdAt   DateTime @default(now())
+  
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  celebrity Celebrity @relation(fields: [celebrityId], references: [id], onDelete: Cascade)
+  
+  @@id([userId, celebrityId])
+  @@index([userId]) // For user's following list
+  @@index([celebrityId]) // For celeb's follower count
+}

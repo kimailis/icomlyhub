@@ -1,0 +1,290 @@
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import { backend } from '@/lib/api';
+import { GossipHeadline, CelebProfile } from '@/lib/types';
+import dynamic from 'next/dynamic';
+const TopCelebsChart = dynamic(() => import('./TopCelebsChart').then(m => m.TopCelebsChart), { ssr: false });
+import { AdBanner } from './AdBanner';
+import { TrendingUp, Activity, Loader2, Zap, Clock, ExternalLink, ChevronDown, ChevronUp, ChevronDown as LoadMoreIcon } from 'lucide-react';
+import { Button } from './ui/Button';
+import { useAuth } from '@/app/providers/AuthProvider';
+import { useRouter } from 'next/navigation';
+
+interface DashboardProps {
+  initialFeed?: GossipHeadline[];
+  initialTopCelebs?: CelebProfile[];
+}
+
+export const Dashboard: React.FC<DashboardProps> = ({ initialFeed = [], initialTopCelebs = [] }) => {
+  const router = useRouter();
+  const { user } = useAuth();
+  const [feed, setFeed] = useState<GossipHeadline[]>(initialFeed);
+  const [topCelebs, setTopCelebs] = useState<CelebProfile[]>(initialTopCelebs);
+  const [loading, setLoading] = useState(initialFeed.length === 0);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState(20);
+
+  const shouldShowAds = !user || user.plan === 'free';
+
+  const onSelectCeleb = (id: string) => {
+    if (!id || id === 'undefined') {
+        console.error("Attempted to navigate to celebrity with invalid ID:", id);
+        return;
+    }
+    router.push(`/celebrity/${id}`);
+  };
+
+  useEffect(() => {
+    const load = async () => {
+      if (initialFeed.length > 0 && initialTopCelebs.length > 0) {
+          setLoading(false);
+          return;
+      }
+      try {
+        const [feedData, celebData] = await Promise.all([
+            backend.getFeed(),
+            backend.getTopCelebs()
+        ]);
+        setFeed(feedData);
+        setTopCelebs(celebData);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    // In Next.js, window events might still work if we emit them, 
+    // but typically we'd use polling or websockets.
+    // Keeping this for compatibility if the worker or other parts trigger it.
+    const handleUpdate = async () => {
+        const [feedData, celebData] = await Promise.all([
+            backend.getFeed(),
+            backend.getTopCelebs()
+        ]);
+        setFeed(feedData);
+        setTopCelebs(celebData);
+    };
+    window.addEventListener('feed-updated', handleUpdate);
+    
+    load();
+    return () => window.removeEventListener('feed-updated', handleUpdate);
+  }, []);
+
+  const toggleExpand = (e: React.MouseEvent | React.KeyboardEvent, id: string) => {
+    e.stopPropagation();
+    setExpandedId(expandedId === id ? null : id);
+  };
+
+  const handleLoadMore = () => {
+      setVisibleCount(prev => prev + 10);
+  };
+
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>, name: string) => {
+      const target = e.currentTarget;
+      if (target.src.includes('ui-avatars.com')) return;
+      target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'Unknown')}&background=18181b&color=fff&size=200`;
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-gray-400 space-y-4" aria-live="polite">
+        <div className="relative">
+             <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full"></div>
+             <Loader2 className="animate-spin h-10 w-10 text-primary relative z-10" />
+        </div>
+        <p className="text-sm font-mono tracking-widest uppercase animate-pulse">Spilling the tea...</p>
+      </div>
+    );
+  }
+
+  const displayedFeed = feed.slice(0, visibleCount);
+  const hasMore = visibleCount < feed.length;
+
+  return (
+    <div className="animate-fade-in space-y-8">
+      
+      {/* Header */}
+      <header className="flex flex-col md:flex-row md:items-end justify-between border-b border-white/10 pb-6 gap-2 md:gap-0">
+        <div>
+            {/* Mobile Branding */}
+            <div className="md:hidden text-[10px] font-black text-primary tracking-[0.2em] uppercase mb-1">Icomly</div>
+            
+            <h1 className="text-xl md:text-4xl font-extrabold text-white mb-1 md:mb-2 flex items-center gap-2 tracking-tight">
+                <Zap className="text-yellow-400 fill-yellow-400 w-5 h-5 md:w-8 md:h-8" />
+                The Daily Spill
+            </h1>
+            <p className="text-gray-400 text-[10px] md:text-sm font-mono">
+                LATEST SCOOPS // HOT OFF THE PRESS // VIRAL
+            </p>
+        </div>
+        <div className="hidden md:flex items-center gap-2 text-xs font-mono text-green-400 bg-green-900/20 px-3 py-1 rounded-full border border-green-500/20">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"/>
+            TRENDING NOW
+        </div>
+      </header>
+
+      {/* Top 10 Chart */}
+      <TopCelebsChart celebs={topCelebs} onSelect={onSelectCeleb} />
+
+      <div className="space-y-4" role="feed">
+        {displayedFeed.map((item, index) => {
+          const isExpanded = expandedId === item.id;
+          const showAd = shouldShowAds && (index + 1) % 5 === 0;
+          
+          return (
+            <React.Fragment key={item.id}>
+                <div 
+                className={`group relative bg-surface/40 border border-white/5 rounded-xl overflow-hidden transition-all duration-300 ${isExpanded ? 'bg-surface/80 border-primary/30 shadow-lg shadow-primary/5' : 'hover:bg-surface/60 hover:border-primary/20'}`}
+                >
+                    <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-transparent via-primary/50 to-transparent transition-opacity ${isExpanded ? 'opacity-100' : 'opacity-50 group-hover:opacity-100'}`} />
+
+                    {/* Header Button */}
+                    <button 
+                        className="w-full text-left p-3 md:p-4 flex flex-col md:flex-row gap-2 md:gap-4 md:items-center cursor-pointer focus:outline-none focus:bg-white/5"
+                        onClick={(e) => toggleExpand(e, item.id)}
+                        aria-expanded={isExpanded}
+                        aria-controls={`story-content-${item.id}`}
+                    >
+                        {/* Top Row: Image + Metadata + Score */}
+                        <div className="flex items-center gap-3 w-full md:w-auto">
+                            <div className="flex-shrink-0 w-12 h-12 md:w-16 md:h-16 rounded-lg overflow-hidden bg-black/50 border border-white/5 relative z-10">
+                                <img 
+                                    src={item.imageUrl} 
+                                    alt={item.celebName} 
+                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                    onError={(e) => handleImageError(e, item.celebName)}
+                                    referrerPolicy="no-referrer"
+                                />
+                            </div>
+
+                            <div className="flex-1 min-w-0 md:hidden">
+                                <div className="flex items-center gap-2 mb-0.5">
+                                    <span className="text-[10px] font-bold text-primary uppercase tracking-wider">{item.category}</span>
+                                    <span className="text-gray-600 text-[10px]">•</span>
+                                    <span className="text-[10px] text-gray-500">{item.timeAgo}</span>
+                                </div>
+                                <div className="font-bold text-white text-xs truncate">
+                                    {item.celebName}
+                                </div>
+                            </div>
+
+                            {/* Mobile Score & Chevron */}
+                            <div className="flex flex-shrink-0 items-center gap-3 md:hidden">
+                                <div className="flex flex-col items-end gap-0.5">
+                                    <div className={`text-lg font-bold font-mono ${item.impactScore > 90 ? 'text-red-500' : 'text-primary'}`}>
+                                        {item.impactScore}
+                                    </div>
+                                    <div className="text-[8px] text-gray-600 font-mono uppercase">Heat</div>
+                                </div>
+                                <div className={`text-gray-500 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
+                                    <ChevronDown size={18} />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Desktop Middle Block */}
+                        <div className="flex-1 min-w-0 z-10 hidden md:block">
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className="text-xs font-bold text-primary uppercase tracking-wider">{item.category}</span>
+                                <span className="text-gray-600 text-[10px]">•</span>
+                                <span className="text-xs font-medium text-gray-300">
+                                    {item.celebName}
+                                </span>
+                                <span className="text-gray-600 text-[10px]">•</span>
+                                <span className="text-xs text-gray-500 flex items-center gap-1">
+                                    <Clock size={10} /> {item.timeAgo}
+                                </span>
+                            </div>
+                            <h3 className="text-lg font-bold text-white leading-tight pr-4 truncate">
+                                {item.headline}
+                            </h3>
+                        </div>
+
+                        {/* Desktop End Block */}
+                        <div className="flex-shrink-0 flex items-center gap-4 z-10 hidden md:flex">
+                            <div className="flex flex-col items-end gap-1">
+                                <div className={`text-xl font-bold font-mono ${item.impactScore > 90 ? 'text-red-500' : 'text-primary'}`}>
+                                    {item.impactScore}
+                                </div>
+                                <div className="text-[10px] text-gray-600 font-mono uppercase tracking-widest">Heat</div>
+                            </div>
+                            <div className={`text-gray-500 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
+                                <ChevronDown size={20} />
+                            </div>
+                        </div>
+
+                        {/* Mobile Headline (Starts under image) */}
+                        <h3 className="text-sm font-bold text-white leading-snug md:hidden w-full">
+                            {item.headline}
+                        </h3>
+                    </button>
+
+                    {/* Expanded Content */}
+                    <div 
+                        id={`story-content-${item.id}`}
+                        className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${isExpanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}
+                    >
+                        <div className="overflow-hidden">
+                            <div className="px-3 pb-4 pt-2 md:pt-0 md:pl-[5.5rem]">
+                                <div className="pt-2 border-t border-white/5">
+                                    <p className="text-gray-300 text-xs md:text-sm leading-relaxed mb-4">
+                                        {item.summary || "Summary data incoming..."}
+                                    </p>
+                                    
+                                    <div className="flex gap-3">
+                                        <Button 
+                                            size="sm" 
+                                            variant="outline" 
+                                            className="gap-2"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onSelectCeleb(item.celebId);
+                                            }}
+                                        >
+                                            <Activity size={14} /> Profile
+                                        </Button>
+                                        <a 
+                                            href={item.sourceUrl} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center justify-center rounded-lg font-medium transition-colors focus:outline-none h-8 px-3 text-xs border border-white/20 bg-transparent hover:bg-white/5 text-white gap-2"
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            <ExternalLink size={14} /> Source: {item.source}
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                {showAd && <AdBanner />}
+            </React.Fragment>
+          );
+        })}
+      </div>
+
+      {hasMore && (
+          <div className="flex justify-center pt-4 pb-8">
+              <Button 
+                variant="secondary" 
+                size="lg" 
+                onClick={handleLoadMore}
+                className="w-full md:w-auto min-w-[200px] gap-2 shadow-xl shadow-secondary/10"
+              >
+                  <LoadMoreIcon size={18} /> Load More Juice
+              </Button>
+          </div>
+      )}
+      
+      {!hasMore && feed.length > 0 && (
+          <div className="text-center text-gray-500 text-xs font-mono pb-8">
+              -- ALL CAUGHT UP --
+          </div>
+      )}
+    </div>
+  );
+};

@@ -1,0 +1,82 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: icomly
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+
+  mail:
+    build:
+      context: ./smtp
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "2525:2525" # SMTP
+      - "3025:3025" # HTTP API
+    environment:
+      NODE_ENV: production
+      SMTP_PORT: 587
+      SMTP_HOST: smtp-relay.brevo.com
+      SMTP_USER: 8f45d0001@smtp-brevo.com
+      SMTP_PASS: ${SMTP_PASS:-replace_with_smtp_password}
+      HTTP_PORT: 3025
+    volumes:
+      - mail_data:/app/data
+
+  webapp:
+    build:
+      context: ./webapp
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      DATABASE_URL: postgresql://user:password@postgres:5432/icomly?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: your_jwt_secret_change_me
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      SMTP_HOST: mail
+      SMTP_PORT: 2525
+      SMTP_SECURE: "false"
+      SMTP_USER: admin
+      SMTP_PASS: none
+      SMTP_FROM: noreply@icomly.com
+      NEXT_PUBLIC_API_URL: /api
+    depends_on:
+      - postgres
+      - redis
+    ports:
+      - '3000:3000'
+
+  worker:
+    build:
+      context: ./worker
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      DATABASE_URL: postgresql://user:password@postgres:5432/icomly?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      NODE_TLS_REJECT_UNAUTHORIZED: 0
+    depends_on:
+      - postgres
+      - redis
+
+volumes:
+  postgres_data:
+  redis_data:
+  mail_data:

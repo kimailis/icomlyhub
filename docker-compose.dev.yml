@@ -1,0 +1,117 @@
+# Docker Compose for Local Development
+# Usage: docker-compose -f docker-compose.dev.yml up --build
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: icomly-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: icomly
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U user -d icomly" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: icomly-redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mail:
+    build:
+      context: ./smtp
+      dockerfile: Dockerfile
+    container_name: icomly-mail
+    restart: unless-stopped
+    ports:
+      - "2526:2525" # SMTP
+      - "3026:3025" # HTTP API
+    environment:
+      NODE_ENV: development
+      SMTP_PORT: 587
+      SMTP_HOST: smtp-relay.brevo.com
+      SMTP_USER: 8f45d0001@smtp-brevo.com
+      SMTP_PASS: ${SMTP_PASS:-replace_with_smtp_password}
+      HTTP_PORT: 3025
+    volumes:
+      - mail_data:/app/data
+
+  webapp:
+    image: node:20
+    container_name: icomly-webapp
+    restart: unless-stopped
+    working_dir: /app
+    environment:
+      DATABASE_URL: postgresql://user:password@postgres:5432/icomly?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: dev_jwt_secret_change_in_production
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      SMTP_HOST: mail
+      SMTP_PORT: 2525
+      SMTP_SECURE: "false"
+      SMTP_USER: admin
+      SMTP_PASS: none
+      SMTP_FROM: noreply@icomly.com
+      NODE_ENV: development
+      HOSTNAME: "0.0.0.0"
+      NEXT_TELEMETRY_DISABLED: "1"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mail:
+        condition: service_started
+    ports:
+      - '3001:3000'
+    volumes:
+      - ./webapp:/app
+      - webapp_node_modules:/app/node_modules
+    command: sh -c "npm install && npx prisma generate && npx prisma db push --accept-data-loss && npm run dev"
+
+  worker:
+    build:
+      context: ./worker
+      dockerfile: Dockerfile
+    container_name: icomly-worker
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://user:password@postgres:5432/icomly?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      NODE_ENV: development
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./worker:/app
+      - worker_node_modules:/app/node_modules
+    command: sh -c "npm install && npx prisma generate && npm run dev"
+
+volumes:
+  postgres_data:
+  redis_data:
+  mail_data:
+  webapp_node_modules:
+  worker_node_modules:

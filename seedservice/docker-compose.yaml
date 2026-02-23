@@ -1,0 +1,23 @@
+version: '3.8'
+
+
+
+services:
+  
+  seedservice:
+    image: node:18
+    build: .
+    environment:
+      DB_HOST: icomlydb
+      DB_USER: seeder
+      DB_PASSWORD: QQ1qaz
+      DB_NAME: icomly
+    ports:
+      - "5050:5050"
+    depends_on:
+      - icomlydb
+    networks:
+      - app-network
+    volumes:
+      - ./youtubelist.txt:/app/seedservice/youtubelist.txt
+

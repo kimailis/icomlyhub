@@ -1,0 +1,171 @@
+# Icomly Backend Specification & Architecture
+
+## 1. Project Overview
+Build a high-performance, cost-optimized Node.js backend for "Icomly", a celebrity gossip intelligence platform. The system aggregates data using Google Gemini AI, caches it aggressively to minimize costs, and serves it to a React frontend.
+
+## 2. Tech Stack Requirements
+- **Runtime:** Node.js (v18+)
+- **Framework:** Express.js or NestJS (preferred for structure).
+- **Database:** PostgreSQL (Primary data store).
+- **ORM:** Prisma (for type safety and schema management).
+- **Caching:** Redis (CRITICAL for cost reduction and speed).
+- **Queue/Workers:** BullMQ or Agenda (for background AI fetching).
+- **AI Integration:** @google/genai (Gemini 2.5/3 Flash models).
+- **Authentication:** JWT (JSON Web Tokens) + bcrypt.
+
+## 3. Architecture & Cost Optimization Strategy
+To ensure optimal performance and minimal API costs, the backend MUST follow the **"Fetch-on-Schedule, Serve-from-Cache"** pattern.
+
+### The "No-Realtime-Generation" Rule
+**NEVER** call the Gemini API directly in response to a user HTTP request (e.g., `GET /profile/:id`).
+1.  **User Request:** Hits the API -> Checks Redis -> Checks DB -> Returns Data. (Latency: <50ms).
+2.  **Background Worker:** Runs on a schedule (Cron) -> Calls Gemini API -> Updates DB -> Invalidates/Updates Redis.
+
+### Caching Strategy (Redis)
+1.  **Global Feed:** Cache key `feed:global`. TTL: 15 minutes.
+2.  **Top Celebs:** Cache key `celebs:top`. TTL: 30 minutes.
+3.  **Profile Data:** Cache key `profile:{slug}`. TTL: 1 hour.
+4.  **Map Data:** Cache key `sightings:geo`. TTL: 1 hour.
+
+## 4. Database Schema (Prisma Syntax Style)
+
+```prisma
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String   // Hashed
+  name      String?
+  role      String   @default("free") // free, pro, insider
+  createdAt DateTime @default(now())
+  
+  // Relations
+  following Follow[]
+}
+
+model Celebrity {
+  id             String   @id // Slug (e.g., "taylor-swift")
+  name           String
+  bio            String   @db.Text
+  imageUrl       String
+  noiseRating    Int      // 0-100
+  trendDirection String   // up, down, flat
+  lastUpdated    DateTime @default(now())
+
+  // Relations
+  articles      Article[]
+  sightings     Sighting[]
+  noiseHistory  NoiseHistory[]
+  followers     Follow[]
+}
+
+model Article {
+  id          String   @id @default(uuid())
+  headline    String
+  summary     String   @db.Text
+  source      String
+  sourceUrl   String
+  publishedAt DateTime
+  impactScore Int
+  category    String   // Career, Romance, Scandal
+  
+  celebrityId String
+  celebrity   Celebrity @relation(fields: [celebrityId], references: [id])
+}
+
+model Sighting {
+  id          String   @id @default(uuid())
+  location    String
+  lat         Float
+  lng         Float
+  confidence  Float
+  date        DateTime
+  snippet     String
+  
+  celebrityId String
+  celebrity   Celebrity @relation(fields: [celebrityId], references: [id])
+}
+
+model NoiseHistory {
+  id          String   @id @default(uuid())
+  score       Int
+  date        DateTime @default(now())
+  
+  celebrityId String
+  celebrity   Celebrity @relation(fields: [celebrityId], references: [id])
+}
+
+model Follow {
+  userId      String
+  celebrityId String
+  
+  user      User      @relation(fields: [userId], references: [id])
+  celebrity Celebrity @relation(fields: [celebrityId], references: [id])
+  
+  @@id([userId, celebrityId])
+}
+```
+
+## 5. API Routes Specification
+
+### Authentication
+- `POST /auth/register`: Create user, return JWT.
+- `POST /auth/login`: Validate creds, return JWT.
+- `GET /auth/me`: Return current user profile (Protected).
+
+### Public Data (Read-Heavy, Cached)
+- `GET /api/feed`:
+    - Returns latest 50 articles global.
+    - **Logic:** return `redis.get('feed:global')`.
+- `GET /api/celebs/top`:
+    - Returns top 10 celebs by noiseRating.
+    - **Logic:** return `redis.get('celebs:top')`.
+- `GET /api/celebs/:id`:
+    - Returns full profile, recent stories, sightings, and noise history chart data.
+    - **Logic:** Check Redis `profile:{id}` -> DB -> Return.
+- `GET /api/map`:
+    - Returns clustered sightings data.
+    - **Logic:** Check Redis `sightings:geo` -> DB -> Return.
+
+### User Actions (Protected)
+- `POST /api/celebs/:id/follow`: Toggle follow status.
+- `GET /api/user/following`: Get stats for followed celebs.
+- `POST /api/user/subscription`: Handle Stripe webhook/upgrade.
+
+## 6. Background Workers (The Intelligence Engine)
+
+Use a task queue (e.g., BullMQ) to manage AI generation.
+
+### Job 1: `GlobalFeedGenerator` (Runs every 30 mins)
+1.  **Prompt Gemini:** "Generate 10 trending celebrity gossip headlines based on current events..."
+2.  **Process:** Parse JSON.
+3.  **Distribute:**
+    - Insert into `Article` table.
+    - Identify mentioned celebrities.
+    - Update `Celebrity` noise ratings based on new article impact.
+    - Update `NoiseHistory`.
+4.  **Cache:** Update `feed:global` in Redis.
+
+### Job 2: `ProfileRefresher` (Continuous Round-Robin)
+1.  **Logic:** Select 10 celebrities with `lastUpdated` > 4 hours ago.
+2.  **Prompt Gemini:** "Update intelligence profile for [Name]. Generate 1 recent sighting and verify bio."
+3.  **Image:** Use Wikipedia API (MediaWiki) to fetch/validate avatar URL (Save tokens, don't use Gemini for images).
+4.  **Save:** Update DB.
+5.  **Cache:** Invalidate `profile:{id}`.
+
+### Job 3: `CleanupCrew` (Runs daily)
+1.  Delete `Article` and `Sighting` records older than 7 days (keep DB lean).
+2.  Aggregate `NoiseHistory` (keep daily averages, delete hourly data).
+
+## 7. Gemini API Implementation Details
+- **Model:** Use `gemini-3-flash-preview` for speed and lower cost. Use `gemini-3-pro-preview` ONLY for complex reasoning jobs (rare).
+- **JSON Mode:** Always force `responseMimeType: "application/json"` and provide a schema.
+- **Context Caching:** (Optional) If sending massive context about 100 celebs, utilize Gemini's context caching to save tokens on subsequent requests.
+- **Rate Limiting:** Implement a local rate limiter (bottleneck) to ensure we don't exceed Google's QPM (Queries Per Minute). Handle `429` errors with exponential backoff.
+
+## 8. Development Phases
+1.  **Setup:** Initialize Repo, TS config, Prisma, Docker (for Postgres/Redis).
+2.  **Auth & DB:** Build User models and Auth endpoints.
+3.  **AI Service:** Build the `GeminiService` class with robust error handling.
+4.  **Workers:** Set up BullMQ and the `GlobalFeedGenerator`.
+5.  **Public API:** Connect endpoints to the DB/Redis.
+6.  **Optimization:** Tune cache TTLs and Database indexes.
