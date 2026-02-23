@@ -17,9 +17,19 @@ model User {
   role      String   @default("free") // free, pro, insider
   createdAt DateTime @default(now())
   
+  // Profile Fields
+  bio         String?  @db.Text
+  profilePath String?  // Path to profile picture
+  
   // Relations
-  following Follow[]
+  following       Follow[]
+  userFollowers   UserFollow[] @relation("UserToUserFollowers")
+  userFollowing   UserFollow[] @relation("UserToUserFollowing")
   passwordResetTokens PasswordResetToken[]
+  posts           Post[]       @relation("UserPosts")
+  receivedPosts   Post[]       @relation("ReceivedPosts")
+  comments        Comment[]
+  likes           Like[]
 
   // Stripe Integration
   stripeCustomerId       String?   @unique
@@ -29,6 +39,27 @@ model User {
 
   // User Settings (JSON blob for flexibility)
   notificationSettings   String?   @db.Text  // JSON: { email: bool, push: bool, weeklyDigest: bool }
+  notifications          Notification[]
+}
+
+model Notification {
+  id          String   @id @default(uuid())
+  type        String   // LIKE, COMMENT, FOLLOW, VERIFICATION
+  message     String
+  link        String?  // Deep link to the item (e.g., /post/uuid)
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Meta (Optional refs to source of notification)
+  senderId    String?
+  postId      String?
+  commentId   String?
+
+  @@index([userId])
+  @@index([createdAt(sort: Desc)])
 }
 
 model PasswordResetToken {
@@ -43,6 +74,106 @@ model PasswordResetToken {
   
   @@index([userId])
   @@index([expiresAt])
+}
+
+model UserFollow {
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower    User @relation("UserToUserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User @relation("UserToUserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+}
+
+model Post {
+  id          String   @id @default(uuid())
+  content     String   @db.Text
+  picPath     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Author
+  userId      String
+  user        User     @relation("UserPosts", fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Target (Profile where post is left)
+  targetUserId String?
+  targetUser   User?    @relation("ReceivedPosts", fields: [targetUserId], references: [id], onDelete: Cascade)
+  
+  targetCelebId String?
+  targetCeleb   Celebrity? @relation(fields: [targetCelebId], references: [id], onDelete: Cascade)
+
+  // Meta
+  baseRating  Int      @default(0)
+  verified    Boolean  @default(false) // General verification
+  isFeedCandidate Boolean @default(false) // Flagged for global hub consideration
+
+  // Relations
+  comments    Comment[]
+  likes       Like[]
+
+  @@index([userId])
+  @@index([targetUserId])
+  @@index([targetCelebId])
+  @@index([createdAt(sort: Desc)])
+}
+
+model Comment {
+  id          String   @id @default(uuid())
+  content     String   @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Targets (a comment belongs to ONE of these)
+  postId      String?
+  post        Post?      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  
+  articleId   String?
+  article     Article?   @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  
+  sightingId  String?
+  sighting    Sighting?  @relation(fields: [sightingId], references: [id], onDelete: Cascade)
+
+  likes       Like[]
+
+  @@index([userId])
+  @@index([postId])
+  @@index([articleId])
+  @@index([sightingId])
+}
+
+model Like {
+  id          String   @id @default(uuid())
+  createdAt   DateTime @default(now())
+  isUpvote    Boolean  @default(true) // true for upvote, false for downvote
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Targets (a like belongs to ONE of these)
+  postId      String?
+  post        Post?      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  
+  commentId   String?
+  comment     Comment?   @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  
+  articleId   String?
+  article     Article?   @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  
+  sightingId  String?
+  sighting    Sighting?  @relation(fields: [sightingId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@unique([userId, commentId])
+  @@unique([userId, articleId])
+  @@unique([userId, sightingId])
 }
 
 model Celebrity {
@@ -75,6 +206,7 @@ model Celebrity {
   noiseHistory  NoiseHistory[]
   followers     Follow[]
   osintData     CelebrityOsint?
+  posts         Post[]
 
   @@index([noiseRating(sort: Desc)])
   @@index([lastUpdated])
@@ -114,6 +246,10 @@ model Article {
   
   celebrityId String
   celebrity   Celebrity @relation(fields: [celebrityId], references: [id], onDelete: Cascade)
+
+  // Relations
+  comments    Comment[]
+  likes       Like[]
 }
 
 model Sighting {
@@ -133,6 +269,10 @@ model Sighting {
 
   celebrityId String
   celebrity   Celebrity @relation(fields: [celebrityId], references: [id], onDelete: Cascade)
+
+  // Relations
+  comments    Comment[]
+  likes       Like[]
 
   @@index([date(sort: Desc)])
   @@index([celebrityId, date(sort: Desc)])

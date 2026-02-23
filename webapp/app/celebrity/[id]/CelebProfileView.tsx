@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { 
   ArrowLeft, Activity, TrendingUp, TrendingDown, 
   Minus, Users, Calendar, MapPin, ExternalLink, Shield, Info,
-  Heart, HeartOff
+  Heart, HeartOff, ThumbsUp, ThumbsDown, MessageSquare
 } from 'lucide-react';
 import { Button } from '@/app/components/ui/Button';
 import { useAuth } from '@/app/providers/AuthProvider';
@@ -16,6 +16,7 @@ import dynamic from 'next/dynamic';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import PostWall from '@/app/components/social/PostWall';
 import CommentSection from '@/app/components/social/CommentSection';
+import { ShareButton } from '@/app/components/ui/ShareButton';
 
 interface CelebProfileViewProps {
     profile: CelebProfileType & { totalArticles?: number, actualFollowerCount?: number };
@@ -119,10 +120,18 @@ export default function CelebProfileView({ profile }: CelebProfileViewProps) {
                     </Button>
                 </div>
 
-                <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex-1 md:w-32 text-center">
-                    <div className="text-2xl font-black text-white mb-0">{profile.actualFollowerCount || 0}</div>
-                    <div className="text-[10px] text-gray-500 font-mono uppercase tracking-widest">Tracking</div>
-                    <div className="flex justify-center mt-1"><Users className="text-blue-400" size={18} /></div>
+                <div className="flex-1 md:w-32 flex flex-col gap-2">
+                    <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex-1 text-center">
+                        <div className="text-2xl font-black text-white mb-0">{profile.actualFollowerCount || 0}</div>
+                        <div className="text-[10px] text-gray-500 font-mono uppercase tracking-widest">Tracking</div>
+                        <div className="flex justify-center mt-1"><Users className="text-blue-400" size={18} /></div>
+                    </div>
+                    <ShareButton 
+                        url={`/celebrity/${profile.id}`} 
+                        title={`Check out ${profile.name} on Icomly!`}
+                        variant="ghost"
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 hover:bg-white/10"
+                    />
                 </div>
             </div>
         </div>

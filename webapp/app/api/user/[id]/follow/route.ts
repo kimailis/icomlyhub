@@ -1,16 +1,20 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { verifyToken } from '@/lib/auth';
+import { NotificationService } from '@/lib/services/notification.service';
 
 // POST /api/user/[id]/follow - Follow/Unfollow a user
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const userId = verifyToken(req);
     if (!userId) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const followingId = params.id;
+    // Await params if using Next.js 15+
+    const resolvedParams = await params;
+    const followingId = resolvedParams.id;
+    
     if (userId === followingId) {
       return NextResponse.json({ message: 'Cannot follow yourself' }, { status: 400 });
     }
@@ -47,6 +51,10 @@ export async function POST(req: Request, { params }: { params: { id: string } })
           followingId: followingId
         }
       });
+
+      // Trigger notification
+      NotificationService.notifyFollow(userId, followingId);
+
       return NextResponse.json({ following: true, message: 'Followed' });
     }
   } catch (error) {

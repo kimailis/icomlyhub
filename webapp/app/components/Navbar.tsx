@@ -3,10 +3,11 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Radar, User as UserIcon, Map, Search, LogIn } from 'lucide-react';
+import { Radar, User as UserIcon, Map, Search, LogIn, Bell } from 'lucide-react';
 import { Button } from '@/app/components/ui/Button'; // Assuming we migrate UI components
 import { useAuth } from '@/app/providers/AuthProvider';
 import { useUI } from '@/app/providers/UIProvider';
+import { NotificationDropdown } from './ui/NotificationDropdown';
 
 export const Navbar: React.FC = () => {
   const pathname = usePathname();
@@ -18,14 +19,7 @@ export const Navbar: React.FC = () => {
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchValue.trim()) {
-      // Navigate to profile page for the searched celeb
-      // Convert to slug logic might be needed, but let's assume direct search for now
-      // Or we can have a search results page. The original app did `onSelectCeleb`.
-      // Let's assume we navigate to /celebrity/[slug] or a search page.
-      // For now, let's try to navigate to /celebrity/search-query which handles the lookup or redirect
-      // Actually, standard pattern:
-      const slug = searchValue.trim().toLowerCase().replace(/\s+/g, '-');
-      router.push(`/celebrity/${slug}`);
+      router.push(`/search?q=${encodeURIComponent(searchValue.trim())}`);
       setSearchValue('');
     }
   };
@@ -52,7 +46,7 @@ export const Navbar: React.FC = () => {
         {/* Logo (Desktop) */}
         <Link href="/" className="hidden md:flex items-center gap-2 text-2xl font-bold tracking-tight text-white cursor-pointer hover:opacity-80 transition-opacity">
           <Radar className="text-primary w-8 h-8" />
-          <span>Juicy<span className="text-primary">Hub</span></span>
+          <span><span className="text-primary">i</span>Comly</span>
         </Link>
 
         {/* Search Bar */}
@@ -85,15 +79,18 @@ export const Navbar: React.FC = () => {
           <div className="h-6 w-px bg-white/10 mx-2" />
 
           {user ? (
-              <div 
-                className="flex items-center gap-3 cursor-pointer hover:opacity-80 group"
-                onClick={() => openProfileModal()}
-              >
-                  <div className="text-right hidden lg:block group-hover:text-primary transition-colors">
-                      <div className="text-sm font-bold text-white">{user.name}</div>
-                      <div className="text-xs text-green-400">Online</div>
+              <div className="flex items-center gap-4">
+                  <NotificationDropdown />
+                  <div 
+                    className="flex items-center gap-3 cursor-pointer hover:opacity-80 group"
+                    onClick={() => openProfileModal()}
+                  >
+                      <div className="text-right hidden lg:block group-hover:text-primary transition-colors">
+                          <div className="text-sm font-bold text-white">{user.name}</div>
+                          <div className="text-xs text-green-400">Online</div>
+                      </div>
+                      <img src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=18181b&color=fff`} alt="User" className="w-10 h-10 rounded-full border border-white/20 group-hover:border-primary transition-colors" />
                   </div>
-                  <img src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=18181b&color=fff`} alt="User" className="w-10 h-10 rounded-full border border-white/20 group-hover:border-primary transition-colors" />
               </div>
           ) : (
               <Button onClick={() => openAuthModal()} size="sm" className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20">
@@ -103,9 +100,10 @@ export const Navbar: React.FC = () => {
         </div>
 
         {/* Mobile Nav */}
-        <div className="flex md:hidden w-full justify-around py-2">
+        <div className="flex md:hidden w-full justify-around items-center py-2">
           <NavItem href="/" icon={Radar} label="Feed" />
           <NavItem href="/sightings" icon={Map} label="Map" />
+          {user && <NotificationDropdown />}
           <div className="flex flex-col items-center gap-0.5 p-1.5 text-gray-400" onClick={() => user ? openProfileModal() : openAuthModal()}>
              {user ? <img src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=18181b&color=fff`} className="w-5 h-5 rounded-full" /> : <UserIcon size={18} />}
              <span className="text-[10px] font-medium leading-tight">{user ? 'Me' : 'Login'}</span>

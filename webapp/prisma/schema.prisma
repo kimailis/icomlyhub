@@ -30,6 +30,8 @@ model User {
   receivedPosts   Post[]       @relation("ReceivedPosts")
   comments        Comment[]
   likes           Like[]
+  notifications   Notification[] @relation("UserNotifications")
+  sentNotifications Notification[] @relation("SentNotifications")
 
   // Stripe Integration
   stripeCustomerId       String?   @unique
@@ -39,6 +41,27 @@ model User {
 
   // User Settings (JSON blob for flexibility)
   notificationSettings   String?   @db.Text  // JSON: { email: bool, push: bool, weeklyDigest: bool }
+}
+
+model Notification {
+  id          String   @id @default(uuid())
+  type        String   // LIKE, COMMENT, FOLLOW, VERIFICATION
+  message     String
+  link        String?  // Deep link to the item (e.g., /post/uuid)
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  userId      String
+  user        User     @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Meta (Optional refs to source of notification)
+  senderId    String?
+  sender      User?    @relation("SentNotifications", fields: [senderId], references: [id], onDelete: SetNull)
+  postId      String?
+  commentId   String?
+
+  @@index([userId])
+  @@index([createdAt(sort: Desc)])
 }
 
 model PasswordResetToken {
@@ -88,7 +111,8 @@ model Post {
 
   // Meta
   baseRating  Int      @default(0)
-  verified    Boolean  @default(false) // For user created feed items
+  verified    Boolean  @default(false) // General verification
+  isFeedCandidate Boolean @default(false) // Flagged for global hub consideration
 
   // Relations
   comments    Comment[]

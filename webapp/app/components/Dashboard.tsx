@@ -6,10 +6,12 @@ import { GossipHeadline, CelebProfile } from '@/lib/types';
 import dynamic from 'next/dynamic';
 const TopCelebsChart = dynamic(() => import('./TopCelebsChart').then(m => m.TopCelebsChart), { ssr: false });
 import { AdBanner } from './AdBanner';
-import { TrendingUp, Activity, Loader2, Zap, Clock, ExternalLink, ChevronDown, ChevronUp, ChevronDown as LoadMoreIcon } from 'lucide-react';
+import { TrendingUp, Activity, Loader2, Zap, Clock, ExternalLink, ChevronDown, ChevronUp, ChevronDown as LoadMoreIcon, MessageSquare, Shield } from 'lucide-react';
 import { Button } from './ui/Button';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { useRouter } from 'next/navigation';
+import PostWall from './social/PostWall';
+import { ShareButton } from './ui/ShareButton';
 
 interface DashboardProps {
   initialFeed?: GossipHeadline[];
@@ -24,6 +26,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialFeed = [], initialT
   const [loading, setLoading] = useState(initialFeed.length === 0);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(20);
+  const [activeTab, setActiveTab] = useState<'news' | 'community'>('news');
 
   const shouldShowAds = !user || user.plan === 'free';
 
@@ -109,7 +112,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialFeed = [], initialT
       <header className="flex flex-col md:flex-row md:items-end justify-between border-b border-white/10 pb-6 gap-2 md:gap-0">
         <div>
             {/* Mobile Branding */}
-            <div className="md:hidden text-[10px] font-black text-primary tracking-[0.2em] uppercase mb-1">Icomly</div>
+            <div className="md:hidden text-[10px] font-black text-primary tracking-[0.2em] mb-1">i<span className="text-white">Comly</span></div>
             
             <h1 className="text-xl md:text-4xl font-extrabold text-white mb-1 md:mb-2 flex items-center gap-2 tracking-tight">
                 <Zap className="text-yellow-400 fill-yellow-400 w-5 h-5 md:w-8 md:h-8" />
@@ -128,112 +131,129 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialFeed = [], initialT
       {/* Top 10 Chart */}
       <TopCelebsChart celebs={topCelebs} onSelect={onSelectCeleb} />
 
-      <div className="space-y-4" role="feed">
-        {displayedFeed.map((item, index) => {
-          const isExpanded = expandedId === item.id;
-          const showAd = shouldShowAds && (index + 1) % 5 === 0;
-          
-          return (
-            <React.Fragment key={item.id}>
-                <div 
-                className={`group relative bg-surface/40 border border-white/5 rounded-xl overflow-hidden transition-all duration-300 ${isExpanded ? 'bg-surface/80 border-primary/30 shadow-lg shadow-primary/5' : 'hover:bg-surface/60 hover:border-primary/20'}`}
-                >
-                    <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-transparent via-primary/50 to-transparent transition-opacity ${isExpanded ? 'opacity-100' : 'opacity-50 group-hover:opacity-100'}`} />
+      {/* Tab Navigation */}
+      <div className="flex items-center gap-1 p-1 bg-white/5 rounded-2xl border border-white/10 w-fit mb-8">
+          <button 
+            onClick={() => setActiveTab('news')}
+            className={`px-6 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${activeTab === 'news' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-gray-500 hover:text-gray-300'}`}
+          >
+            <Zap size={14} /> Latest Scoops
+          </button>
+          <button 
+            onClick={() => setActiveTab('community')}
+            className={`px-6 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${activeTab === 'community' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-gray-500 hover:text-gray-300'}`}
+          >
+            <MessageSquare size={14} /> Community Wall
+          </button>
+      </div>
 
-                    {/* Header Button */}
-                    <button 
-                        className="w-full text-left p-3 md:p-4 flex flex-col md:flex-row gap-2 md:gap-4 md:items-center cursor-pointer focus:outline-none focus:bg-white/5"
-                        onClick={(e) => toggleExpand(e, item.id)}
-                        aria-expanded={isExpanded}
-                        aria-controls={`story-content-${item.id}`}
-                    >
-                        {/* Top Row: Image + Metadata + Score */}
-                        <div className="flex items-center gap-3 w-full md:w-auto">
-                            <div className="flex-shrink-0 w-12 h-12 md:w-16 md:h-16 rounded-lg overflow-hidden bg-black/50 border border-white/5 relative z-10">
-                                <img 
-                                    src={item.imageUrl} 
-                                    alt={item.celebName} 
-                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                    onError={(e) => handleImageError(e, item.celebName)}
-                                    referrerPolicy="no-referrer"
-                                />
-                            </div>
+      {activeTab === 'news' ? (
+        <div className="space-y-4" role="feed">
+          {displayedFeed.map((item, index) => {
+            const isExpanded = expandedId === item.id;
+            const showAd = shouldShowAds && (index + 1) % 5 === 0;
+            
+            return (
+              <React.Fragment key={item.id}>
+                  <div 
+                  className={`group relative bg-surface/40 border border-white/5 rounded-xl overflow-hidden transition-all duration-300 ${isExpanded ? 'bg-surface/80 border-primary/30 shadow-lg shadow-primary/5' : 'hover:bg-surface/60 hover:border-primary/20'}`}
+                  >
+                      <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-transparent via-primary/50 to-transparent transition-opacity ${isExpanded ? 'opacity-100' : 'opacity-50 group-hover:opacity-100'}`} />
 
-                            <div className="flex-1 min-w-0 md:hidden">
-                                <div className="flex items-center gap-2 mb-0.5">
-                                    <span className="text-[10px] font-bold text-primary uppercase tracking-wider">{item.category}</span>
-                                    <span className="text-gray-600 text-[10px]">•</span>
-                                    <span className="text-[10px] text-gray-500">{item.timeAgo}</span>
-                                </div>
-                                <div className="font-bold text-white text-xs truncate">
-                                    {item.celebName}
-                                </div>
-                            </div>
+                      {/* Header Button */}
+                      <button 
+                          className="w-full text-left p-3 md:p-4 flex flex-col md:flex-row gap-2 md:gap-4 md:items-center cursor-pointer focus:outline-none focus:bg-white/5"
+                          onClick={(e) => toggleExpand(e, item.id)}
+                          aria-expanded={isExpanded}
+                          aria-controls={`story-content-${item.id}`}
+                      >
+                          {/* Top Row: Image + Metadata + Score */}
+                          <div className="flex items-center gap-3 w-full md:w-auto">
+                              <div className="flex-shrink-0 w-12 h-12 md:w-16 md:h-16 rounded-lg overflow-hidden bg-black/50 border border-white/5 relative z-10">
+                                  <img 
+                                      src={item.imageUrl} 
+                                      alt={item.celebName} 
+                                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                      onError={(e) => handleImageError(e, item.celebName)}
+                                      referrerPolicy="no-referrer"
+                                  />
+                              </div>
 
-                            {/* Mobile Score & Chevron */}
-                            <div className="flex flex-shrink-0 items-center gap-3 md:hidden">
-                                <div className="flex flex-col items-end gap-0.5">
-                                    <div className={`text-lg font-bold font-mono ${item.impactScore > 90 ? 'text-red-500' : 'text-primary'}`}>
-                                        {item.impactScore}
-                                    </div>
-                                    <div className="text-[8px] text-gray-600 font-mono uppercase">Heat</div>
-                                </div>
-                                <div className={`text-gray-500 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
-                                    <ChevronDown size={18} />
-                                </div>
-                            </div>
-                        </div>
+                              <div className="flex-1 min-w-0 md:hidden">
+                                  <div className="flex items-center gap-2 mb-0.5">
+                                      <span className="text-[10px] font-bold text-primary uppercase tracking-wider">{item.category}</span>
+                                      <span className="text-gray-600 text-[10px]">•</span>
+                                      <span className="text-[10px] text-gray-500">{item.timeAgo}</span>
+                                  </div>
+                                  <div className="font-bold text-white text-xs truncate">
+                                      {item.celebName}
+                                  </div>
+                              </div>
 
-                        {/* Desktop Middle Block */}
-                        <div className="flex-1 min-w-0 z-10 hidden md:block">
-                            <div className="flex items-center gap-2 mb-1">
-                                <span className="text-xs font-bold text-primary uppercase tracking-wider">{item.category}</span>
-                                <span className="text-gray-600 text-[10px]">•</span>
-                                <span className="text-xs font-medium text-gray-300">
-                                    {item.celebName}
-                                </span>
-                                <span className="text-gray-600 text-[10px]">•</span>
-                                <span className="text-xs text-gray-500 flex items-center gap-1">
-                                    <Clock size={10} /> {item.timeAgo}
-                                </span>
-                            </div>
-                            <h3 className="text-lg font-bold text-white leading-tight pr-4 truncate">
-                                {item.headline}
-                            </h3>
-                        </div>
+                              {/* Mobile Score & Chevron */}
+                              <div className="flex flex-shrink-0 items-center gap-3 md:hidden">
+                                  <div className="flex flex-col items-end gap-0.5">
+                                      <div className={`text-lg font-bold font-mono ${item.impactScore > 90 ? 'text-red-500' : 'text-primary'}`}>
+                                          {item.impactScore}
+                                      </div>
+                                      <div className="text-[8px] text-gray-600 font-mono uppercase">Heat</div>
+                                  </div>
+                                  <div className={`text-gray-500 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
+                                      <ChevronDown size={18} />
+                                  </div>
+                              </div>
+                          </div>
 
-                        {/* Desktop End Block */}
-                        <div className="flex-shrink-0 flex items-center gap-4 z-10 hidden md:flex">
-                            <div className="flex flex-col items-end gap-1">
-                                <div className={`text-xl font-bold font-mono ${item.impactScore > 90 ? 'text-red-500' : 'text-primary'}`}>
-                                    {item.impactScore}
-                                </div>
-                                <div className="text-[10px] text-gray-600 font-mono uppercase tracking-widest">Heat</div>
-                            </div>
-                            <div className={`text-gray-500 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
-                                <ChevronDown size={20} />
-                            </div>
-                        </div>
+                          {/* Desktop Middle Block */}
+                          <div className="flex-1 min-w-0 z-10 hidden md:block">
+                              <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-xs font-bold text-primary uppercase tracking-wider">{item.category}</span>
+                                  <span className="text-gray-600 text-[10px]">•</span>
+                                  <span className="text-xs font-medium text-gray-300">
+                                      {item.celebName}
+                                  </span>
+                                  <span className="text-gray-600 text-[10px]">•</span>
+                                  <span className="text-xs text-gray-500 flex items-center gap-1">
+                                      <Clock size={10} /> {item.timeAgo}
+                                  </span>
+                              </div>
+                              <h3 className="text-lg font-bold text-white leading-tight pr-4 truncate">
+                                  {item.headline}
+                              </h3>
+                          </div>
 
-                        {/* Mobile Headline (Starts under image) */}
-                        <h3 className="text-sm font-bold text-white leading-snug md:hidden w-full">
-                            {item.headline}
-                        </h3>
-                    </button>
+                          {/* Desktop End Block */}
+                          <div className="flex-shrink-0 flex items-center gap-4 z-10 hidden md:flex">
+                              <div className="flex flex-col items-end gap-1">
+                                  <div className={`text-xl font-bold font-mono ${item.impactScore > 90 ? 'text-red-500' : 'text-primary'}`}>
+                                      {item.impactScore}
+                                  </div>
+                                  <div className="text-[10px] text-gray-600 font-mono uppercase tracking-widest">Heat</div>
+                              </div>
+                              <div className={`text-gray-500 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
+                                  <ChevronDown size={20} />
+                              </div>
+                          </div>
 
-                    {/* Expanded Content */}
-                    <div 
-                        id={`story-content-${item.id}`}
-                        className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${isExpanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}
-                    >
-                        <div className="overflow-hidden">
-                            <div className="px-3 pb-4 pt-2 md:pt-0 md:pl-[5.5rem]">
-                                <div className="pt-2 border-t border-white/5">
-                                    <p className="text-gray-300 text-xs md:text-sm leading-relaxed mb-4">
-                                        {item.summary || "Summary data incoming..."}
-                                    </p>
-                                    
-                                    <div className="flex gap-3">
+                          {/* Mobile Headline (Starts under image) */}
+                          <h3 className="text-sm font-bold text-white leading-snug md:hidden w-full">
+                              {item.headline}
+                          </h3>
+                      </button>
+
+                      {/* Expanded Content */}
+                      <div 
+                          id={`story-content-${item.id}`}
+                          className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${isExpanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}
+                      >
+                          <div className="overflow-hidden">
+                              <div className="px-3 pb-4 pt-2 md:pt-0 md:pl-[5.5rem]">
+                                  <div className="pt-2 border-t border-white/5">
+                                      <p className="text-gray-300 text-xs md:text-sm leading-relaxed mb-4">
+                                          {item.summary || "Summary data incoming..."}
+                                      </p>
+                                      
+                                      <div className="flex gap-3">
                                         <Button 
                                             size="sm" 
                                             variant="outline" 
@@ -245,45 +265,62 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialFeed = [], initialT
                                         >
                                             <Activity size={14} /> Profile
                                         </Button>
-                                        <a 
-                                            href={item.sourceUrl} 
-                                            target="_blank" 
-                                            rel="noopener noreferrer"
-                                            className="inline-flex items-center justify-center rounded-lg font-medium transition-colors focus:outline-none h-8 px-3 text-xs border border-white/20 bg-transparent hover:bg-white/5 text-white gap-2"
-                                            onClick={(e) => e.stopPropagation()}
-                                        >
-                                            <ExternalLink size={14} /> Source: {item.source}
-                                        </a>
+                                        <ShareButton 
+                                            url={`/celebrity/${item.celebId}`} 
+                                            title={item.headline}
+                                            variant="outline"
+                                            size="sm"
+                                        />
+                                        {item.source.includes('Icomly') ? (
+                                            <div className="inline-flex items-center justify-center rounded-lg font-medium h-8 px-3 text-[10px] border border-primary/30 bg-primary/5 text-primary gap-2 uppercase tracking-widest font-bold">
+                                                <Shield size={12} /> Verified Scoop: {item.source.split('//')[1]}
+                                            </div>
+                                        ) : (
+                                            <a 
+                                                href={item.sourceUrl} 
+                                                target="_blank" 
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center justify-center rounded-lg font-medium transition-colors focus:outline-none h-8 px-3 text-xs border border-white/20 bg-transparent hover:bg-white/5 text-white gap-2"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                <ExternalLink size={14} /> Source: {item.source}
+                                            </a>
+                                        )}
                                     </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                {showAd && <AdBanner />}
-            </React.Fragment>
-          );
-        })}
-      </div>
+                                  </div>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+                  
+                  {showAd && <AdBanner />}
+              </React.Fragment>
+            );
+          })}
 
-      {hasMore && (
-          <div className="flex justify-center pt-4 pb-8">
-              <Button 
-                variant="secondary" 
-                size="lg" 
-                onClick={handleLoadMore}
-                className="w-full md:w-auto min-w-[200px] gap-2 shadow-xl shadow-secondary/10"
-              >
-                  <LoadMoreIcon size={18} /> Load More Juice
-              </Button>
-          </div>
-      )}
-      
-      {!hasMore && feed.length > 0 && (
-          <div className="text-center text-gray-500 text-xs font-mono pb-8">
-              -- ALL CAUGHT UP --
-          </div>
+          {hasMore && (
+              <div className="flex justify-center pt-4 pb-8">
+                  <Button 
+                    variant="secondary" 
+                    size="lg" 
+                    onClick={handleLoadMore}
+                    className="w-full md:w-auto min-w-[200px] gap-2 shadow-xl shadow-secondary/10"
+                  >
+                      <LoadMoreIcon size={18} /> Load More Juice
+                  </Button>
+              </div>
+          )}
+          
+          {!hasMore && feed.length > 0 && (
+              <div className="text-center text-gray-500 text-xs font-mono pb-8">
+                  -- ALL CAUGHT UP --
+              </div>
+          )}
+        </div>
+      ) : (
+        <div className="animate-fade-in max-w-4xl">
+            <PostWall title="Global Broadcast Feed" />
+        </div>
       )}
     </div>
   );

@@ -1,0 +1,256 @@
+'use client';
+
+import React, { useState, useEffect, useRef } from 'react';
+import { useAuth } from '@/app/providers/AuthProvider';
+import { Bell, Check, Trash2, ExternalLink, Heart, MessageSquare, UserPlus, ShieldCheck, X } from 'lucide-react';
+
+interface Notification {
+  id: string;
+  type: 'LIKE' | 'COMMENT' | 'FOLLOW' | 'VERIFICATION';
+  message: string;
+  link: string | null;
+  read: boolean;
+  createdAt: string;
+}
+
+export function NotificationDropdown() {
+  const { user, token } = useAuth();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isOpen, setIsOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const fetchNotifications = async () => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const res = await fetch('/api/notifications', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setNotifications(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch notifications:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user && token) {
+      fetchNotifications();
+      
+      // Real-time SSE Stream
+      const streamUrl = `/api/notifications/stream?token=${token}`; // Token in query for SSE
+      const eventSource = new EventSource(streamUrl);
+
+      eventSource.onmessage = (event) => {
+        try {
+          const newNotification = JSON.parse(event.data);
+          setNotifications(prev => [newNotification, ...prev]);
+          
+          // Optional: Browser notification
+          if (Notification.permission === 'granted') {
+             new Notification('Icomly Alert', { body: newNotification.message });
+          }
+        } catch (err) {
+          console.error('Failed to parse stream message:', err);
+        }
+      };
+
+      eventSource.onerror = (err) => {
+        console.error('SSE Error:', err);
+        eventSource.close();
+        // Fallback to polling on error
+        const interval = setInterval(fetchNotifications, 60000);
+        return () => clearInterval(interval);
+      };
+
+      return () => eventSource.close();
+    }
+  }, [user, token]);
+
+  // Request notification permission on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const markAsRead = async (id?: string) => {
+    if (!token) return;
+    try {
+      const res = await fetch('/api/notifications', {
+        method: 'PATCH',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify({ ids: id ? [id] : undefined })
+      });
+      if (res.ok) {
+        if (id) {
+          setNotifications(notifications.map(n => n.id === id ? { ...n, read: true } : n));
+        } else {
+          setNotifications(notifications.map(n => ({ ...n, read: true })));
+        }
+      }
+    } catch (err) {
+      console.error('Failed to mark as read:', err);
+    }
+  };
+
+  const deleteNotification = async (id: string) => {
+    if (!token) return;
+    try {
+      const res = await fetch('/api/notifications', {
+        method: 'DELETE',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify({ id })
+      });
+      if (res.ok) {
+        setNotifications(notifications.filter(n => n.id !== id));
+      }
+    } catch (err) {
+      console.error('Failed to delete notification:', err);
+    }
+  };
+
+  const getIcon = (type: string) => {
+    switch (type) {
+      case 'LIKE': return <Heart className="text-red-500" size={14} />;
+      case 'COMMENT': return <MessageSquare className="text-primary" size={14} />;
+      case 'FOLLOW': return <UserPlus className="text-blue-500" size={14} />;
+      case 'VERIFICATION': return <ShieldCheck className="text-green-500" size={14} />;
+      default: return <Bell size={14} />;
+    }
+  };
+
+  if (!user) return null;
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="p-2.5 rounded-2xl bg-white/5 border border-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-all relative"
+      >
+        <Bell size={20} />
+        {unreadCount > 0 && (
+          <span className="absolute top-2 right-2 w-4 h-4 bg-primary text-white text-[10px] font-bold flex items-center justify-center rounded-full animate-pulse">
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </span>
+        )}
+      </button>
+
+      {isOpen && (
+        <div className="absolute top-14 right-0 w-80 max-h-[480px] bg-surface border border-white/10 rounded-3xl shadow-2xl z-50 overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="p-4 border-b border-white/5 flex items-center justify-between bg-white/5">
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider">Notifications</h3>
+            {unreadCount > 0 && (
+              <button 
+                onClick={() => markAsRead()}
+                className="text-[10px] font-bold text-primary hover:underline uppercase tracking-tighter"
+              >
+                Mark all read
+              </button>
+            )}
+          </div>
+
+          <div className="overflow-y-auto flex-1 custom-scrollbar">
+            {loading && notifications.length === 0 ? (
+              <div className="p-12 text-center text-[10px] font-mono text-gray-500 animate-pulse uppercase tracking-widest">
+                Fetching_Intelligence...
+              </div>
+            ) : notifications.length === 0 ? (
+              <div className="p-12 text-center">
+                <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center mx-auto mb-3">
+                  <Bell className="text-gray-700" size={24} />
+                </div>
+                <p className="text-xs text-gray-500 font-mono uppercase tracking-widest">No activity reported.</p>
+              </div>
+            ) : (
+              notifications.map((notification) => (
+                <div 
+                  key={notification.id}
+                  className={`p-4 border-b border-white/5 flex gap-3 group hover:bg-white/[0.02] transition-colors relative ${!notification.read ? 'bg-primary/5' : ''}`}
+                >
+                  <div className="flex-shrink-0 mt-1">
+                    <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center border border-white/5">
+                      {getIcon(notification.type)}
+                    </div>
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-xs leading-relaxed ${notification.read ? 'text-gray-400' : 'text-gray-200 font-medium'}`}>
+                      {notification.message}
+                    </p>
+                    <span className="text-[9px] text-gray-600 font-mono mt-1 block">
+                      {new Date(notification.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} // {new Date(notification.createdAt).toLocaleDateString()}
+                    </span>
+                    
+                    {notification.link && (
+                      <a 
+                        href={notification.link}
+                        className="inline-flex items-center gap-1 text-[9px] font-bold text-primary hover:underline mt-2 uppercase tracking-widest"
+                        onClick={() => {
+                          markAsRead(notification.id);
+                          setIsOpen(false);
+                        }}
+                      >
+                        View Details <ExternalLink size={8} />
+                      </a>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {!notification.read && (
+                      <button 
+                        onClick={() => markAsRead(notification.id)}
+                        className="p-1.5 rounded-lg text-gray-500 hover:text-green-500 hover:bg-green-500/10 transition-all"
+                        title="Mark as read"
+                      >
+                        <Check size={12} />
+                      </button>
+                    )}
+                    <button 
+                      onClick={() => deleteNotification(notification.id)}
+                      className="p-1.5 rounded-lg text-gray-500 hover:text-red-500 hover:bg-red-500/10 transition-all"
+                      title="Delete"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="p-3 border-t border-white/5 bg-white/5 text-center">
+             <button className="text-[10px] font-bold text-gray-500 hover:text-white uppercase tracking-widest transition-colors">
+               View All Activity Log
+             </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

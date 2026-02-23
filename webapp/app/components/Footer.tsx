@@ -13,7 +13,7 @@ export const Footer: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
           <div className="md:col-span-2 space-y-4">
             <div className="flex items-center gap-2">
-              <span className="text-xl font-black text-white tracking-tighter uppercase">Icomly</span>
+              <span className="text-xl font-black text-white tracking-tighter"><span className="text-primary">i</span>Comly</span>
             </div>
             <p className="text-gray-500 text-sm max-w-sm leading-relaxed">
               Your real-time destination for celebrity news, sightings, and global entertainment trends. 
@@ -36,14 +36,14 @@ export const Footer: React.FC = () => {
               <li><button onClick={() => openAuthModal('privacy')} className="text-gray-500 hover:text-primary text-sm transition-colors text-left">Privacy Policy</button></li>
               <li><button onClick={() => openAuthModal('terms')} className="text-gray-500 hover:text-primary text-sm transition-colors text-left">Terms of Service</button></li>
               <li><button onClick={() => openAuthModal('contact')} className="text-gray-500 hover:text-primary text-sm transition-colors text-left">Contact Us</button></li>
-              <li><Link href="/about" className="text-gray-500 hover:text-primary text-sm transition-colors">About Icomly</Link></li>
+              <li><Link href="/about" className="text-gray-500 hover:text-primary text-sm transition-colors">About iComly</Link></li>
             </ul>
           </div>
         </div>
         
         <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-gray-600 text-xs font-mono">
-            &copy; 2026 ICOMLY. ALL RIGHTS RESERVED.
+          <p className="text-gray-600 text-xs font-mono uppercase">
+            &copy; 2026 <span className="text-primary">i</span>COMLY. ALL RIGHTS RESERVED.
           </p>
           <div className="flex items-center gap-6">
             <span className="text-[10px] text-gray-700 font-mono tracking-widest uppercase">Verified News Source</span>

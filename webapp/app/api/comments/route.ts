@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { verifyToken } from '@/lib/auth';
+import { NotificationService } from '@/lib/services/notification.service';
 
 // GET /api/comments - Fetch comments for a specific target
 export async function GET(req: Request) {
@@ -84,6 +85,11 @@ export async function POST(req: Request) {
         }
       }
     });
+
+    // Trigger notification for comments on posts
+    if (postId) {
+      NotificationService.notifyComment(userId, { postId, content });
+    }
 
     return NextResponse.json(comment);
   } catch (error) {

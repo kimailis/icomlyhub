@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { verifyToken } from '@/lib/auth';
+import { NotificationService } from '@/lib/services/notification.service';
 
 // POST /api/likes - Like/Dislike content
 export async function POST(req: Request) {
@@ -35,6 +36,12 @@ export async function POST(req: Request) {
           where: { id: existingLike.id },
           data: { isUpvote }
         });
+        
+        // Trigger notification only on upvote change
+        if (isUpvote) {
+            NotificationService.notifyLike(userId, { postId, commentId });
+        }
+
         return NextResponse.json({ liked: true, isUpvote, message: 'Like updated' });
       }
     } else {
@@ -48,6 +55,12 @@ export async function POST(req: Request) {
           sightingId
         }
       });
+
+      // Trigger notification for new upvote
+      if (isUpvote) {
+        NotificationService.notifyLike(userId, { postId, commentId });
+      }
+
       return NextResponse.json({ liked: true, isUpvote, message: 'Like created' });
     }
   } catch (error) {

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { verifyToken } from '@/lib/auth';
+import { verificationQueue } from '@/lib/queue'; // Assuming queues are exported here
 
 // GET /api/posts - Fetch posts with filters
 export async function GET(req: Request) {
@@ -54,7 +55,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { content, picPath, targetUserId, targetCelebId, verified } = await req.body.json();
+    const { content, picPath, targetUserId, targetCelebId, verified, isFeedCandidate } = await req.json();
 
     if (!content) {
       return NextResponse.json({ message: 'Content is required' }, { status: 400 });
@@ -67,7 +68,8 @@ export async function POST(req: Request) {
         userId,
         targetUserId,
         targetCelebId,
-        verified: verified || false // If created as a feed item, needs verification logic
+        verified: verified || false,
+        isFeedCandidate: isFeedCandidate || false // Only flag if user wants verification
       },
       include: {
         user: {
@@ -79,6 +81,11 @@ export async function POST(req: Request) {
         }
       }
     });
+
+    // If flagged as a potential scoop, add to verification pipeline
+    if (post.isFeedCandidate) {
+      await verificationQueue.add('verify-post', { postId: post.id });
+    }
 
     return NextResponse.json(post);
   } catch (error) {

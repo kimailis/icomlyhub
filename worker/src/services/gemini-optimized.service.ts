@@ -159,7 +159,6 @@ export class GeminiOptimizedService {
       // Fix common JSON errors from LLMs
       cleaned = cleaned
           .replace(/,\s*([}\]])/g, '$1') // Remove trailing commas
-          .replace(/(\w+):/g, '"$1":') // Ensure keys are quoted (if not already)
           .replace(/":\s*'([^']*)'/g, '": "$1"') // Convert single quoted values to double
           .replace(/\\'/g, "'"); // Unescape single quotes
           
@@ -187,6 +186,21 @@ export class GeminiOptimizedService {
     console.log(`[Gemini] 📦 Generating batch of ${prompts.length} requests...`);
     const result = await this.generateContent(batchPrompt);
     return result.responses || [];
+  }
+
+  /**
+   * Simple text generation wrapper
+   */
+  async generateText(prompt: string, options?: { skipCache?: boolean; useSearch?: boolean }): Promise<string> {
+    const wrappedPrompt = `
+      ${prompt}
+      
+      IMPORTANT: Return your response as a JSON object with a single "text" field.
+      Format: { "text": "your response here" }
+    `;
+    
+    const result = await this.generateContent(wrappedPrompt, options);
+    return result.text || '';
   }
 
   /**

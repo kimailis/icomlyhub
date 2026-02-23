@@ -529,9 +529,12 @@ const backfillCelebJob = async (name: string) => {
             4. Relationship Status (SPECIFIC: If married/dating, MUST include partner name).
             5. Nationality (string).
             
+            CRITICAL: Return ONLY a valid JSON object. NO preamble, NO markdown blocks, NO commentary.
+            Ensure all double quotes INSIDE string values are properly escaped with a backslash (\\").
+            
             Format: { 
-                "articles": [{headline, summary, source, sourceUrl, category, impactScore, publishedAt}], 
-                "sighting": {location, lat: 0.0, lng: 0.0, snippet},
+                "articles": [{"headline": "text", "summary": "text", "source": "text", "sourceUrl": "text", "category": "text", "impactScore": 50, "publishedAt": "ISO Date"}], 
+                "sighting": {"location": "text", "lat": 0.0, "lng": 0.0, "snippet": "text"},
                 "hobbies": "surfing, coding",
                 "relationshipStatus": "Married to [Partner Name] OR Dating [Partner Name] OR Single",
                 "nationality": "American"
@@ -916,7 +919,10 @@ CONTEXT: Today is ${getCurrentDateString()}.
 4. Each summary MUST be a detailed paragraph (at least 3-4 sentences) providing extensive detail, background context, and juicy specifics. Avoid brief 1-2 sentence summaries.
 5. IMPORTANT: sourceUrl MUST be the DIRECT, PERMANENT link to the original news article. DO NOT use search results, temporary redirects (like vertexaisearch.cloud.google.com), or landing pages.
 
-Format: JSON object { "articles": [{ headline, summary, source, sourceUrl, celebName (MUST be the FULL NAME, e.g. "Brooklyn Beckham" not "Brooklyn"), buzzScore (10-99, be precise e.g. 87, 92, 94), trend ("up"|"down"|"stable"|"volatile"), category, publishedAt (ISO date string) }] }.`;
+CRITICAL: Return ONLY a valid JSON object. NO preamble, NO markdown blocks, NO commentary.
+Ensure all double quotes INSIDE string values are properly escaped with a backslash (\\").
+
+Format: JSON object { "articles": [{ "headline": "text", "summary": "text", "source": "text", "sourceUrl": "text", "celebName": "FULL NAME", "buzzScore": 50, "trend": "up", "category": "text", "publishedAt": "ISO Date" }] }.`;
 
         const data = await geminiOptimizedService.generateContent(prompt, { useSearch: true });
 
@@ -1101,7 +1107,19 @@ Format: JSON object { "articles": [{ headline, summary, source, sourceUrl, celeb
         }
     }
 
-    const finalFeed = feed.slice(0, 50);
+    const finalFeed = feed.slice(0, 50).map(a => ({
+        id: a.id,
+        type: 'ARTICLE',
+        headline: a.headline,
+        summary: a.summary,
+        source: a.source,
+        sourceUrl: a.sourceUrl,
+        publishedAt: a.publishedAt,
+        impactScore: a.impactScore,
+        category: a.category,
+        celebrity: a.celebrity,
+        timestamp: new Date(a.publishedAt).getTime()
+    }));
 
     await redisClient.set('feed:global', JSON.stringify(finalFeed), { EX: 900 });
 };
@@ -1135,7 +1153,10 @@ CONTEXT: Today is ${getCurrentDateString()}.
 4. Each summary MUST be a detailed paragraph (at least 3-4 sentences) providing extensive detail, regional context, and specifics. Avoid brief summaries.
 5. IMPORTANT: sourceUrl MUST be the DIRECT, PERMANENT link to the original news article. DO NOT use search results, temporary redirects (like vertexaisearch.cloud.google.com), or landing pages.
 
-Format: JSON object { "articles": [{ headline, summary, source, sourceUrl, celebName (FULL NAME), buzzScore (10-95), category, publishedAt }] }`;
+CRITICAL: Return ONLY a valid JSON object. NO preamble, NO markdown blocks, NO commentary.
+Ensure all double quotes INSIDE string values are properly escaped with a backslash (\\").
+
+Format: JSON object { "articles": [{ "headline": "text", "summary": "text", "source": "text", "sourceUrl": "text", "celebName": "FULL NAME", "buzzScore": 50, "category": "text", "publishedAt": "ISO Date" }] }`;
 
         const data = await geminiOptimizedService.generateContent(prompt, { useSearch: true });
 
@@ -1643,21 +1664,21 @@ const feedWorker = new Worker('feed-generation', async (job: Job) => {
 });
 
 setTimeout(() => {
-    // feedQueue.add('SeedCelebs', {});
+    feedQueue.add('SeedCelebs', {});
     // feedQueue.add('MassiveSeed', {}); // Run massive seed check on startup
-    // feedQueue.add('GlobalFeedGenerator', {});
-    // feedQueue.add('ProfileRefresher', {});
+    feedQueue.add('GlobalFeedGenerator', {});
+    feedQueue.add('ProfileRefresher', {});
     // feedQueue.add('BioRefresher', {});
-    // feedQueue.add('OsintCollector', {});  // Run on startup
+    feedQueue.add('OsintCollector', {});  // Run on startup
     // feedQueue.add('PopulateQuickFacts', {});  // Populate ALL quick facts on startup
     // feedQueue.add('CleanupDeceased', {});  // Remove deceased celebrities on startup
-    // feedQueue.add('NormalizeScores', {});  // Run immediately
+    feedQueue.add('NormalizeScores', {});  // Run immediately
     
     // Initial Regional Feeds
-    // feedQueue.add('RegionalFeedGenerator', { region: 'Asia' });
-    // feedQueue.add('RegionalFeedGenerator', { region: 'Europe' });
-    // feedQueue.add('RegionalFeedGenerator', { region: 'North America' });
-    console.log('[Worker] Startup jobs skipped for cost optimization.');
+    feedQueue.add('RegionalFeedGenerator', { region: 'Asia' });
+    feedQueue.add('RegionalFeedGenerator', { region: 'Europe' });
+    feedQueue.add('RegionalFeedGenerator', { region: 'North America' });
+    // console.log('[Worker] Startup jobs skipped for cost optimization.');
 }, 5000);
 
 feedQueue.add('GlobalFeedGenerator', {}, { repeat: { pattern: '*/15 * * * *' } });

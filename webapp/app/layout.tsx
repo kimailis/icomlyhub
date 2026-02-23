@@ -13,8 +13,30 @@ import { Footer } from './components/Footer';
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
 export const metadata: Metadata = {
-  title: 'Icomly - Celebrity Tracking',
-  description: 'Real-time celebrity news and sightings tracker.',
+  title: 'iComly - Real-time Celebrity Intelligence',
+  description: 'Global celebrity news, sightings, and real-time noise tracking system. Access exclusive scoops and community broadcasts.',
+  openGraph: {
+    title: 'iComly - Real-time Celebrity Intelligence',
+    description: 'Track the worlds biggest stars in real-time. Exclusive news, sightings, and community alerts.',
+    url: 'https://icomly.com',
+    siteName: 'iComly',
+    images: [
+      {
+        url: 'https://icomly.com/og-image.jpg',
+        width: 1200,
+        height: 630,
+        alt: 'iComly Dashboard',
+      },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'iComly - Real-time Celebrity Intelligence',
+    description: 'Global celebrity news and sightings tracker.',
+    images: ['https://icomly.com/og-image.jpg'],
+  },
 };
 
 export default function RootLayout({

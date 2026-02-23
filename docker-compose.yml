@@ -27,6 +27,7 @@ services:
     ports:
       - "2525:2525" # SMTP
       - "3025:3025" # HTTP API
+      - "587:587"   # SMTP with STARTTLS
     environment:
       NODE_ENV: production
       SMTP_PORT: 587
@@ -59,7 +60,7 @@ services:
       - postgres
       - redis
     ports:
-      - '3000:3000'
+      - '80:3000'
 
   worker:
     build:

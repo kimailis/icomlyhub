@@ -201,7 +201,7 @@ export const AuthModal: React.FC = () => {
             <>
                 <div className="text-center mb-6">
                     <h2 className="text-xl font-bold text-white mb-1">
-                        {view === 'login' ? 'Welcome Back' : 'Join Icomly'}
+                        {view === 'login' ? 'Welcome Back' : 'Join iComly'}
                     </h2>
                     <p className="text-gray-400 text-xs">
                         {view === 'login' ? 'Access your tracking feed.' : 'Start tracking celebrity news.'}

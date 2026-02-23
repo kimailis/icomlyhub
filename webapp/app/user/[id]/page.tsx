@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { useUI } from '@/app/providers/UIProvider';
@@ -8,7 +8,9 @@ import { Button } from '@/app/components/ui/Button';
 import { ArrowLeft, User as UserIcon, Calendar, MessageSquare, Shield, Users } from 'lucide-react';
 import PostWall from '@/app/components/social/PostWall';
 
-export default function UserProfilePage({ params }: { params: { id: string } }) {
+export default function UserProfilePage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = use(params);
+  const userId = resolvedParams.id;
   const router = useRouter();
   const { user: currentUser, token } = useAuth();
   const { openAuthModal } = useUI();
@@ -19,7 +21,7 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
 
   const fetchProfile = async () => {
     try {
-      const res = await fetch(`/api/user/${params.id}`);
+      const res = await fetch(`/api/user/${userId}`);
       if (res.ok) {
         const data = await res.json();
         setUserProfile(data);
@@ -33,7 +35,7 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
 
   useEffect(() => {
     fetchProfile();
-  }, [params.id]);
+  }, [userId]);
 
   const handleFollow = async () => {
     if (!currentUser || !token) {
@@ -43,7 +45,7 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
 
     setLoadingFollow(true);
     try {
-      const res = await fetch(`/api/user/${params.id}/follow`, {
+      const res = await fetch(`/api/user/${userId}/follow`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -158,7 +160,7 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
 
       {/* Profile Wall */}
       <section className="bg-surface/10 rounded-3xl p-6 md:p-8 border border-white/5 shadow-2xl">
-        <PostWall targetUserId={params.id} title={`${userProfile.name || 'User'}'s Wall`} />
+        <PostWall targetUserId={userId} title={`${userProfile.name || 'User'}'s Wall`} />
       </section>
     </div>
   );

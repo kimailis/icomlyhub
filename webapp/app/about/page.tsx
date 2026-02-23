@@ -24,7 +24,7 @@ export default function AboutPage() {
           THE <span className="text-primary">JUICE</span> IS REAL.
         </h1>
         <p className="text-xl text-gray-400 font-mono uppercase tracking-widest">
-          ICOMLY // GLOBAL ENTERTAINMENT HUB
+          <span className="text-primary lowercase">i</span>COMLY // GLOBAL ENTERTAINMENT HUB
         </p>
       </section>
 
@@ -33,7 +33,7 @@ export default function AboutPage() {
           <Zap className="text-primary" size={32} />
           <h2 className="text-2xl font-bold text-white">Our Mission</h2>
           <p className="text-gray-400 leading-relaxed">
-            In an era of fragmented social media and endless noise, Icomly provides a unified destination for celebrity news. We aggregate real-time stories, sightings, and trends to give you the most accurate look at global celebrity influence.
+            In an era of fragmented social media and endless noise, iComly provides a unified destination for celebrity news. We aggregate real-time stories, sightings, and trends to give you the most accurate look at global celebrity influence.
           </p>
         </div>
 
@@ -70,7 +70,7 @@ export default function AboutPage() {
       <section className="bg-primary/10 border border-primary/20 p-12 rounded-[3rem] text-center space-y-6">
         <h2 className="text-3xl font-black text-white italic">Ready for more juice?</h2>
         <p className="text-gray-300 max-w-lg mx-auto">
-          Upgrade to Icomly Pro for exclusive insider data, early alerts, and deep historical insights.
+          Upgrade to iComly Pro for exclusive insider data, early alerts, and deep historical insights.
         </p>
         <button 
           onClick={handleGoPro}
