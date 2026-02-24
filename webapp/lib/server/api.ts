@@ -142,23 +142,26 @@ export async function getTopCelebsServer(): Promise<CelebProfile[]> {
 
 export async function getProfileServer(id: string): Promise<any> {
     try {
-        const celebrity = await prisma.celebrity.findUnique({
-            where: { id },
-            include: {
-                articles: {
-                    take: 10,
-                    orderBy: { publishedAt: 'desc' }
-                },
-                sightings: {
-                    take: 10,
-                    orderBy: { date: 'desc' }
-                },
-                noiseHistory: {
-                    take: 30,
-                    orderBy: { date: 'desc' }
+        const [celebrity, followerCount] = await Promise.all([
+            prisma.celebrity.findUnique({
+                where: { id },
+                include: {
+                    articles: {
+                        take: 10,
+                        orderBy: { publishedAt: 'desc' }
+                    },
+                    sightings: {
+                        take: 10,
+                        orderBy: { date: 'desc' }
+                    },
+                    noiseHistory: {
+                        take: 30,
+                        orderBy: { date: 'desc' }
+                    }
                 }
-            }
-        });
+            }),
+            prisma.follow.count({ where: { celebrityId: id } })
+        ]);
 
         if (!celebrity) return null;
 
@@ -171,8 +174,8 @@ export async function getProfileServer(id: string): Promise<any> {
             bio: celebrity.bio,
             noiseRating: celebrity.noiseRating,
             trendDirection: celebrity.trendDirection,
-            followerCount: celebrity.followerCount,
-            actualFollowerCount: celebrity.followerCount,
+            followerCount: followerCount,
+            actualFollowerCount: followerCount,
             category: celebrity.category,
             nationality: celebrity.nationality,
             verified: celebrity.verified,

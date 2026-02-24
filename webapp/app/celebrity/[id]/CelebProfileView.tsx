@@ -44,6 +44,7 @@ export default function CelebProfileView({ profile }: CelebProfileViewProps) {
         const newFollowing = await backend.followCeleb(profile.id, token);
         setFollowing(newFollowing.includes(profile.id));
         updateUser({ ...user, following: newFollowing });
+        router.refresh();
     } catch (e) {
         console.error("Failed to follow/unfollow:", e);
     } finally {
