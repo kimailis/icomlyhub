@@ -1681,15 +1681,15 @@ setTimeout(() => {
     // console.log('[Worker] Startup jobs skipped for cost optimization.');
 }, 5000);
 
-feedQueue.add('GlobalFeedGenerator', {}, { repeat: { pattern: '*/15 * * * *' } });
-feedQueue.add('ProfileRefresher', {}, { repeat: { pattern: '*/30 * * * *' } });
-feedQueue.add('BioRefresher', {}, { repeat: { pattern: '0 */2 * * *' } });
+feedQueue.add('GlobalFeedGenerator', {}, { repeat: { pattern: '*/30 * * * *' } });
+feedQueue.add('ProfileRefresher', {}, { repeat: { pattern: '0 * * * *' } });
+feedQueue.add('BioRefresher', {}, { repeat: { pattern: '0 */4 * * *' } });
 feedQueue.add('OsintCollector', {}, { repeat: { pattern: '0 3 * * *' } });  // Daily at 3 AM
 feedQueue.add('CleanupCrew', {}, { repeat: { pattern: '0 0 * * *' } });
 feedQueue.add('WeeklyDigest', {}, { repeat: { pattern: '0 9 * * 0' } });  // Sundays at 9 AM
-feedQueue.add('NormalizeScores', {}, { repeat: { pattern: '*/30 * * * *' } }); // Every 30 mins
+feedQueue.add('NormalizeScores', {}, { repeat: { pattern: '0 * * * *' } }); // Hourly
 
-// Regional Feeds Schedule (staggered)
-feedQueue.add('RegionalFeedGenerator', { region: 'Asia' }, { repeat: { pattern: '0 * * * *' } }); // Hourly
-feedQueue.add('RegionalFeedGenerator', { region: 'Europe' }, { repeat: { pattern: '20 * * * *' } }); // Offset by 20 mins
-feedQueue.add('RegionalFeedGenerator', { region: 'North America' }, { repeat: { pattern: '40 * * * *' } }); // Offset by 40 mins
+// Regional Feeds Schedule (staggered) - Every 2 hours instead of hourly
+feedQueue.add('RegionalFeedGenerator', { region: 'Asia' }, { repeat: { pattern: '0 */2 * * *' } }); 
+feedQueue.add('RegionalFeedGenerator', { region: 'Europe' }, { repeat: { pattern: '20 */2 * * *' } }); 
+feedQueue.add('RegionalFeedGenerator', { region: 'North America' }, { repeat: { pattern: '40 */2 * * *' } }); 

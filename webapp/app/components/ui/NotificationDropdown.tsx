@@ -251,11 +251,7 @@ export function NotificationDropdown() {
         )}
       </div>
 
-      <div className="p-4 md:p-3 border-t border-white/5 bg-white/5 text-center">
-         <button className="w-full py-3 md:py-1.5 text-[10px] font-black text-gray-500 hover:text-white uppercase tracking-[0.2em] transition-colors">
-           View All Activity Log
-         </button>
-      </div>
+
     </div>
   );
 
@@ -377,11 +373,7 @@ export function NotificationDropdown() {
                 )}
               </div>
 
-              <div className="p-3 border-t border-white/5 bg-white/5 text-center">
-                 <button className="text-[10px] font-bold text-gray-500 hover:text-white uppercase tracking-widest transition-colors">
-                   View All Activity Log
-                 </button>
-              </div>
+
             </div>
           </div>
         </>

@@ -5,15 +5,17 @@ import redisClient, { connectRedis } from '../config/redis';
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
 
 export class GeminiOptimizedService {
-  private modelName: string;
   private CACHE_TTL = 24 * 60 * 60; // 24 hours in seconds
+  private SEARCH_CACHE_TTL = 72 * 60 * 60; // 72 hours for search results
+  private GROUNDING_FEE = 0.035; // $0.035 per search request
   
   // Cost tracking
   private stats = {
     totalCalls: 0,
     cachedCalls: 0,
     totalInputTokens: 0,
-    totalOutputTokens: 0
+    totalOutputTokens: 0,
+    totalSearchCalls: 0
   };
 
   constructor(modelName: string = 'gemini-2.0-flash') {
@@ -48,6 +50,7 @@ export class GeminiOptimizedService {
 
     // Make API call
     this.stats.totalCalls++;
+    if (options?.useSearch) this.stats.totalSearchCalls++;
     console.log(`[Gemini] 🔄 Making API call... (Search: ${options?.useSearch ? 'ON' : 'OFF'})`);
     
     try {
@@ -98,13 +101,14 @@ export class GeminiOptimizedService {
       
       // Cache the result in Redis
       try {
-        await redisClient.set(cacheKey, JSON.stringify(data), { EX: this.CACHE_TTL });
+        const ttl = options?.useSearch ? this.SEARCH_CACHE_TTL : this.CACHE_TTL;
+        await redisClient.set(cacheKey, JSON.stringify(data), { EX: ttl });
       } catch (err) {
         console.error('[Gemini] Redis cache write error:', err);
       }
       
       // Log cost estimate
-      const cost = this.estimateCost(inputTokens, outputTokens);
+      const cost = this.estimateCost(inputTokens, outputTokens, options?.useSearch);
       console.log(`[Gemini] 💰 Estimated cost: $${cost.toFixed(4)}`);
       
       return data;
@@ -210,13 +214,15 @@ export class GeminiOptimizedService {
   getStats() {
     const inputCost = (this.stats.totalInputTokens / 1_000_000) * 0.075;
     const outputCost = (this.stats.totalOutputTokens / 1_000_000) * 0.30;
-    const totalCost = inputCost + outputCost;
+    const groundingCost = this.stats.totalSearchCalls * this.GROUNDING_FEE;
+    const totalCost = inputCost + outputCost + groundingCost;
     const cacheHitRate = (this.stats.totalCalls + this.stats.cachedCalls) > 0 
       ? (this.stats.cachedCalls / (this.stats.totalCalls + this.stats.cachedCalls)) * 100
       : 0;
     
     return {
       totalCalls: this.stats.totalCalls,
+      totalSearchCalls: this.stats.totalSearchCalls,
       cachedCalls: this.stats.cachedCalls,
       cacheHitRate: cacheHitRate.toFixed(2) + '%',
       totalInputTokens: this.stats.totalInputTokens,
@@ -224,6 +230,7 @@ export class GeminiOptimizedService {
       estimatedCost: {
         input: inputCost.toFixed(4),
         output: outputCost.toFixed(4),
+        grounding: groundingCost.toFixed(4),
         total: totalCost.toFixed(4)
       }
     };
@@ -245,10 +252,11 @@ export class GeminiOptimizedService {
     return crypto.createHash('md5').update(prompt).digest('hex');
   }
 
-  private estimateCost(inputTokens: number, outputTokens: number): number {
+  private estimateCost(inputTokens: number, outputTokens: number, usedSearch?: boolean): number {
     const inputCost = (inputTokens / 1_000_000) * 0.075;
     const outputCost = (outputTokens / 1_000_000) * 0.30;
-    return inputCost + outputCost;
+    const groundingCost = usedSearch ? this.GROUNDING_FEE : 0;
+    return inputCost + outputCost + groundingCost;
   }
 }
 
