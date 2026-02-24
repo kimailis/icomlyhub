@@ -228,7 +228,7 @@ export const ProfileModal: React.FC = () => {
                 <div className={`flex-1 p-6 md:p-8 relative bg-[#09090b] ${activeTab === 'settings' && settingsView !== 'menu' ? 'h-full overflow-hidden' : 'overflow-y-auto'}`}>
 
                     {activeTab === 'overview' && (
-                        <div className="space-y-6 animate-fade-in">
+                        <div className="space-y-6 animate-fade-in pb-10 md:pb-0">
                             <h3 className="text-xl font-bold text-white mb-4">Following Feed</h3>
                             {loadingStats ? (
                                 <div className="space-y-3">
@@ -274,7 +274,7 @@ export const ProfileModal: React.FC = () => {
                     )}
 
                     {activeTab === 'subscription' && (
-                        <div className="space-y-6 animate-fade-in">
+                        <div className="space-y-6 animate-fade-in pb-10 md:pb-0">
                             {!showHistory ? (
                                 <>
                                     <h3 className="text-xl font-bold text-white mb-4">Plan Management</h3>
@@ -342,7 +342,7 @@ export const ProfileModal: React.FC = () => {
                     )}
 
                     {activeTab === 'settings' && (
-                        <div className={`animate-fade-in ${settingsView === 'menu' ? 'space-y-8 pb-10' : 'h-full flex flex-col'}`}>
+                        <div className={`animate-fade-in ${settingsView === 'menu' ? 'space-y-8 pb-20 md:pb-10' : 'h-full flex flex-col'}`}>
                             {settingsView === 'menu' ? (
                                 <>
                                     <div>
@@ -415,9 +415,9 @@ export const ProfileModal: React.FC = () => {
 
                                             <button 
                                                 onClick={() => { logout(); closeProfileModal(); }}
-                                                className="w-full flex items-center justify-center gap-3 p-3 bg-red-500/10 border border-red-500/20 rounded-lg hover:bg-red-500/20 text-red-400 transition-all font-bold group mt-2"
+                                                className="w-full flex items-center justify-center gap-3 p-4 bg-red-500/10 border border-red-500/20 rounded-xl hover:bg-red-500/20 text-red-400 transition-all font-bold group mt-6"
                                             >
-                                                <LogOut size={16} className="group-hover:translate-x-1 transition-transform" />
+                                                <LogOut size={18} className="group-hover:translate-x-1 transition-transform" />
                                                 <span>Log Out</span>
                                             </button>
                                         </div>
@@ -440,7 +440,7 @@ export const ProfileModal: React.FC = () => {
                                     </div>
 
                                     {settingsView === 'profile' ? (
-                                        <form className="space-y-5 overflow-y-auto pr-1 scrollbar-hide" onSubmit={handleProfileUpdate}>
+                                        <form className="space-y-5 overflow-y-auto pr-1 scrollbar-hide pb-10" onSubmit={handleProfileUpdate}>
                                             <div className="space-y-4">
                                                 <div className="space-y-1.5">
                                                     <label className="text-[10px] font-mono text-gray-500 uppercase tracking-wider ml-1">Broadcast Name</label>
@@ -472,7 +472,7 @@ export const ProfileModal: React.FC = () => {
                                             </div>
                                         </form>
                                     ) : settingsView === 'password' ? (
-                                        <form className="space-y-5 overflow-y-auto pr-1 scrollbar-hide" onSubmit={handlePasswordUpdate}>
+                                        <form className="space-y-5 overflow-y-auto pr-1 scrollbar-hide pb-10" onSubmit={handlePasswordUpdate}>
                                             <div className="space-y-4">
                                                 <div className="space-y-1.5">
                                                     <label className="text-[10px] font-mono text-gray-500 uppercase tracking-wider ml-1">Current Password</label>
@@ -523,9 +523,11 @@ export const ProfileModal: React.FC = () => {
                                             </div>
                                         </form>
                                     ) : (
-                                        <div className="flex-1 bg-surface/30 rounded-xl p-4 border border-white/5 text-sm text-gray-300 space-y-4 whitespace-pre-wrap scrollbar-thin scrollbar-thumb-white/10 overflow-y-auto">
-                                            {settingsView === 'privacy' ? PRIVACY_POLICY : TERMS_AND_CONDITIONS}
-                                            <div className="pt-6 flex justify-center pb-4">
+                                        <div className="flex-1 min-h-0 flex flex-col">
+                                            <div className="flex-1 bg-surface/30 rounded-xl p-4 border border-white/5 text-sm text-gray-300 whitespace-pre-wrap overflow-y-auto scrollbar-thin scrollbar-thumb-white/10">
+                                                {settingsView === 'privacy' ? PRIVACY_POLICY : TERMS_AND_CONDITIONS}
+                                            </div>
+                                            <div className="pt-4 flex justify-center pb-6 shrink-0">
                                                 <button 
                                                     onClick={() => setSettingsView('menu')}
                                                     className="flex items-center gap-2 text-xs text-primary font-bold hover:underline"
