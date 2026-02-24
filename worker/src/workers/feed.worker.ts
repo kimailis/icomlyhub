@@ -1124,165 +1124,155 @@ Format: JSON object { "articles": [{ "headline": "text", "summary": "text", "sou
     await redisClient.set('feed:global', JSON.stringify(finalFeed), { EX: 900 });
 };
 
-const regionalFeedGenerator = async (region: string) => {
-    console.log(`[RegionalFeed] Starting for ${region}...`);
+const regionalFeedGenerator = async () => {
+    console.log(`[RegionalFeed] Starting Merged Regional Pulse...`);
     try {
-        // Get sample of celebs from this region
-        const celebs = await prisma.celebrity.findMany({
-            where: { 
-                region: region,
-                verified: true
-            },
-            take: 10,
-            orderBy: { noiseRating: 'desc' } // Get top stars from region
-        });
-
-        if (celebs.length === 0) {
-            console.log(`[RegionalFeed] No celebs found for ${region}`);
-            return;
-        }
-
-        const celebNames = celebs.map(c => c.name).join(', ');
-
+        const regions = ['Asia', 'Europe', 'North America'];
         const prompt = `
-TASK: Search for REAL, REGIONAL celebrity news for: ${region}.
+TASK: Search for the TOP REAL celebrity news story for EACH of these regions: ${regions.join(', ')}.
 CONTEXT: Today is ${getCurrentDateString()}.
-1. Focus on these stars if trending: ${celebNames}.
-2. OR find other major breaking news from ${region}'s entertainment scene.
-3. Must be REAL events from the LAST 48 HOURS.
-4. Each summary MUST be a detailed paragraph (at least 3-4 sentences) providing extensive detail, regional context, and specifics. Avoid brief summaries.
-5. IMPORTANT: sourceUrl MUST be the DIRECT, PERMANENT link to the original news article. DO NOT use search results, temporary redirects (like vertexaisearch.cloud.google.com), or landing pages.
+1. Find ONE major breaking news story per region from the LAST 48 HOURS.
+2. For each, provide a detailed 3-4 sentence summary and a direct source URL.
+3. If no major news exists for a region, focus on a top trending star from that area.
 
-CRITICAL: Return ONLY a valid JSON object. NO preamble, NO markdown blocks, NO commentary.
-Ensure all double quotes INSIDE string values are properly escaped with a backslash (\\").
-
-Format: JSON object { "articles": [{ "headline": "text", "summary": "text", "source": "text", "sourceUrl": "text", "celebName": "FULL NAME", "buzzScore": 50, "category": "text", "publishedAt": "ISO Date" }] }`;
+Format JSON: { 
+  "articles": [
+    { "headline": "text", "summary": "text", "source": "text", "sourceUrl": "text", "celebName": "FULL NAME", "buzzScore": 50, "category": "text", "region": "Region Name" }
+  ] 
+}`;
 
         const data = await geminiOptimizedService.generateContent(prompt, { useSearch: true });
 
         if (data.articles && Array.isArray(data.articles)) {
             for (const item of data.articles) {
-                 if (!item.celebName) continue;
-                 
-                // Same logic as Global Feed
-                 // Normalize the name
-                 const normalizedName = normalizePersonName(item.celebName);
-                 const cleanName = cleanCelebName(normalizedName);
-                 const slug = slugify(cleanName);
-                 
-                 // Reuse existing logic via DB transaction (simplified here for brevity, best to refactor common logic)
-                 // For now, we'll just check existence and create article
-                 
-                 const existingCeleb = await prisma.celebrity.findUnique({ where: { id: slug } });
-                 if (!existingCeleb) continue; // Only attach to existing celebs for regional feed to maintain quality
+                const normalizedName = normalizePersonName(item.celebName);
+                const cleanName = cleanCelebName(normalizedName);
+                const slug = slugify(cleanName);
+                
+                const existingCeleb = await prisma.celebrity.findUnique({ where: { id: slug } });
+                if (!existingCeleb) continue;
 
-                 await prisma.article.create({
-                     data: {
-                         headline: item.headline,
-                         summary: item.summary,
-                         source: item.source || "Regional News",
-                         sourceUrl: item.sourceUrl || "https://news.google.com",
-                         publishedAt: new Date(),
-                         impactScore: item.buzzScore || 50,
-                         category: item.category || "General",
-                         celebrityId: existingCeleb.id
-                     }
-                 });
-                 console.log(`[RegionalFeed] Added article for ${cleanName}`);
+                await prisma.article.create({
+                    data: {
+                        headline: item.headline,
+                        summary: item.summary,
+                        source: item.source || "Regional Pulse",
+                        sourceUrl: item.sourceUrl || "https://news.google.com",
+                        publishedAt: new Date(),
+                        impactScore: item.buzzScore || 50,
+                        category: item.category || "General",
+                        celebrityId: existingCeleb.id
+                    }
+                });
+                console.log(`[RegionalFeed] Added ${item.region} story for ${cleanName}`);
             }
         }
-
     } catch (e) {
-        console.error(`[RegionalFeed] Failed for ${region}:`, e);
+        console.error(`[RegionalFeed] Merged pulse failed:`, e);
     }
 };
 
-const profileRefresher = async () => {
-    const BATCH_SIZE = 5;
-    const TOTAL_TO_PROCESS = 5; // Cost optimization: Reduced from 25
+const profileRefresher = async (job?: Job) => {
+    const isPriority = job?.data?.priority === true;
+    const BATCH_SIZE = isPriority ? 10 : 50; // Increased deep batch to 50
+    const TOTAL_TO_PROCESS = isPriority ? 10 : 50; 
 
     const celebs = await prisma.celebrity.findMany({
-        where: {
+        where: isPriority ? {
+            noiseRating: { gte: 80 }
+        } : {
             OR: [
-                // Only pick celebs who have NOT had a sighting in the last 24 hours
                 { sightings: { none: { date: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } } } },
-                { imageUrl: { contains: 'ui-avatars.com' } },
-                { imageUrl: { endsWith: '.svg' } },
-                { imageUrl: { endsWith: '.SVG' } }
+                { imageUrl: { contains: 'ui-avatars.com' } }
             ]
         },
         take: TOTAL_TO_PROCESS,
+        orderBy: isPriority ? { noiseRating: 'desc' } : { lastUpdated: 'asc' },
         include: { osintData: true }
     });
 
-    console.log(`[ProfileRefresher] Found ${celebs.length} celebs to refresh.`);
+    console.log(`[ProfileRefresher] Found ${celebs.length} celebs to refresh (Priority: ${isPriority}).`);
+    if (celebs.length === 0) return;
 
-    // Process in batches to control concurrency
-    for (let i = 0; i < celebs.length; i += BATCH_SIZE) {
-        const batch = celebs.slice(i, i + BATCH_SIZE);
-        await Promise.all(batch.map(async (c) => {
-            try {
-                const isPlaceholder = c.imageUrl.includes('ui-avatars.com') || c.imageUrl.toLowerCase().endsWith('.svg');
-                
-                if (isPlaceholder) {
-                    const clean = cleanCelebName(c.name);
-                    const newImg = await getWikipediaImage(clean);
-                    if (newImg && !newImg.toLowerCase().endsWith('.svg')) {
-                        await prisma.celebrity.update({ where: { id: c.id }, data: { imageUrl: newImg } });
-                        console.log(`[ProfileRefresher] Fixed image for ${c.name}: ${newImg}`);
-                    }
-                }
+    // Fix placeholder images first (FREE Wikipedia calls)
+    for (const c of celebs) {
+        const isPlaceholder = c.imageUrl.includes('ui-avatars.com') || c.imageUrl.toLowerCase().endsWith('.svg');
+        if (isPlaceholder) {
+            const clean = cleanCelebName(c.name);
+            const newImg = await getWikipediaImage(clean);
+            if (newImg && !newImg.toLowerCase().endsWith('.svg')) {
+                await prisma.celebrity.update({ where: { id: c.id }, data: { imageUrl: newImg } });
+                console.log(`[ProfileRefresher] Fixed image for ${c.name}: ${newImg}`);
+            }
+        }
+    }
 
-                // IMPROVED: Real-time Sighting Search
-                const knownLocation = c.osintData?.currentAddress || c.primaryCity || c.country || "USA";
-                const frequented = c.osintData?.frequentedPlaces ? `Known hangouts: ${c.osintData.frequentedPlaces}` : "";
+    // BATCHED Search for sightings
+    const celebList = celebs.map(c => {
+        const knownLocation = c.osintData?.currentAddress || c.primaryCity || c.country || "USA";
+        const frequented = c.osintData?.frequentedPlaces ? `Known hangouts: ${c.osintData.frequentedPlaces}` : "";
+        return `${c.name} (${c.category}, based in ${knownLocation}. ${frequented})`;
+    }).join('\n');
 
-                const prompt = `
-Task: Find the REAL current location of ${c.name} (${c.category}).
+    const prompt = `
+Task: Find the REAL current locations of these celebrities.
 Context: Today is ${getCurrentDateString()}.
-1. USE GOOGLE SEARCH to find recent sightings, social media posts, or news from the LAST 3 DAYS.
+CELEBRITIES:
+${celebList}
+
+1. USE GOOGLE SEARCH to find recent sightings, social media posts, or news from the LAST 48 HOURS for EACH.
 2. If they are on tour, filming, or at an event, use that location.
-3. If NO recent public data exists, fall back to their known residence/base: ${knownLocation}. ${frequented}
-4. The snippet MUST be a short, punchy sentence or two (e.g. "Spotted grabbing coffee in Soho, wearing an oversized hoodie.")
-   - If real news found: "Spotted at [Event]..."
-   - If fallback used: "Seen near their home in [Location]..."
+3. If NO recent public data exists, fall back to their known residence/base.
+4. The snippet MUST be a short, punchy sentence or two (e.g. "Spotted grabbing coffee in Soho...").
 
-Format JSON: { "location": "City, Country", "lat": 0.0, "lng": 0.0, "snippet": "..." }
-`;
-                
-                const res = await geminiOptimizedService.generateContent(prompt, { useSearch: true });
+Format JSON: { 
+  "results": [
+    { "name": "Exact Celeb Name", "location": "City, Country", "lat": 0.0, "lng": 0.0, "snippet": "..." },
+    ...
+  ] 
+}`;
 
-                // Fallback to seed data if available
+    try {
+        const data = await geminiOptimizedService.generateContent(prompt, { useSearch: true });
+        
+        if (data.results && Array.isArray(data.results)) {
+            for (const res of data.results) {
+                const celeb = celebs.find(c => c.name.toLowerCase() === res.name.toLowerCase());
+                if (!celeb) continue;
+
                 let lat = res.lat;
                 let lng = res.lng;
+                
+                // Fallback to seed data if available
                 if (!lat || !lng) {
-                    const seed = SEED_CELEBS.find(s => s.name === c.name);
+                    const seed = SEED_CELEBS.find(s => s.name === celeb.name);
                     if (seed) { lat = seed.lat; lng = seed.lng; }
                 }
 
                 if (lat && lng) {
                     await prisma.sighting.create({
                         data: {
-                            location: res.location,
+                            location: res.location || celeb.primaryCity || "Unknown",
                             lat: lat,
                             lng: lng,
-                            country: c.country,
-                            region: c.region,
-                            city: res.location.split(',')[0].trim(),
-                            confidence: 0.7,
+                            country: celeb.country,
+                            region: celeb.region,
+                            city: res.location ? res.location.split(',')[0].trim() : (celeb.primaryCity || "Unknown"),
+                            confidence: 0.9,
                             date: new Date(),
-                            snippet: res.snippet,
-                            celebrityId: c.id,
+                            snippet: res.snippet || `Spotted in ${res.location}`,
+                            celebrityId: celeb.id,
                             verified: true
                         }
                     });
-                    console.log(`[ProfileRefresher] Created sighting for ${c.name}`);
+                    console.log(`[ProfileRefresher] Created sighting for ${celeb.name}`);
                 }
-            } catch (e) { 
-                console.error(`Refresher failed for ${c.name}`, e); 
             }
-        }));
+        }
+    } catch (e) {
+        console.error(`[ProfileRefresher] Batched search failed`, e);
     }
+    
     await redisClient.del('sightings:geo:v2');
 };
 
@@ -1648,14 +1638,14 @@ const feedWorker = new Worker('feed-generation', async (job: Job) => {
     else if (job.name === 'MassiveSeed') await massiveSeedJob();
     else if (job.name === 'BackfillCeleb') await backfillCelebJob(job.data.name);
     else if (job.name === 'GlobalFeedGenerator') await globalFeedGenerator();
-    else if (job.name === 'ProfileRefresher') await profileRefresher();
+    else if (job.name === 'ProfileRefresher') await profileRefresher(job);
     else if (job.name === 'BioRefresher') await bioRefresher();
     else if (job.name === 'OsintCollector') await osintCollector();
     else if (job.name === 'CleanupCrew') await cleanupCrew();
     else if (job.name === 'PopulateQuickFacts') await populateAllQuickFacts();
     else if (job.name === 'CleanupDeceased') await cleanupDeceasedCelebs();
     else if (job.name === 'WeeklyDigest') await weeklyDigestJob();
-    else if (job.name === 'RegionalFeedGenerator') await regionalFeedGenerator(job.data.region);
+    else if (job.name === 'RegionalFeedGenerator') await regionalFeedGenerator();
     else if (job.name === 'NormalizeScores') await normalizeScoresJob();
 }, {
     connection,
@@ -1665,31 +1655,19 @@ const feedWorker = new Worker('feed-generation', async (job: Job) => {
 
 setTimeout(() => {
     feedQueue.add('SeedCelebs', {});
-    // feedQueue.add('MassiveSeed', {}); // Run massive seed check on startup
     feedQueue.add('GlobalFeedGenerator', {});
-    feedQueue.add('ProfileRefresher', {});
-    // feedQueue.add('BioRefresher', {});
-    feedQueue.add('OsintCollector', {});  // Run on startup
-    // feedQueue.add('PopulateQuickFacts', {});  // Populate ALL quick facts on startup
-    // feedQueue.add('CleanupDeceased', {});  // Remove deceased celebrities on startup
-    feedQueue.add('NormalizeScores', {});  // Run immediately
-    
-    // Initial Regional Feeds
-    feedQueue.add('RegionalFeedGenerator', { region: 'Asia' });
-    feedQueue.add('RegionalFeedGenerator', { region: 'Europe' });
-    feedQueue.add('RegionalFeedGenerator', { region: 'North America' });
-    // console.log('[Worker] Startup jobs skipped for cost optimization.');
+    feedQueue.add('ProfileRefresher', { priority: true });
+    feedQueue.add('NormalizeScores', {});
+    feedQueue.add('RegionalFeedGenerator', {});
 }, 5000);
 
-feedQueue.add('GlobalFeedGenerator', {}, { repeat: { pattern: '*/30 * * * *' } });
-feedQueue.add('ProfileRefresher', {}, { repeat: { pattern: '0 * * * *' } });
-feedQueue.add('BioRefresher', {}, { repeat: { pattern: '0 */4 * * *' } });
-feedQueue.add('OsintCollector', {}, { repeat: { pattern: '0 3 * * *' } });  // Daily at 3 AM
+feedQueue.add('GlobalFeedGenerator', {}, { repeat: { pattern: '0 */6 * * *' } }); // Every 6 hours (4/day)
+feedQueue.add('ProfileRefresher', { priority: true }, { repeat: { pattern: '0 */6 * * *' } }); // Top Stars Every 6h (4/day)
+feedQueue.add('ProfileRefresher', { priority: false }, { repeat: { pattern: '0 2 * * *' } }); // All Stars Daily (1/day)
+feedQueue.add('RegionalFeedGenerator', {}, { repeat: { pattern: '0 */12 * * *' } }); // Merged Regions (2/day)
+feedQueue.add('BioRefresher', {}, { repeat: { pattern: '0 0 * * *' } });
+feedQueue.add('OsintCollector', {}, { repeat: { pattern: '0 3 * * *' } });
 feedQueue.add('CleanupCrew', {}, { repeat: { pattern: '0 0 * * *' } });
-feedQueue.add('WeeklyDigest', {}, { repeat: { pattern: '0 9 * * 0' } });  // Sundays at 9 AM
-feedQueue.add('NormalizeScores', {}, { repeat: { pattern: '0 * * * *' } }); // Hourly
-
-// Regional Feeds Schedule (staggered) - Every 2 hours instead of hourly
-feedQueue.add('RegionalFeedGenerator', { region: 'Asia' }, { repeat: { pattern: '0 */2 * * *' } }); 
-feedQueue.add('RegionalFeedGenerator', { region: 'Europe' }, { repeat: { pattern: '20 */2 * * *' } }); 
-feedQueue.add('RegionalFeedGenerator', { region: 'North America' }, { repeat: { pattern: '40 */2 * * *' } }); 
+feedQueue.add('WeeklyDigest', {}, { repeat: { pattern: '0 9 * * 0' } });
+feedQueue.add('NormalizeScores', {}, { repeat: { pattern: '0 0 * * *' } });
+ 

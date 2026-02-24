@@ -1,6 +1,6 @@
 import { Queue, Worker, Job } from 'bullmq';
 import prisma from '../config/prisma';
-import { geminiOptimizedService } from '../services/gemini-optimized.service';
+import { openaiOptimizedService } from '../services/openai-optimized.service';
 
 const connection = {
   host: process.env.REDIS_HOST || 'localhost',
@@ -49,7 +49,8 @@ async function verifyPost(postId: string) {
     5. Write a professional "news-style" headline for this.
     6. Write a detailed 3-4 sentence summary of this scoop.
     
-    Return as JSON:
+    Return ONLY a valid JSON object.
+    
     {
       "isVerifiable": boolean,
       "truthScore": number,
@@ -62,7 +63,12 @@ async function verifyPost(postId: string) {
   `;
 
   try {
-    const result: VerificationResult = await geminiOptimizedService.generateContent(prompt);
+    const responseText = await openaiOptimizedService.generateText(prompt);
+    // Basic JSON extraction from response text
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No JSON found in OpenAI response');
+    
+    const result: VerificationResult = JSON.parse(jsonMatch[0]);
 
     if (result.isVerifiable && result.truthScore > 70) {
       console.log(`[Verification] ✅ Post ${postId} PASSED. Promoting to Global Feed.`);

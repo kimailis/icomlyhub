@@ -5,6 +5,7 @@ import redisClient, { connectRedis } from '../config/redis';
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
 
 export class GeminiOptimizedService {
+  private modelName: string;
   private CACHE_TTL = 24 * 60 * 60; // 24 hours in seconds
   private SEARCH_CACHE_TTL = 72 * 60 * 60; // 72 hours for search results
   private GROUNDING_FEE = 0.035; // $0.035 per search request

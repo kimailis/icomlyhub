@@ -1,8 +1,7 @@
 import { Queue, Worker, Job } from 'bullmq';
 import prisma from '../config/prisma';
-import { geminiOptimizedService } from '../services/gemini-optimized.service';
+import { openaiOptimizedService } from '../services/openai-optimized.service';
 import { personalityService } from '../services/personality.service';
-
 import { NotificationService } from '../services/notification.service';
 
 const connection = {
@@ -98,7 +97,7 @@ async function generateSocialActivity() {
     }
 
     if (prompt) {
-      const content = await geminiOptimizedService.generateText(prompt);
+      const content = await openaiOptimizedService.generateText(prompt);
       if (content) {
         const post = await prisma.post.create({ data: { ...data, content } });
         console.log(`[SocialWorker] Generated post by ${user.name} for ${isCelebTarget ? 'celeb' : 'user'}`);
@@ -145,7 +144,7 @@ async function generateInteractions() {
         
         if (personalityService.shouldUserComment(user.name || 'Unknown', article.headline)) {
             const prompt = personalityService.generateCommentPrompt(user.name || 'Unknown', article.headline, 'article');
-            const content = await geminiOptimizedService.generateText(prompt);
+            const content = await openaiOptimizedService.generateText(prompt);
             
             if (content) {
               await prisma.comment.create({
@@ -164,7 +163,7 @@ async function generateInteractions() {
 
         if (personalityService.shouldUserComment(user.name || 'Unknown', post.content)) {
             const prompt = personalityService.generateCommentPrompt(user.name || 'Unknown', post.content, 'post');
-            const content = await geminiOptimizedService.generateText(prompt);
+            const content = await openaiOptimizedService.generateText(prompt);
             
             if (content) {
               await prisma.comment.create({
