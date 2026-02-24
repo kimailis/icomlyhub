@@ -357,8 +357,10 @@ export const AuthModal: React.FC = () => {
                     <div className="h-px bg-white/10 flex-1" />
                 </div>
 
-                <div className="w-full rounded-lg overflow-hidden transition-all h-[40px]">
-                    <div id="google-signin-button" className="w-full" />
+                <div className="flex justify-center">
+                    <div className="w-full max-w-[280px] rounded-lg overflow-hidden transition-all h-[40px]">
+                        <div id="google-signin-button" className="w-full" />
+                    </div>
                 </div>
 
                 <div className="mt-4 text-center text-xs text-gray-500">

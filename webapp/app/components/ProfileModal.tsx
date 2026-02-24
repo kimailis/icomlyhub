@@ -342,89 +342,94 @@ export const ProfileModal: React.FC = () => {
                     )}
 
                     {activeTab === 'settings' && (
-                        <div className={`animate-fade-in ${settingsView === 'menu' ? 'space-y-8 pb-20 md:pb-10' : 'h-full flex flex-col'}`}>
+                        <div className={`animate-fade-in flex flex-col h-full overflow-hidden`}>
                             {settingsView === 'menu' ? (
-                                <>
-                                    <div>
-                                        <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                                            <Bell size={18} className="text-gray-400" /> Notifications
-                                        </h3>
-                                        <div className="space-y-1 bg-surface/30 rounded-xl border border-white/5 overflow-hidden">
-                                            <div className="flex items-center justify-between p-4 border-b border-white/5">
-                                                <div>
-                                                    <div className="text-sm font-bold text-white">Email Updates</div>
-                                                    <div className="text-xs text-gray-500">Get major scoops via email.</div>
+                                <div className="flex flex-col h-full overflow-hidden">
+                                    <div className="flex-1 overflow-y-auto space-y-8 pr-1 pb-4 scrollbar-hide">
+                                        <div>
+                                            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                                                <Bell size={18} className="text-gray-400" /> Notifications
+                                            </h3>
+                                            <div className="space-y-1 bg-surface/30 rounded-xl border border-white/5 overflow-hidden">
+                                                <div className="flex items-center justify-between p-4 border-b border-white/5">
+                                                    <div>
+                                                        <div className="text-sm font-bold text-white">Email Updates</div>
+                                                        <div className="text-xs text-gray-500">Get major scoops via email.</div>
+                                                    </div>
+                                                    <button 
+                                                        onClick={() => handleToggleNotification('email')}
+                                                        disabled={updating}
+                                                        className={`w-10 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none ${notificationSettings.email ? 'bg-primary' : 'bg-gray-700'}`}
+                                                    >
+                                                        <div className={`w-4 h-4 bg-white rounded-full transition-transform duration-200 ${notificationSettings.email ? 'translate-x-4' : 'translate-x-0'}`} />
+                                                    </button>
                                                 </div>
-                                                <button 
-                                                    onClick={() => handleToggleNotification('email')}
-                                                    disabled={updating}
-                                                    className={`w-10 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none ${notificationSettings.email ? 'bg-primary' : 'bg-gray-700'}`}
-                                                >
-                                                    <div className={`w-4 h-4 bg-white rounded-full transition-transform duration-200 ${notificationSettings.email ? 'translate-x-4' : 'translate-x-0'}`} />
-                                                </button>
+                                                <div className="flex items-center justify-between p-4">
+                                                    <div>
+                                                        <div className="text-sm font-bold text-white">Push Notifications</div>
+                                                        <div className="text-xs text-gray-500">Live alerts on your device.</div>
+                                                    </div>
+                                                    <button 
+                                                        onClick={() => handleToggleNotification('push')}
+                                                        disabled={updating}
+                                                        className={`w-10 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none ${notificationSettings.push ? 'bg-primary' : 'bg-gray-700'}`}
+                                                    >
+                                                        <div className={`w-4 h-4 bg-white rounded-full transition-transform duration-200 ${notificationSettings.push ? 'translate-x-4' : 'translate-x-0'}`} />
+                                                    </button>
+                                                </div>
                                             </div>
-                                            <div className="flex items-center justify-between p-4">
-                                                <div>
-                                                    <div className="text-sm font-bold text-white">Push Notifications</div>
-                                                    <div className="text-xs text-gray-500">Live alerts on your device.</div>
-                                                </div>
+                                        </div>
+
+                                        <div>
+                                            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                                                <Shield size={18} className="text-gray-400" /> Security & Privacy
+                                            </h3>
+                                            <div className="space-y-3">
                                                 <button 
-                                                    onClick={() => handleToggleNotification('push')}
-                                                    disabled={updating}
-                                                    className={`w-10 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none ${notificationSettings.push ? 'bg-primary' : 'bg-gray-700'}`}
+                                                    onClick={() => setSettingsView('profile')}
+                                                    className="w-full flex items-center justify-between p-3 bg-surface/30 border border-white/5 rounded-lg hover:bg-surface/50 text-left transition-colors"
                                                 >
-                                                    <div className={`w-4 h-4 bg-white rounded-full transition-transform duration-200 ${notificationSettings.push ? 'translate-x-4' : 'translate-x-0'}`} />
+                                                    <span className="text-sm text-gray-300">Edit Public Profile</span>
+                                                    <ChevronRight size={16} className="text-gray-500" />
+                                                </button>
+                                                <button 
+                                                    onClick={() => setSettingsView('password')}
+                                                    className="w-full flex items-center justify-between p-3 bg-surface/30 border border-white/5 rounded-lg hover:bg-surface/50 text-left transition-colors"
+                                                >
+                                                    <span className="text-sm text-gray-300">Change Password</span>
+                                                    <ChevronRight size={16} className="text-gray-500" />
+                                                </button>
+                                                <button 
+                                                    onClick={() => setSettingsView('privacy')}
+                                                    className="w-full flex items-center justify-between p-3 bg-surface/30 border border-white/5 rounded-lg hover:bg-surface/50 text-left transition-colors"
+                                                >
+                                                    <span className="text-sm text-gray-300">Privacy Policy</span>
+                                                    <ChevronRight size={16} className="text-gray-500" />
+                                                </button>
+                                                <button 
+                                                    onClick={() => setSettingsView('terms')}
+                                                    className="w-full flex items-center justify-between p-3 bg-surface/30 border border-white/5 rounded-lg hover:bg-surface/50 text-left transition-colors"
+                                                >
+                                                    <span className="text-sm text-gray-300">Terms & Conditions</span>
+                                                    <ChevronRight size={16} className="text-gray-500" />
                                                 </button>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div>
-                                        <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                                            <Shield size={18} className="text-gray-400" /> Security & Privacy
-                                        </h3>
-                                        <div className="space-y-3">
-                                            <button 
-                                                onClick={() => setSettingsView('profile')}
-                                                className="w-full flex items-center justify-between p-3 bg-surface/30 border border-white/5 rounded-lg hover:bg-surface/50 text-left transition-colors"
-                                            >
-                                                <span className="text-sm text-gray-300">Edit Public Profile</span>
-                                                <ChevronRight size={16} className="text-gray-500" />
-                                            </button>
-                                            <button 
-                                                onClick={() => setSettingsView('password')}
-                                                className="w-full flex items-center justify-between p-3 bg-surface/30 border border-white/5 rounded-lg hover:bg-surface/50 text-left transition-colors"
-                                            >
-                                                <span className="text-sm text-gray-300">Change Password</span>
-                                                <ChevronRight size={16} className="text-gray-500" />
-                                            </button>
-                                            <button 
-                                                onClick={() => setSettingsView('privacy')}
-                                                className="w-full flex items-center justify-between p-3 bg-surface/30 border border-white/5 rounded-lg hover:bg-surface/50 text-left transition-colors"
-                                            >
-                                                <span className="text-sm text-gray-300">Privacy Policy</span>
-                                                <ChevronRight size={16} className="text-gray-500" />
-                                            </button>
-                                            <button 
-                                                onClick={() => setSettingsView('terms')}
-                                                className="w-full flex items-center justify-between p-3 bg-surface/30 border border-white/5 rounded-lg hover:bg-surface/50 text-left transition-colors"
-                                            >
-                                                <span className="text-sm text-gray-300">Terms & Conditions</span>
-                                                <ChevronRight size={16} className="text-gray-500" />
-                                            </button>
-
-                                            <button 
-                                                onClick={() => { logout(); closeProfileModal(); }}
-                                                className="w-full flex items-center justify-center gap-3 p-4 bg-red-500/10 border border-red-500/20 rounded-xl hover:bg-red-500/20 text-red-400 transition-all font-bold group mt-6"
-                                            >
-                                                <LogOut size={18} className="group-hover:translate-x-1 transition-transform" />
-                                                <span>Log Out</span>
-                                            </button>
-                                        </div>
+                                    {/* Dedicated Log Out Area */}
+                                    <div className="shrink-0 pt-4 mt-2 border-t border-white/5 pb-8 md:pb-2 bg-[#09090b]">
+                                        <button 
+                                            onClick={() => { logout(); closeProfileModal(); }}
+                                            className="w-full flex items-center justify-center gap-3 p-4 bg-red-500/10 border border-red-500/20 rounded-xl hover:bg-red-500/20 text-red-400 transition-all font-bold group"
+                                        >
+                                            <LogOut size={18} className="group-hover:translate-x-1 transition-transform" />
+                                            <span>Log Out</span>
+                                        </button>
                                     </div>
-                                </>
+                                </div>
                             ) : (
-                                <div className="animate-fade-in flex flex-col h-full">
+                                <div className="animate-fade-in flex flex-col h-full overflow-hidden">
                                     <div className="mb-4 shrink-0">
                                         <button 
                                             onClick={() => setSettingsView('menu')}
@@ -440,7 +445,7 @@ export const ProfileModal: React.FC = () => {
                                     </div>
 
                                     {settingsView === 'profile' ? (
-                                        <form className="space-y-5 overflow-y-auto pr-1 scrollbar-hide pb-10" onSubmit={handleProfileUpdate}>
+                                        <form className="space-y-5 flex-1 overflow-y-auto pr-1 scrollbar-hide pb-20 md:pb-10" onSubmit={handleProfileUpdate}>
                                             <div className="space-y-4">
                                                 <div className="space-y-1.5">
                                                     <label className="text-[10px] font-mono text-gray-500 uppercase tracking-wider ml-1">Broadcast Name</label>
@@ -472,7 +477,7 @@ export const ProfileModal: React.FC = () => {
                                             </div>
                                         </form>
                                     ) : settingsView === 'password' ? (
-                                        <form className="space-y-5 overflow-y-auto pr-1 scrollbar-hide pb-10" onSubmit={handlePasswordUpdate}>
+                                        <form className="space-y-5 flex-1 overflow-y-auto pr-1 scrollbar-hide pb-20 md:pb-10" onSubmit={handlePasswordUpdate}>
                                             <div className="space-y-4">
                                                 <div className="space-y-1.5">
                                                     <label className="text-[10px] font-mono text-gray-500 uppercase tracking-wider ml-1">Current Password</label>
@@ -523,11 +528,11 @@ export const ProfileModal: React.FC = () => {
                                             </div>
                                         </form>
                                     ) : (
-                                        <div className="flex-1 min-h-0 flex flex-col">
+                                        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
                                             <div className="flex-1 bg-surface/30 rounded-xl p-4 border border-white/5 text-sm text-gray-300 whitespace-pre-wrap overflow-y-auto scrollbar-thin scrollbar-thumb-white/10">
                                                 {settingsView === 'privacy' ? PRIVACY_POLICY : TERMS_AND_CONDITIONS}
                                             </div>
-                                            <div className="pt-4 flex justify-center pb-6 shrink-0">
+                                            <div className="pt-4 flex justify-center pb-12 md:pb-6 shrink-0">
                                                 <button 
                                                     onClick={() => setSettingsView('menu')}
                                                     className="flex items-center gap-2 text-xs text-primary font-bold hover:underline"
