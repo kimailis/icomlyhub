@@ -35,21 +35,42 @@ export async function GET(req: Request) {
             bio: true,
             category: true,
             articles: {
-                take: 5,
+                take: 10,
                 orderBy: { publishedAt: 'desc' }
             },
             sightings: {
                 take: 5,
                 orderBy: { date: 'desc' }
+            },
+            _count: {
+              select: {
+                articles: true
+              }
             }
           }
         }
       }
     });
 
-    const celebs = following.map((f: any) => f.celebrity);
+    // For each celeb, calculate how many articles were published after lastViewedAt
+    const celebsWithStats = await Promise.all(following.map(async (f: any) => {
+        const newArticlesCount = await prisma.article.count({
+            where: {
+                celebrityId: f.celebrityId,
+                publishedAt: {
+                    gt: f.lastViewedAt
+                }
+            }
+        });
+
+        return {
+            ...f.celebrity,
+            newItems: newArticlesCount,
+            lastViewedAt: f.lastViewedAt
+        };
+    }));
     
-    return NextResponse.json(celebs);
+    return NextResponse.json(celebsWithStats);
   } catch (error) {
     console.error('API Error /api/user/following:', error);
     return NextResponse.json({ message: 'Failed to fetch following list', error }, { status: 500 });

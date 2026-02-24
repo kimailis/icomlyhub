@@ -193,12 +193,12 @@ export const AuthModal: React.FC = () => {
                     <button onClick={() => setView('login')} className="flex items-center gap-2 text-xs text-gray-500 hover:text-primary transition-colors">
                          <ArrowLeft size={14} /> Back
                     </button>
-                    <h3 className="text-xl font-bold text-white mt-2">
+                    <h3 className="text-base font-bold text-white mt-2">
                         {view === 'privacy' ? 'Privacy Policy' : view === 'terms' ? 'Terms & Conditions' : 'Contact Us'}
                     </h3>
                  </div>
                  
-                 <div className="flex-1 overflow-y-auto bg-surface/30 rounded-xl p-4 border border-white/5 text-sm text-gray-300 space-y-4 whitespace-pre-wrap scrollbar-thin scrollbar-thumb-white/10">
+                 <div className="flex-1 overflow-y-auto bg-surface/30 rounded-xl p-4 border border-white/5 text-xs text-gray-300 space-y-4 whitespace-pre-wrap scrollbar-thin scrollbar-thumb-white/10">
                      {view === 'privacy' ? PRIVACY_POLICY : view === 'terms' ? TERMS_AND_CONDITIONS : (
                          <div className="text-center py-8 space-y-4">
                              <p>Have a scoop or need support?</p>

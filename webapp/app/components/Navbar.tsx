@@ -93,19 +93,26 @@ export const Navbar: React.FC = () => {
                   </div>
               </div>
           ) : (
-              <Button onClick={() => openAuthModal()} size="sm" className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20">
-                  <LogIn size={16} /> Login
+              <Button onClick={() => openAuthModal()} variant="ghost" className="flex items-center gap-2 text-gray-400 hover:text-white">
+                  <LogIn size={18} /> <span className="text-sm font-medium">Login</span>
               </Button>
           )}
         </div>
 
         {/* Mobile Nav */}
-        <div className="flex md:hidden w-full justify-around items-center py-2">
+        <div className="flex md:hidden w-full justify-around items-center py-2 px-2">
           <NavItem href="/" icon={Radar} label="Feed" />
           <NavItem href="/sightings" icon={Map} label="Map" />
           {user && <NotificationDropdown />}
-          <div className="flex flex-col items-center gap-0.5 p-1.5 text-gray-400" onClick={() => user ? openProfileModal() : openAuthModal()}>
-             {user ? <img src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=18181b&color=fff`} className="w-5 h-5 rounded-full" /> : <UserIcon size={18} />}
+          <div 
+            className="flex flex-col items-center gap-0.5 p-1.5 rounded-lg text-gray-400 hover:text-white transition-colors" 
+            onClick={() => user ? openProfileModal() : openAuthModal()}
+          >
+             {user ? (
+               <img src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=18181b&color=fff`} className="w-5 h-5 rounded-full" />
+             ) : (
+               <UserIcon size={18} />
+             )}
              <span className="text-[10px] font-medium leading-tight">{user ? 'Me' : 'Login'}</span>
           </div>
         </div>

@@ -33,6 +33,13 @@ export default function CelebProfileView({ profile }: CelebProfileViewProps) {
   const [following, setFollowing] = useState(user?.following?.includes(profile.id) || false);
   const [loadingFollow, setLoadingFollow] = useState(false);
 
+  // Mark as viewed when profile is loaded
+  React.useEffect(() => {
+    if (token && following) {
+        backend.markAsViewed(profile.id, token);
+    }
+  }, [profile.id, token, following]);
+
   const handleFollow = async () => {
     if (!user || !token) {
         openAuthModal('login');

@@ -43,19 +43,19 @@ let currentAiPostTypeIndex = 0;
 const POST_DIRECTIONS = [
   {
     key: 'anecdote',
-    instruction: 'Write this post as a detailed personal anecdote about a specific recent experience related to your interest. Include concrete details like: specific locations, times, people involved, exact conversations, specific actions taken, emotions felt, and outcomes. Make it feel like a real story that actually happened to you. Include specific names, places, dates, or situations that make it believable and engaging. Avoid generic statements - be specific about what happened, where it happened, who was involved, and how it made you feel.'
+    instruction: 'Write this post as a detailed personal anecdote about a specific recent experience related to celebrity gossip or your outgoing life (sightings, clubs, high-end lifestyle). Include concrete details like: specific locations, times, people involved, exact conversations, specific actions taken, emotions felt, and outcomes. Make it feel like a real story that actually happened to you. Include specific names, places, dates, or situations that make it believable and engaging. Avoid generic statements - be specific about what happened, where it happened, who was involved, and how it made you feel. ABSOLUTELY NO HASHTAGS.'
   },
   {
     key: 'controversial',
-    instruction: 'Share a controversial or thought-provoking opinion about a topic related to your interest. Be provocative but stay within appropriate boundaries.'
+    instruction: 'Share a controversial or thought-provoking opinion about celebrity gossip or the hollywood lifestyle. Be provocative but stay within appropriate boundaries. ABSOLUTELY NO HASHTAGS.'
   },
   {
     key: 'informational',
-    instruction: 'Share informative content, tips, or insights about your interest in an educational way.'
+    instruction: 'Share informative celebrity news, tips on the high-end lifestyle, or insights about the industry in an engaging way. ABSOLUTELY NO HASHTAGS.'
   },
   {
     key: 'affiliate',
-    instruction: 'Create a convincing product recommendation post that naturally incorporates the product link. Write in your authentic voice based on your personality traits and interests. Make it feel genuine, not overly promotional. Share why this product would be valuable to others with similar interests.'
+    instruction: 'Create a convincing product recommendation post that naturally incorporates the product link. Write in your authentic voice based on your personality traits and interests. Make it feel like a genuine find for someone living an outgoing, high-end life. Share why this product would be valuable to others with similar interests. ABSOLUTELY NO HASHTAGS.'
   }
 ];
 
@@ -242,10 +242,9 @@ function getRandomYoutubeContent() {
   console.log(`Selected YouTube video: ${content.url} (${randomIndex+1}/${youtubeContent.length})`);
   
   // Format the content with the URL and description
-  const selectedHashtags = selectRandomHashtags('#video #watch #youtube');
   return {
     content: `${content.description}\n\n${content.url}`,
-    hashtags: selectedHashtags,
+    hashtags: '',
     isApi: false,
     isYoutube: true
   };
@@ -305,7 +304,7 @@ async function getGeneratedContent(randomUser, directionInstruction = null) {
     // Pass directionInstruction to generateContent
     const result = await openaiContentGenerator.generateContent(randomUser.username, usePersonality, directionInstruction);
     if (result) {
-      const content = result.hashtags ? `${result.content}\n\n${result.hashtags}` : result.content;
+      const content = result.content;
       const generationType = result.isOpenAIGenerated ? 'OpenAI' : 'fallback';
       const personalityFlag = result.isPersonalityGenerated ? ' (personality-based)' : '';
       console.log(`Generated content successfully using ${generationType}${personalityFlag}: ${result.content.substring(0, 50)}...`);
@@ -323,7 +322,7 @@ async function getGeneratedContent(randomUser, directionInstruction = null) {
     if (usePersonality) {
       const fallbackResult = await generatePersonalityContent(randomUser.username);
       if (fallbackResult && fallbackResult.isPersonalityGenerated) {
-        const content = fallbackResult.hashtags ? `${fallbackResult.content}\n\n${fallbackResult.hashtags}` : fallbackResult.content;
+        const content = fallbackResult.content;
         return {
           content,
           isApi: false,
@@ -334,9 +333,9 @@ async function getGeneratedContent(randomUser, directionInstruction = null) {
       }
     }
     
-    const { content, hashtags } = await generateContent(randomUser.username);
+    const { content } = await generateContent(randomUser.username);
     return {
-                  content: `${content}\n\n${hashtags}`,
+                  content: content,
             isApi: false,
             isPersonalityGenerated: false,
             isOpenAIGenerated: false

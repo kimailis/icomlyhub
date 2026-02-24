@@ -149,13 +149,24 @@ class BackendService {
 
   async getFollowingStats(token: string): Promise<FollowingStat[]> {
     const celebs = await this.getFollowing(token);
-    return celebs.map(c => ({
+    return celebs.map((c: any) => ({
       id: c.id,
       name: c.name,
       imageUrl: c.imageUrl,
-      newItems: Math.floor(Math.random() * 5), // Simulation
+      newItems: c.newItems || 0,
       trend: c.trendDirection
     }));
+  }
+
+  async markAsViewed(celebId: string, token: string): Promise<void> {
+    try {
+      await this.fetchApi(`/user/celebs/${celebId}/view`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    } catch (e) {
+      console.error('Failed to mark as viewed:', e);
+    }
   }
 
   async login(email: string, password: string): Promise<{ user: any, token: string }> {

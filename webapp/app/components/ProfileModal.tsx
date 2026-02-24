@@ -165,7 +165,7 @@ export const ProfileModal: React.FC = () => {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-4">
             <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" onClick={closeProfileModal} />
 
-            <div className="relative w-full h-full md:h-auto md:max-w-2xl bg-[#121214] border-0 md:border md:border-white/10 md:rounded-2xl shadow-2xl flex flex-col md:flex-row overflow-hidden animate-fade-in">
+            <div className="relative w-full h-full md:h-auto md:max-h-[90vh] md:max-w-2xl bg-[#121214] border-0 md:border md:border-white/10 md:rounded-2xl shadow-2xl flex flex-col md:flex-row overflow-hidden animate-fade-in">
                 {/* Close Button */}
                 <button 
                     onClick={closeProfileModal} 
@@ -347,14 +347,14 @@ export const ProfileModal: React.FC = () => {
                                 <div className="flex flex-col h-full overflow-hidden">
                                     <div className="flex-1 overflow-y-auto space-y-8 pr-1 pb-4 scrollbar-hide">
                                         <div>
-                                            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                                            <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
                                                 <Bell size={18} className="text-gray-400" /> Notifications
                                             </h3>
                                             <div className="space-y-1 bg-surface/30 rounded-xl border border-white/5 overflow-hidden">
                                                 <div className="flex items-center justify-between p-4 border-b border-white/5">
                                                     <div>
-                                                        <div className="text-sm font-bold text-white">Email Updates</div>
-                                                        <div className="text-xs text-gray-500">Get major scoops via email.</div>
+                                                        <div className="text-xs font-bold text-white">Email Updates</div>
+                                                        <div className="text-[11px] text-gray-500">Get major scoops via email.</div>
                                                     </div>
                                                     <button 
                                                         onClick={() => handleToggleNotification('email')}
@@ -366,8 +366,8 @@ export const ProfileModal: React.FC = () => {
                                                 </div>
                                                 <div className="flex items-center justify-between p-4">
                                                     <div>
-                                                        <div className="text-sm font-bold text-white">Push Notifications</div>
-                                                        <div className="text-xs text-gray-500">Live alerts on your device.</div>
+                                                        <div className="text-xs font-bold text-white">Push Notifications</div>
+                                                        <div className="text-[11px] text-gray-500">Live alerts on your device.</div>
                                                     </div>
                                                     <button 
                                                         onClick={() => handleToggleNotification('push')}
@@ -381,7 +381,7 @@ export const ProfileModal: React.FC = () => {
                                         </div>
 
                                         <div>
-                                            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                                            <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
                                                 <Shield size={18} className="text-gray-400" /> Security & Privacy
                                             </h3>
                                             <div className="space-y-3">
@@ -389,47 +389,46 @@ export const ProfileModal: React.FC = () => {
                                                     onClick={() => setSettingsView('profile')}
                                                     className="w-full flex items-center justify-between p-3 bg-surface/30 border border-white/5 rounded-lg hover:bg-surface/50 text-left transition-colors"
                                                 >
-                                                    <span className="text-sm text-gray-300">Edit Public Profile</span>
+                                                    <span className="text-xs text-gray-300">Edit Public Profile</span>
                                                     <ChevronRight size={16} className="text-gray-500" />
                                                 </button>
                                                 <button 
                                                     onClick={() => setSettingsView('password')}
                                                     className="w-full flex items-center justify-between p-3 bg-surface/30 border border-white/5 rounded-lg hover:bg-surface/50 text-left transition-colors"
                                                 >
-                                                    <span className="text-sm text-gray-300">Change Password</span>
+                                                    <span className="text-xs text-gray-300">Change Password</span>
                                                     <ChevronRight size={16} className="text-gray-500" />
                                                 </button>
                                                 <button 
                                                     onClick={() => setSettingsView('privacy')}
                                                     className="w-full flex items-center justify-between p-3 bg-surface/30 border border-white/5 rounded-lg hover:bg-surface/50 text-left transition-colors"
                                                 >
-                                                    <span className="text-sm text-gray-300">Privacy Policy</span>
+                                                    <span className="text-xs text-gray-300">Privacy Policy</span>
                                                     <ChevronRight size={16} className="text-gray-500" />
                                                 </button>
                                                 <button 
                                                     onClick={() => setSettingsView('terms')}
                                                     className="w-full flex items-center justify-between p-3 bg-surface/30 border border-white/5 rounded-lg hover:bg-surface/50 text-left transition-colors"
                                                 >
-                                                    <span className="text-sm text-gray-300">Terms & Conditions</span>
+                                                    <span className="text-xs text-gray-300">Terms & Conditions</span>
                                                     <ChevronRight size={16} className="text-gray-500" />
                                                 </button>
+
+                                                <div className="pt-4 border-t border-white/5 mt-4">
+                                                    <button 
+                                                        onClick={() => { logout(); closeProfileModal(); }}
+                                                        className="w-full flex items-center justify-between p-3 bg-[#3a0b0b] border border-red-900/30 rounded-lg hover:bg-[#4a0d0d] text-left transition-colors font-bold group"
+                                                    >
+                                                        <span className="text-xs text-red-400">Log Out</span>
+                                                        <LogOut size={16} className="text-red-400 group-hover:translate-x-1 transition-transform" />
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-
-                                    {/* Dedicated Log Out Area */}
-                                    <div className="shrink-0 pt-4 mt-2 border-t border-white/5 pb-8 md:pb-2 bg-[#09090b]">
-                                        <button 
-                                            onClick={() => { logout(); closeProfileModal(); }}
-                                            className="w-full flex items-center justify-center gap-3 p-4 bg-red-500/10 border border-red-500/20 rounded-xl hover:bg-red-500/20 text-red-400 transition-all font-bold group"
-                                        >
-                                            <LogOut size={18} className="group-hover:translate-x-1 transition-transform" />
-                                            <span>Log Out</span>
-                                        </button>
-                                    </div>
                                 </div>
                             ) : (
-                                <div className="animate-fade-in flex flex-col h-full overflow-hidden">
+                                <div className="animate-fade-in flex flex-col h-full overflow-hidden md:max-h-none">
                                     <div className="mb-4 shrink-0">
                                         <button 
                                             onClick={() => setSettingsView('menu')}
@@ -437,7 +436,7 @@ export const ProfileModal: React.FC = () => {
                                         >
                                             <ArrowLeft size={14} /> Back to Settings
                                         </button>
-                                        <h3 className="text-xl font-bold text-white">
+                                        <h3 className="text-base font-bold text-white">
                                             {settingsView === 'password' ? 'Change Password' : 
                                              settingsView === 'profile' ? 'Edit Public Profile' :
                                              settingsView === 'privacy' ? 'Privacy Policy' : 'Terms & Conditions'}
@@ -454,7 +453,7 @@ export const ProfileModal: React.FC = () => {
                                                         required
                                                         value={profileData.name}
                                                         onChange={(e) => setProfileData({...profileData, name: e.target.value})}
-                                                        className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 focus:bg-white/[0.08] transition-all" 
+                                                        className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-xs text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 focus:bg-white/[0.08] transition-all" 
                                                         placeholder="Your public name"
                                                     />
                                                 </div>
@@ -464,7 +463,7 @@ export const ProfileModal: React.FC = () => {
                                                     <textarea 
                                                         value={profileData.bio}
                                                         onChange={(e) => setProfileData({...profileData, bio: e.target.value})}
-                                                        className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 focus:bg-white/[0.08] transition-all min-h-[100px] resize-none" 
+                                                        className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-xs text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 focus:bg-white/[0.08] transition-all min-h-[100px] resize-none" 
                                                         placeholder="Tell the community about yourself..."
                                                     />
                                                 </div>
@@ -486,7 +485,7 @@ export const ProfileModal: React.FC = () => {
                                                         required
                                                         value={passwordData.current}
                                                         onChange={(e) => setPasswordData({...passwordData, current: e.target.value})}
-                                                        className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 focus:bg-white/[0.08] transition-all" 
+                                                        className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-xs text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 focus:bg-white/[0.08] transition-all" 
                                                         placeholder="••••••••"
                                                     />
                                                 </div>
@@ -500,7 +499,7 @@ export const ProfileModal: React.FC = () => {
                                                         required
                                                         value={passwordData.new}
                                                         onChange={(e) => setPasswordData({...passwordData, new: e.target.value})}
-                                                        className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 focus:bg-white/[0.08] transition-all" 
+                                                        className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-xs text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 focus:bg-white/[0.08] transition-all" 
                                                         placeholder="Minimum 8 characters"
                                                     />
                                                 </div>
@@ -512,7 +511,7 @@ export const ProfileModal: React.FC = () => {
                                                         required
                                                         value={passwordData.confirm}
                                                         onChange={(e) => setPasswordData({...passwordData, confirm: e.target.value})}
-                                                        className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 focus:bg-white/[0.08] transition-all" 
+                                                        className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-xs text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 focus:bg-white/[0.08] transition-all" 
                                                         placeholder="Repeat new password"
                                                     />
                                                 </div>
@@ -522,23 +521,15 @@ export const ProfileModal: React.FC = () => {
                                                 <Button type="submit" className="w-full font-bold py-6 rounded-xl shadow-lg shadow-primary/20">
                                                     Update Security Credentials
                                                 </Button>
-                                                <p className="text-[10px] text-center text-gray-500 mt-4 leading-relaxed">
+                                                <p className="text-[9px] text-center text-gray-500 mt-4 leading-relaxed">
                                                     Changing your password will require you to log back in on all other devices.
                                                 </p>
                                             </div>
                                         </form>
                                     ) : (
                                         <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-                                            <div className="flex-1 bg-surface/30 rounded-xl p-4 border border-white/5 text-sm text-gray-300 whitespace-pre-wrap overflow-y-auto scrollbar-thin scrollbar-thumb-white/10">
+                                            <div className="flex-1 bg-surface/30 rounded-xl p-4 border border-white/5 text-[10px] md:text-xs text-gray-300 whitespace-pre-wrap overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 min-h-[85%] md:min-h-0 md:max-h-[400px]">
                                                 {settingsView === 'privacy' ? PRIVACY_POLICY : TERMS_AND_CONDITIONS}
-                                            </div>
-                                            <div className="pt-4 flex justify-center pb-12 md:pb-6 shrink-0">
-                                                <button 
-                                                    onClick={() => setSettingsView('menu')}
-                                                    className="flex items-center gap-2 text-xs text-primary font-bold hover:underline"
-                                                >
-                                                    <ArrowLeft size={14} /> Back to Settings
-                                                </button>
                                             </div>
                                         </div>
                                     )}

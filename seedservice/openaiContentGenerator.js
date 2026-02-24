@@ -11,7 +11,8 @@ class OpenAIContentGenerator {
             'award show drama', 'celebrity feuds', 'celeb sightings', 'movie set rumors',
             'hollywood breakups', 'secret celeb weddings', 'celebrity lifestyle', 'celeb fitness secrets',
             'behind the scenes hollywood', 'celeb property deals', 'influencer gossip', 'reality tv drama',
-            'music industry rumors', 'hollywood casting news', 'celeb health updates', 'celebrity social media drama'
+            'music industry rumors', 'hollywood casting news', 'celeb health updates', 'celebrity social media drama',
+            'nightlife gossip', 'exclusive club sightings', 'high-end restaurant drama', 'outgoing lifestyle', 'socialite secrets'
         ];
         
         // Diverse anecdote story structures to prevent formulaic patterns
@@ -450,7 +451,7 @@ General Post Guidelines:
 Content Requirements:
 - Post length: EXACTLY 250-650 characters (count carefully)
 - Write naturally in your authentic voice
-- Include relevant hashtags (2-4 hashtags)
+- DO NOT INCLUDE ANY HASHTAGS (No # symbols at all)
 - Make it engaging and conversation-worthy
 - Stay true to your personality and interests
 
@@ -460,6 +461,7 @@ Avoid:
 - Offensive or inappropriate content
 - Going over or under the character limit
 - Using clichéd phrases or AI-like language
+- ABSOLUTELY NO HASHTAGS
 
 Return only the complete post, nothing else.`;
 
@@ -1505,6 +1507,7 @@ IMPORTANT GUIDELINES:
 - Use natural language patterns, not AI-generated phrases
 - Sound like a real person with real opinions about the specific post content
 - Make sure your comment directly relates to what was posted
+- DO NOT INCLUDE ANY HASHTAGS (No # symbols at all)
 
 Return only the comment text, nothing else.`;
 

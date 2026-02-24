@@ -318,6 +318,7 @@ model Follow {
   userId      String
   celebrityId String
   createdAt   DateTime @default(now())
+  lastViewedAt DateTime @default(now())
   
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   celebrity Celebrity @relation(fields: [celebrityId], references: [id], onDelete: Cascade)
