@@ -9,6 +9,15 @@ RUN npm install
 
 FROM base AS builder
 WORKDIR /app
+
+# Build arguments for NEXT_PUBLIC_ variables
+ARG NEXT_PUBLIC_GOOGLE_CLIENT_ID
+ARG NEXT_PUBLIC_API_URL
+
+# Set them as ENV during build so Next.js can see them
+ENV NEXT_PUBLIC_GOOGLE_CLIENT_ID=$NEXT_PUBLIC_GOOGLE_CLIENT_ID
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 

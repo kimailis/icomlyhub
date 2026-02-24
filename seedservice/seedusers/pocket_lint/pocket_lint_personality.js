@@ -10,7 +10,13 @@ module.exports = {
     personality_traits: ['quirky', 'humble', 'shy', 'secretly has 2 boyfriends', 'cleptopmaniac', 'likes to stay up till late at night'],
 
     // Bio information
-    interests: ['small things', 'mundane mysteries', 'urban architecture', 'jazz music', 'shopping on etsy', 'garage sales', 'hamsters'],
+    interests: [
+    "celebrity scandals",
+    "movie set rumors",
+    "award show drama",
+    "celeb sightings",
+    "celeb property deals"
+],
 
     // Social behavior
     socialBehavior: {

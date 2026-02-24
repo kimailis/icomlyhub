@@ -18,7 +18,10 @@ export async function GET() {
       orderBy: { publishedAt: 'desc' },
       include: {
         celebrity: {
-          select: { id: true, name: true, imageUrl: true, noiseRating: true, trendDirection: true }
+          select: { id: true, name: true, imageUrl: true, noiseRating: true, trendDirection: true, category: true }
+        },
+        _count: {
+            select: { likes: true, comments: true }
         }
       }
     });
@@ -34,7 +37,10 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
       include: {
         user: { select: { id: true, name: true, profilePath: true } },
-        targetCeleb: { select: { id: true, name: true, imageUrl: true } }
+        targetCeleb: { select: { id: true, name: true, imageUrl: true } },
+        _count: {
+            select: { likes: true, comments: true }
+        }
       }
     });
 
@@ -47,11 +53,17 @@ export async function GET() {
         summary: a.summary,
         source: a.source,
         sourceUrl: a.sourceUrl,
-        publishedAt: a.publishedAt,
+        publishedAt: a.publishedAt.toISOString(),
         impactScore: a.impactScore,
         category: a.category,
-        celebrity: a.celebrity,
-        timestamp: new Date(a.publishedAt).getTime()
+        celebId: a.celebrity.id,
+        celebName: a.celebrity.name,
+        timestamp: new Date(a.publishedAt).getTime(),
+        likeCount: a._count.likes,
+        commentCount: a._count.comments,
+        imageUrl: a.celebrity.imageUrl,
+        timeAgo: getTimeAgo(new Date(a.publishedAt)),
+        mentionedCelebs: [a.celebrity.name]
       })),
       ...scoops.map(s => ({
         id: s.id,
@@ -60,53 +72,51 @@ export async function GET() {
         summary: s.content,
         source: s.user.name || 'Anonymous Agent',
         sourceUrl: `/celebrity/${s.targetCelebId}?post=${s.id}`,
-        publishedAt: s.createdAt,
-        impactScore: 75, // Scoops are high impact
+        publishedAt: s.createdAt.toISOString(),
+        impactScore: 75,
         category: 'Community',
-        celebrity: s.targetCeleb,
-        user: s.user,
+        celebId: s.targetCelebId,
+        celebName: s.targetCeleb?.name,
+        user: {
+            id: s.user.id,
+            name: s.user.name,
+            profilePath: s.user.profilePath
+        },
         timestamp: new Date(s.createdAt).getTime(),
-        picPath: s.picPath
+        likeCount: s._count.likes,
+        commentCount: s._count.comments,
+        imageUrl: s.targetCeleb?.imageUrl,
+        timeAgo: getTimeAgo(new Date(s.createdAt)),
+        mentionedCelebs: s.targetCeleb ? [s.targetCeleb.name] : []
       }))
     ];
 
     // Sort by timestamp
     unifiedFeed.sort((a, b) => b.timestamp - a.timestamp);
 
-    // Post-processing: Prevent consecutive items for the same celebrity
-    const feed: any[] = [];
-    const deferred: any[] = [];
+    const finalFeed = unifiedFeed.slice(0, 50);
 
-    for (const item of unifiedFeed) {
-      const lastItem = feed[feed.length - 1];
-      if (lastItem && lastItem.celebrity?.id === item.celebrity?.id) {
-        deferred.push(item);
-      } else {
-        feed.push(item);
-      }
-    }
-
-    // Weave deferred items back in
-    for (const item of deferred) {
-      let inserted = false;
-      for (let i = 1; i < feed.length; i++) {
-        const prev = feed[i - 1];
-        const next = feed[i];
-        if (prev.celebrity?.id !== item.celebrity?.id && next.celebrity?.id !== item.celebrity?.id) {
-          feed.splice(i, 0, item);
-          inserted = true;
-          break;
-        }
-      }
-      if (!inserted) feed.push(item);
-    }
-
-    const finalFeed = feed.slice(0, 50);
-
-    await redisClient.set('feed:global', JSON.stringify(finalFeed), { EX: 300 }); // 5 min cache
+    await redisClient.set('feed:global', JSON.stringify(finalFeed), { EX: 300 });
     return NextResponse.json(finalFeed);
   } catch (error) {
     console.error('API Error /api/feed:', error);
     return NextResponse.json({ message: 'Failed to fetch feed' }, { status: 500 });
   }
+}
+
+function getTimeAgo(date: Date): string {
+  const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+  if (seconds < 0) return "just now";
+  if (seconds < 60) return seconds + "s ago";
+  let interval = seconds / 60;
+  if (interval < 60) return Math.floor(interval) + "m ago";
+  interval = interval / 60;
+  if (interval < 24) return Math.floor(interval) + "h ago";
+  interval = interval / 24;
+  if (interval < 7) return Math.floor(interval) + "d ago";
+  interval = interval / 7;
+  if (interval < 4) return Math.floor(interval) + "w ago";
+  interval = seconds / 2592000;
+  if (interval < 12) return Math.floor(interval) + "mo ago";
+  return Math.floor(seconds / 31536000) + "y ago";
 }

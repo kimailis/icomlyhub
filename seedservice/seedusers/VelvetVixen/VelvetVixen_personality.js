@@ -10,7 +10,13 @@ module.exports = {
     personality_traits: ['seductive', 'mysterious', 'elegant', 'confident', 'secretly works in escort', 'sophisticated'],
     
     // Bio information
-    interests: ['fashion', 'luxury', 'making new connections', 'revealing secrets of the world of the rich', 'giving seduction tips (sfw)', 'telling where rich people hang out'],
+    interests: [
+    "celeb fitness secrets",
+    "celebrity scandals",
+    "celebrity social media drama",
+    "celebrity lifestyle",
+    "celeb health updates"
+],
     
     // Social behavior
     socialBehavior: {

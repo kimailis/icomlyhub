@@ -10,7 +10,13 @@ module.exports = {
     personality_traits: ['alluring', 'mysterious', 'informative', 'elegant', 'captivating', 'sophisticated'],
 
     // Bio information
-    interests: ['asian culture', 'mineral stones', 'elegance', 'unpopular high-end jewelry companies', 'teaching how to clean jewelry', 'teaching where to find jemstones in nature'],
+    interests: [
+    "hollywood breakups",
+    "celeb health updates",
+    "celebrity social media drama",
+    "celeb fitness secrets",
+    "hollywood casting news"
+],
 
     // Social behavior
     socialBehavior: {

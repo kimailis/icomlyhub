@@ -10,7 +10,13 @@ module.exports = {
     personality_traits: ['analytical', 'passionate', 'knowledgeable', 'critical', 'nostalgic', 'cultured'],
 
     // Bio information
-    interests: ['movies', 'cinema', 'film analysis', 'directors', 'actors', 'movie reviews'],
+    interests: [
+    "secret celeb weddings",
+    "hollywood casting news",
+    "celebrity social media drama",
+    "influencer gossip",
+    "celeb health updates"
+],
 
     // Social behavior
     socialBehavior: {

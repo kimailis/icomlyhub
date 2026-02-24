@@ -42,12 +42,15 @@ services:
     build:
       context: ./webapp
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
+        NEXT_PUBLIC_API_URL: /api
     restart: always
     environment:
       DATABASE_URL: postgresql://user:password@postgres:5432/icomly?schema=public
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      JWT_SECRET: your_jwt_secret_change_me
+      JWT_SECRET: ${JWT_SECRET}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       SMTP_HOST: mail
       SMTP_PORT: 2525
@@ -56,6 +59,9 @@ services:
       SMTP_PASS: none
       SMTP_FROM: noreply@icomly.com
       NEXT_PUBLIC_API_URL: /api
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
     depends_on:
       - postgres
       - redis

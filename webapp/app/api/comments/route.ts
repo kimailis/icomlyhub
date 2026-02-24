@@ -97,3 +97,42 @@ export async function POST(req: Request) {
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
   }
 }
+
+// DELETE /api/comments - Delete a comment
+export async function DELETE(req: Request) {
+  try {
+    const userId = verifyToken(req);
+    if (!userId) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const commentId = searchParams.get('commentId');
+
+    if (!commentId) {
+      return NextResponse.json({ message: 'Comment ID is required' }, { status: 400 });
+    }
+
+    const comment = await prisma.comment.findUnique({
+      where: { id: commentId },
+      select: { userId: true }
+    });
+
+    if (!comment) {
+      return NextResponse.json({ message: 'Comment not found' }, { status: 404 });
+    }
+
+    if (comment.userId !== userId) {
+      return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
+    }
+
+    await prisma.comment.delete({
+      where: { id: commentId }
+    });
+
+    return NextResponse.json({ message: 'Comment deleted successfully' });
+  } catch (error) {
+    console.error('API Error /api/comments/delete:', error);
+    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+  }
+}

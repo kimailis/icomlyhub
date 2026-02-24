@@ -10,7 +10,13 @@ module.exports = {
     personality_traits: ['scientific', 'nerdy', 'likes useless trivia', 'a bit disconnected from reality', 'afraid of changes'],
     
     // Bio information
-    interests: ['quantum physics', 'astrophotography', 'useless trivia', 'patents', 'strange inventions', 'psychodelic mushrooms'],
+    interests: [
+    "influencer gossip",
+    "reality tv drama",
+    "secret celeb weddings",
+    "celeb fitness secrets",
+    "award show drama"
+],
     
     // Social behavior
     socialBehavior: {

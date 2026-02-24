@@ -25,12 +25,19 @@ export const ProfileModal: React.FC = () => {
     // Sync active tab when modal opens
     useEffect(() => {
         if (isProfileModalOpen) {
+            document.body.style.overflow = 'hidden';
             let tab = (profileTab === 'profile' ? 'overview' : profileTab) as any;
             if (!['overview', 'subscription', 'settings'].includes(tab)) {
                 tab = 'overview';
             }
             setActiveTab(tab);
+        } else {
+            document.body.style.overflow = '';
         }
+
+        return () => {
+            document.body.style.overflow = '';
+        };
     }, [isProfileModalOpen, profileTab]);
 
     const [settingsView, setSettingsView] = useState<'menu' | 'password' | 'terms' | 'privacy' | 'profile'>('menu');
@@ -159,9 +166,16 @@ export const ProfileModal: React.FC = () => {
             <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" onClick={closeProfileModal} />
 
             <div className="relative w-full h-full md:h-auto md:max-w-2xl bg-[#121214] border-0 md:border md:border-white/10 md:rounded-2xl shadow-2xl flex flex-col md:flex-row overflow-hidden animate-fade-in">
+                {/* Close Button */}
+                <button 
+                    onClick={closeProfileModal} 
+                    className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors z-50 p-1 rounded-full hover:bg-white/5"
+                >
+                    <X size={20} />
+                </button>
 
                 {/* Sidebar */}
-                <div className="w-full md:w-64 bg-surface/30 border-b md:border-b-0 md:border-r border-white/5 p-6 flex flex-col shrink-0 pt-16 md:pt-6">
+                <div className={`w-full md:w-64 bg-surface/30 border-b md:border-b-0 md:border-r border-white/5 p-6 flex flex-col shrink-0 pt-16 md:pt-6 ${activeTab === 'settings' && settingsView !== 'menu' ? 'hidden md:flex' : 'flex'}`}>
                     <div className="flex md:flex-col items-center gap-4 md:gap-0 mb-6 md:mb-8 text-left md:text-center">
                         <div className="w-16 h-16 md:w-20 md:h-20 rounded-full border-2 border-primary p-1 md:mb-3 shrink-0">
                             <img src={user.avatarUrl || `https://ui-avatars.com/api/?name=${displayName}`} alt="User" className="w-full h-full rounded-full object-cover" />
@@ -177,17 +191,15 @@ export const ProfileModal: React.FC = () => {
                     </div>
 
                     <div className="mb-6 space-y-2">
-                        <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="w-full border-white/10 hover:bg-white/5 text-[10px] uppercase tracking-widest font-black h-9 rounded-xl"
+                        <button 
+                            className="w-full bg-white/5 border border-white/10 hover:bg-white/10 text-white text-[10px] uppercase tracking-widest font-black h-9 rounded-xl flex items-center justify-center gap-2 transition-colors"
                             onClick={() => {
                                 closeProfileModal();
                                 router.push(`/user/${user.id}`);
                             }}
                         >
-                            <Eye size={14} className="mr-2" /> View Public Profile
-                        </Button>
+                            <Eye size={14} /> View Public Profile
+                        </button>
                     </div>
 
                     <nav className="grid grid-cols-3 md:flex md:flex-col gap-1 md:space-y-1 md:flex-1">
@@ -210,22 +222,10 @@ export const ProfileModal: React.FC = () => {
                             <Settings size={18} /> <span>Settings</span>
                         </button>
                     </nav>
-
-                    <div className="mt-4 md:mt-8 pt-4 md:pt-6 border-t border-white/10 hidden md:block">
-                        <button
-                            onClick={() => { logout(); closeProfileModal(); }}
-                            className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition-colors"
-                        >
-                            <LogOut size={18} /> Log Out
-                        </button>
-                    </div>
                 </div>
 
                 {/* Content Area */}
-                <div className="flex-1 p-6 md:p-8 overflow-y-auto relative bg-[#09090b]">
-                    <button onClick={closeProfileModal} className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors">
-                        <X size={20} />
-                    </button>
+                <div className={`flex-1 p-6 md:p-8 relative bg-[#09090b] ${activeTab === 'settings' && settingsView !== 'menu' ? 'h-full overflow-hidden' : 'overflow-y-auto'}`}>
 
                     {activeTab === 'overview' && (
                         <div className="space-y-6 animate-fade-in">
@@ -342,7 +342,7 @@ export const ProfileModal: React.FC = () => {
                     )}
 
                     {activeTab === 'settings' && (
-                        <div className="space-y-8 animate-fade-in pb-20 md:pb-0">
+                        <div className={`animate-fade-in ${settingsView === 'menu' ? 'space-y-8 pb-10' : 'h-full flex flex-col'}`}>
                             {settingsView === 'menu' ? (
                                 <>
                                     <div>
@@ -412,6 +412,14 @@ export const ProfileModal: React.FC = () => {
                                                 <span className="text-sm text-gray-300">Terms & Conditions</span>
                                                 <ChevronRight size={16} className="text-gray-500" />
                                             </button>
+
+                                            <button 
+                                                onClick={() => { logout(); closeProfileModal(); }}
+                                                className="w-full flex items-center justify-center gap-3 p-3 bg-red-500/10 border border-red-500/20 rounded-lg hover:bg-red-500/20 text-red-400 transition-all font-bold group mt-2"
+                                            >
+                                                <LogOut size={16} className="group-hover:translate-x-1 transition-transform" />
+                                                <span>Log Out</span>
+                                            </button>
                                         </div>
                                     </div>
                                 </>
@@ -432,7 +440,7 @@ export const ProfileModal: React.FC = () => {
                                     </div>
 
                                     {settingsView === 'profile' ? (
-                                        <form className="space-y-5" onSubmit={handleProfileUpdate}>
+                                        <form className="space-y-5 overflow-y-auto pr-1 scrollbar-hide" onSubmit={handleProfileUpdate}>
                                             <div className="space-y-4">
                                                 <div className="space-y-1.5">
                                                     <label className="text-[10px] font-mono text-gray-500 uppercase tracking-wider ml-1">Broadcast Name</label>
@@ -464,7 +472,7 @@ export const ProfileModal: React.FC = () => {
                                             </div>
                                         </form>
                                     ) : settingsView === 'password' ? (
-                                        <form className="space-y-5" onSubmit={handlePasswordUpdate}>
+                                        <form className="space-y-5 overflow-y-auto pr-1 scrollbar-hide" onSubmit={handlePasswordUpdate}>
                                             <div className="space-y-4">
                                                 <div className="space-y-1.5">
                                                     <label className="text-[10px] font-mono text-gray-500 uppercase tracking-wider ml-1">Current Password</label>
@@ -515,8 +523,16 @@ export const ProfileModal: React.FC = () => {
                                             </div>
                                         </form>
                                     ) : (
-                                        <div className="flex-1 overflow-y-auto bg-surface/30 rounded-xl p-4 border border-white/5 text-sm text-gray-300 space-y-4 whitespace-pre-wrap max-h-[400px] scrollbar-thin scrollbar-thumb-white/10">
+                                        <div className="flex-1 bg-surface/30 rounded-xl p-4 border border-white/5 text-sm text-gray-300 space-y-4 whitespace-pre-wrap scrollbar-thin scrollbar-thumb-white/10 overflow-y-auto">
                                             {settingsView === 'privacy' ? PRIVACY_POLICY : TERMS_AND_CONDITIONS}
+                                            <div className="pt-6 flex justify-center pb-4">
+                                                <button 
+                                                    onClick={() => setSettingsView('menu')}
+                                                    className="flex items-center gap-2 text-xs text-primary font-bold hover:underline"
+                                                >
+                                                    <ArrowLeft size={14} /> Back to Settings
+                                                </button>
+                                            </div>
                                         </div>
                                     )}
                                 </div>

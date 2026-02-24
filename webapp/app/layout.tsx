@@ -7,7 +7,9 @@ import { AuthProvider } from './providers/AuthProvider';
 import { UIProvider } from './providers/UIProvider';
 import { AuthModal } from './components/AuthModal';
 import { ProfileModal } from './components/ProfileModal';
+import { ConfirmationModal } from './components/ui/ConfirmationModal';
 import { Footer } from './components/Footer';
+import Script from 'next/script';
 
 // Optimize font loading
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
@@ -37,6 +39,9 @@ export const metadata: Metadata = {
     description: 'Global celebrity news and sightings tracker.',
     images: ['https://icomly.com/og-image.jpg'],
   },
+  other: {
+    'google-adsense-account': 'ca-pub-7873079521814069',
+  },
 };
 
 export default function RootLayout({
@@ -46,6 +51,15 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <Script src="https://accounts.google.com/gsi/client" strategy="beforeInteractive" />
+        <Script 
+          async 
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7873079521814069"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
+      </head>
       <body className={inter.variable}>
         <AuthProvider>
           <UIProvider>
@@ -56,6 +70,7 @@ export default function RootLayout({
             <Footer />
             <AuthModal />
             <ProfileModal />
+            <ConfirmationModal />
           </UIProvider>
         </AuthProvider>
       </body>

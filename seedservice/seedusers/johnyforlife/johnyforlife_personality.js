@@ -10,7 +10,13 @@ module.exports = {
     personality_traits: ['loyal', 'workaholic', 'committed', 'steadfacan be annoying', 'reliable', 'sociophobic', 'afraid of being alone'],
 
     // Bio information
-    interests: ['giving tips on urban traveling', 'recommending craft beer', 'japanese cars', 'life-long dedication', 'excel', 'spreadsheets'],
+    interests: [
+    "celeb health updates",
+    "celeb relationships",
+    "secret celeb weddings",
+    "celebrity lifestyle",
+    "reality tv drama"
+],
 
     // Social behavior
     socialBehavior: {

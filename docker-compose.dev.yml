@@ -62,7 +62,7 @@ services:
       DATABASE_URL: postgresql://user:password@postgres:5432/icomly?schema=public
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      JWT_SECRET: dev_jwt_secret_change_in_production
+      JWT_SECRET: ${JWT_SECRET}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       SMTP_HOST: mail
       SMTP_PORT: 2525
@@ -70,6 +70,9 @@ services:
       SMTP_USER: admin
       SMTP_PASS: none
       SMTP_FROM: noreply@icomly.com
+      NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
       NODE_ENV: development
       HOSTNAME: "0.0.0.0"
       NEXT_TELEMETRY_DISABLED: "1"

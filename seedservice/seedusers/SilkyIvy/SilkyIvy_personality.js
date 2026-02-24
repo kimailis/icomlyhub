@@ -10,7 +10,13 @@ module.exports = {
     personality_traits: ['shy', 'gentle', 'optimistic', 'cheerful', 'lesbian', 'recovering drug addict'],
 
     // Bio information
-    interests: ['chinese food', 'gardening', 'snowy resorts', 'gadgets', 'rich people gossip', 'secret clubs for the wealthy'],
+    interests: [
+    "movie set rumors",
+    "award show drama",
+    "reality tv drama",
+    "secret celeb weddings",
+    "celeb sightings"
+],
 
     // Social behavior
     socialBehavior: {

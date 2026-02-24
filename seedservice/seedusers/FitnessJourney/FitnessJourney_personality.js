@@ -10,7 +10,13 @@ module.exports = {
     personality_traits: ['motivated', 'disciplined', 'health-conscious', 'energetic', 'goal-oriented', 'inspiring', 'obnoxious', 'afraid of fat people', 'bulemic'],
 
     // Bio information
-    interests: ['fitness', 'giving workout tips', 'workouts', 'health', 'wellness', 'strength training', 'pickles', 'danny trejo'],
+    interests: [
+    "award show drama",
+    "celebrity lifestyle",
+    "celeb health updates",
+    "movie set rumors",
+    "music industry rumors"
+],
 
     // Social behavior
     socialBehavior: {

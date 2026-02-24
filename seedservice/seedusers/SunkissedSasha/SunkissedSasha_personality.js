@@ -10,7 +10,13 @@ module.exports = {
     personality_traits: ['likes summer days', 'foodie', 'likes dark humor', 'gentle', 'laid-back', 'cheerful'],
 
     // Bio information
-    interests: ['summer parties', 'beach life', 'nature parties', 'history documentaries', 'pop fashion', 'gossip'],
+    interests: [
+    "celeb property deals",
+    "music industry rumors",
+    "red carpet fashion",
+    "celeb health updates",
+    "hollywood breakups"
+],
 
     // Social behavior
     socialBehavior: {

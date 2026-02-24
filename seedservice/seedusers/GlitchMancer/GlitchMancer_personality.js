@@ -10,7 +10,13 @@ module.exports = {
     personality_traits: ['glitchy', 'experimental', 'digital-artist', 'avant-garde', 'chaotic', 'creative', 'has aspergers', 'afraid of mice'],
     
     // Bio information
-    interests: ['glitch art', 'teaching quick editing techniques', 'experimental media', 'sharing cool new websites', 'abstract art', 'technology', 'sitcoms', 'abraham lincolns beard'],
+    interests: [
+    "influencer gossip",
+    "celebrity social media drama",
+    "celeb relationships",
+    "award show drama",
+    "hollywood casting news"
+],
     
     // Social behavior
     socialBehavior: {

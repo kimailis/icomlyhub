@@ -87,14 +87,14 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 space-y-8 pb-20">
+    <div className="max-w-6xl mx-auto px-4 py-4 space-y-4 pb-20">
       <Button variant="ghost" onClick={() => router.back()} className="gap-2 text-gray-400 hover:text-white">
         <ArrowLeft size={16} /> Back
       </Button>
 
       {/* Profile Header */}
       <section className="relative rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-surface/20">
-        <div className="p-8 md:p-12 flex flex-col md:flex-row items-center md:items-end gap-8">
+        <div className="p-4 md:p-6 flex flex-col md:flex-row items-center md:items-end gap-6">
           <div className="w-24 h-24 md:w-32 md:h-32 rounded-3xl overflow-hidden border-4 border-white/10 shadow-2xl flex-shrink-0 bg-primary/10 flex items-center justify-center">
             {userProfile.profilePath ? (
               <img src={userProfile.profilePath} className="w-full h-full object-cover" />
@@ -103,7 +103,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
             )}
           </div>
 
-          <div className="flex-1 text-center md:text-left space-y-2">
+          <div className="flex-1 text-center md:text-left space-y-1">
             <div className="flex flex-wrap justify-center md:justify-start items-center gap-3">
               <h1 className="text-3xl md:text-5xl font-black text-white tracking-tighter">
                 {userProfile.name || 'Anonymous User'}
@@ -115,7 +115,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
             <p className="text-gray-400 text-sm md:text-base max-w-2xl leading-relaxed">
               {userProfile.bio || 'This user has not broadcasted a bio yet.'}
             </p>
-            <div className="flex items-center justify-center md:justify-start gap-4 text-[10px] font-mono text-gray-600 uppercase tracking-widest pt-2">
+            <div className="flex items-center justify-center md:justify-start gap-4 text-[10px] font-mono text-gray-600 uppercase tracking-widest pt-1">
               <span className="flex items-center gap-1.5"><Calendar size={12} /> Joined {new Date(userProfile.createdAt).toLocaleDateString()}</span>
               <span>ID: {userProfile.id.substring(0, 8)}</span>
             </div>
@@ -143,15 +143,15 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
 
         {/* Stats Bar */}
         <div className="grid grid-cols-3 border-t border-white/10 bg-black/40">
-          <div className="p-4 text-center border-r border-white/10">
+          <div className="p-3 text-center border-r border-white/10">
             <div className="text-xl font-black text-white">{userProfile.postCount}</div>
             <div className="text-[10px] text-gray-500 font-mono uppercase tracking-widest">Broadcasts</div>
           </div>
-          <div className="p-4 text-center border-r border-white/10">
+          <div className="p-3 text-center border-r border-white/10">
             <div className="text-xl font-black text-white">{userProfile.followerCount}</div>
             <div className="text-[10px] text-gray-500 font-mono uppercase tracking-widest">Followers</div>
           </div>
-          <div className="p-4 text-center">
+          <div className="p-3 text-center">
             <div className="text-xl font-black text-white">{userProfile.followingCount}</div>
             <div className="text-[10px] text-gray-500 font-mono uppercase tracking-widest">Following</div>
           </div>
@@ -159,7 +159,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
       </section>
 
       {/* Profile Wall */}
-      <section className="bg-surface/10 rounded-3xl p-6 md:p-8 border border-white/5 shadow-2xl">
+      <section className="bg-surface/10 rounded-3xl p-4 md:p-6 border border-white/5 shadow-2xl">
         <PostWall targetUserId={userId} title={`${userProfile.name || 'User'}'s Wall`} />
       </section>
     </div>

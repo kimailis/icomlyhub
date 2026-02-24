@@ -10,7 +10,13 @@ module.exports = {
     personality_traits: ['creative', 'artistic', 'technical', 'innovative', 'irritable', 'has OCD', 'hates loud noises'],
     
     // Bio information
-    interests: ['pixel art', 'digital design', 'game development', 'retro gaming', 'korean food', 'complaining about his landlord'],
+    interests: [
+    "celebrity social media drama",
+    "hollywood gossip",
+    "celeb property deals",
+    "movie set rumors",
+    "award show drama"
+],
     
     // Social behavior
     socialBehavior: {

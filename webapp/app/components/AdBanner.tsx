@@ -1,51 +1,36 @@
 'use client';
 
-import React from 'react';
-import { ExternalLink } from 'lucide-react';
+import React, { useEffect } from 'react';
 
 export const AdBanner: React.FC = () => {
+  useEffect(() => {
+    try {
+      // Initialize the ad unit
+      ((window as any).adsbygoogle = (window as any).adsbygoogle || []).push({});
+    } catch (err) {
+      // Silently catch errors if ads are blocked or script hasn't loaded yet
+    }
+  }, []);
+
   return (
-    <div className="group relative bg-surface/40 border border-white/5 rounded-xl overflow-hidden min-h-[100px] flex items-stretch">
-        {/* Ad Indicator Strip */}
-        <div className="absolute left-0 top-0 bottom-0 w-1 bg-yellow-500/50" />
+    <div className="group relative bg-surface/40 border border-white/5 rounded-xl overflow-hidden min-h-[120px] w-full transition-all hover:border-white/10">
+        {/* Ad Indicator */}
+        <div className="absolute left-0 top-0 bottom-0 w-1 bg-yellow-500/30" />
         
-        {/* Mock Image Area (To match feed item layout) */}
-        <div className="p-4 pr-0 flex items-center">
-            <div className="w-16 h-16 rounded-lg bg-black/50 border border-white/5 flex items-center justify-center overflow-hidden relative">
-                 <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/20 to-transparent" />
-                 <span className="text-[10px] font-bold text-yellow-500/80 tracking-widest uppercase rotate-[-15deg] border-2 border-yellow-500/50 px-1 py-0.5 rounded">Ad</span>
-            </div>
+        <div className="px-4 py-1 flex justify-between items-center bg-black/20 border-b border-white/5">
+            <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Sponsored Content</span>
+            <div className="w-0 h-0 border-l-[10px] border-l-transparent border-t-[10px] border-t-blue-400/40" />
         </div>
 
-        {/* Content Area */}
-        <div className="flex-1 p-4 flex flex-col justify-center min-w-0">
-             <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs font-bold text-yellow-500 uppercase tracking-wider">Sponsored</span>
-                <span className="text-gray-600 text-[10px]">•</span>
-                <span className="text-xs text-gray-500">Google Ads</span>
-             </div>
-             
-             {/* Ad Script Placeholder */}
-             <div className="w-full">
-                {/* 
-                  * INTEGRATION NOTE: 
-                  * Replace the visual mock below with the actual Google AdSense code.
-                  * The container styling ensures it fits the dimensions of the list item.
-                  * 
-                  * <ins className="adsbygoogle" ... ></ins>
-                  */}
-                 <div className="flex items-center justify-between gap-4">
-                     <p className="text-gray-400 text-sm leading-tight truncate">
-                         Discover premium brands tailored to your interests.
-                     </p>
-                     <ExternalLink size={14} className="text-gray-600 shrink-0" />
-                 </div>
-             </div>
-        </div>
-        
-        {/* Ad Choice Icon */}
-        <div className="absolute top-2 right-2 opacity-50">
-            <div className="w-0 h-0 border-l-[12px] border-l-transparent border-t-[12px] border-t-blue-400" />
+        <div className="p-4 flex items-center justify-center min-h-[100px] overflow-hidden">
+            {/* Google AdSense Unit */}
+            <ins className="adsbygoogle"
+                 style={{ display: 'block', width: '100%', textAlign: 'center' }}
+                 data-ad-client="ca-pub-7873079521814069"
+                 data-ad-slot="YOUR_AD_SLOT_HERE"
+                 data-ad-format="fluid"
+                 data-ad-layout-key="-fb+5w+4e-db+86"
+                 data-full-width-responsive="true"></ins>
         </div>
     </div>
   );

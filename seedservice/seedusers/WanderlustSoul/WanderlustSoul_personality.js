@@ -10,7 +10,13 @@ module.exports = {
     personality_traits: ['wandering', 'soulful', 'free-spirited', 'nomadic', 'dreamy', 'philosophical'],
 
     // Bio information
-    interests: ['wandering', 'soul searching', 'freedom', 'nomadic lifestyle', 'philosophy', 'introspection', 'teaching how to overcome fears and phobias', 'teaching how to overcome depression'],
+    interests: [
+    "celeb health updates",
+    "celeb property deals",
+    "celebrity scandals",
+    "music industry rumors",
+    "movie set rumors"
+],
 
     // Social behavior
     socialBehavior: {

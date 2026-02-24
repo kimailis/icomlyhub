@@ -25,6 +25,7 @@ export interface Source {
 }
 
 export interface Article {
+  id: string;
   title: string;
   snippet: string;
   url: string;
@@ -53,6 +54,7 @@ export interface CelebProfile {
   sightings: Sighting[];
   noiseHistory: { date: string; score: number }[];
   lastUpdated?: number; // Timestamp for caching
+  verified?: boolean;
   // Enhanced bio fields
   lifeSummary?: string | null;
   hobbies?: string | null;
@@ -63,6 +65,7 @@ export interface CelebProfile {
 
 export interface GossipHeadline {
   id: string;
+  type: 'ARTICLE' | 'SCOOP';
   headline: string;
   summary: string; // New field for expanded view
   celebName: string; // The PRIMARY celeb (for display)
@@ -75,6 +78,14 @@ export interface GossipHeadline {
   impactScore: number;
   imageUrl: string;
   timestamp?: number; // Timestamp for caching
+  likeCount: number;
+  commentCount: number;
+  userHasLiked?: boolean;
+  user?: {
+    id: string;
+    name: string | null;
+    profilePath: string | null;
+  };
 }
 
 export interface FollowingStat {

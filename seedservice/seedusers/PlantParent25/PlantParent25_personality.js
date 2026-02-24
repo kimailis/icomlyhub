@@ -10,7 +10,13 @@ module.exports = {
     personality_traits: ['nurturing', 'optimistic', 'go-getter', 'goofy', 'has a crush on a coworker', 'hates his boss'],
 
     // Bio information
-    interests: ['plants', 'gardening', 'plant care', 'houseplants', 'traveling', 'tropical resorts', 'escort industry'],
+    interests: [
+    "celeb fitness secrets",
+    "hollywood breakups",
+    "celebrity feuds",
+    "behind the scenes hollywood",
+    "celeb relationships"
+],
 
     // Social behavior
     socialBehavior: {

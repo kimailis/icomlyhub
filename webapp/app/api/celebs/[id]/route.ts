@@ -81,7 +81,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       actualFollowerCount: followerCount
     };
 
-    await redisClient.set(cacheKey, JSON.stringify(enrichedProfile), { EX: 3600 });
+    await redisClient.set(cacheKey, JSON.stringify(enrichedProfile), { EX: 900 }); // 15 min cache
     return NextResponse.json(enrichedProfile);
   } catch (error) {
     return NextResponse.json({ message: 'Failed to fetch celebrity profile', error }, { status: 500 });

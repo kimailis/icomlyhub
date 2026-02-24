@@ -10,7 +10,13 @@ module.exports = {
     personality_traits: ['trendy', 'fashionable', 'social', 'confident', 'outgoing', 'stylish', 'obmoxious', 'tries to teach others useless stuff'],
 
     // Bio information
-    interests: ['fashion', 'social media', 'beauty', 'lifestyle', 'trends', 'photography','porn(secretly)', 'pixar movies', 'johnny depp'],
+    interests: [
+    "celebrity scandals",
+    "celebrity feuds",
+    "influencer gossip",
+    "hollywood breakups",
+    "music industry rumors"
+],
 
     // Social behavior
     socialBehavior: {

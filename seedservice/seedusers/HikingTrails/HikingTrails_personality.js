@@ -10,7 +10,13 @@ module.exports = {
     personality_traits: ['adventurous', 'outdoorsy', 'energetic', 'nature-loving', 'athletic', 'explorer'],
 
     // Bio information
-    interests: ['hiking', 'trails', 'mountains', 'outdoor adventures', 'backpacking', 'nature walks', 'medical research achievements'],
+    interests: [
+    "celebrity feuds",
+    "hollywood gossip",
+    "award show drama",
+    "celebrity lifestyle",
+    "celeb health updates"
+],
 
     // Social behavior
     socialBehavior: {

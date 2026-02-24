@@ -10,7 +10,13 @@ module.exports = {
     personality_traits: ['outgoing', 'mellow', 'refreshing', 'calm', 'flowing', 'cool', 'likes to smoke', 'irresponsible', 'works for an insurance company'],
 
     // Bio information
-    interests: ['ocean', 'beach parties', 'fresh air', 'boating', 'cocktails', 'gossip', 'chocolate'],
+    interests: [
+    "celeb relationships",
+    "celebrity scandals",
+    "red carpet fashion",
+    "hollywood casting news",
+    "celebrity social media drama"
+],
 
     // Social behavior
     socialBehavior: {

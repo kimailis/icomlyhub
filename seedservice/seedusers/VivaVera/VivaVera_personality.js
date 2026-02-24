@@ -10,7 +10,13 @@ module.exports = {
     personality_traits: ['humorous', 'foodie', 'social', 'creative', 'emotional', 'trendy', 'intellectual'],
 
     // Bio information
-    interests: ['cooking', 'connecting with people', 'food exploring', 'restaurant recommendations', 'best restaurant dishes', 'giving advice for girls'],
+    interests: [
+    "celeb relationships",
+    "celeb property deals",
+    "hollywood gossip",
+    "movie set rumors",
+    "celeb fitness secrets"
+],
 
     // Social behavior
     socialBehavior: {

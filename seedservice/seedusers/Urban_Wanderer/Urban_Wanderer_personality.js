@@ -10,7 +10,13 @@ module.exports = {
     personality_traits: ['curious', 'adventurous', 'street-smart', 'observant', 'independent', 'trendy'],
 
     // Bio information
-    interests: ['city exploration', 'street art', 'urban photography', 'food trucks', 'local culture', 'street tips', 'making connections with people', 'giving tips on befriending people'],
+    interests: [
+    "red carpet fashion",
+    "hollywood gossip",
+    "award show drama",
+    "celeb health updates",
+    "behind the scenes hollywood"
+],
 
     // Social behavior
     socialBehavior: {

@@ -10,7 +10,13 @@ module.exports = {
     personality_traits: ['nature-loving', 'patient', 'nurturing', 'eco-conscious', 'peaceful', 'knowledgeable', 'goofy', 'laid-back'],
 
     // Bio information
-    interests: ['gardening', 'plants', 'sustainability', 'composting', 'organic farming', 'botany', 'weed', 'movies with james franko and seth rogen'],
+    interests: [
+    "celebrity scandals",
+    "celebrity feuds",
+    "hollywood breakups",
+    "hollywood gossip",
+    "hollywood casting news"
+],
 
     // Social behavior
     socialBehavior: {

@@ -61,16 +61,9 @@ class SubjectRotator {
 // Initialize the main subject rotator with balanced distribution
 const mainSubjects = [
     // Only subjects that have corresponding categories in contentStructure
-    'tech',
-    'lifestyle', 
-    'health',
-    'food',        // Added to include food content (pasta, pizza, baking, anecdotes)
-    'provocative', // maps to 'personal'
-    'weather',
-    'travel',
-    'books',
-    'fitness', // maps to 'health'
-    'mindfulness' // maps to 'lifestyle' 
+    'celebs',
+    'gossip',
+    'provocative'
 ];
 
 // Cache for API content to prevent repetition

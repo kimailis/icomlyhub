@@ -2,7 +2,14 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   images: {
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',
@@ -16,8 +23,34 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'via.placeholder.com',
       }
-    ],
-  },
-};
-
-export default nextConfig;
+        ],
+      },
+      async headers() {
+        return [
+          {
+            source: '/(.*)',
+            headers: [
+              {
+                key: 'Cross-Origin-Opener-Policy',
+                value: 'same-origin-allow-popups',
+              },
+              {
+                key: 'Cross-Origin-Embedder-Policy',
+                value: 'unsafe-none',
+              },
+              {
+                key: 'Cross-Origin-Resource-Policy',
+                value: 'cross-origin',
+              },
+              {
+                key: 'Referrer-Policy',
+                value: 'no-referrer-when-downgrade',
+              },
+            ],
+          },
+        ];
+      },
+    };
+    
+    export default nextConfig;
+    

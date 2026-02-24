@@ -10,7 +10,13 @@ module.exports = {
     personality_traits: ['loving', 'nerdy', 'peaceful', 'gentle', 'romantic', 'affectionate', 'thinks a lot about violence', 'has rage issues'],
 
     // Bio information
-    interests: ['love', 'romance', 'gentle moments', 'affection', 'assault rifles', 'pop music', 'animal documentaries'],
+    interests: [
+    "reality tv drama",
+    "celeb relationships",
+    "hollywood casting news",
+    "secret celeb weddings",
+    "hollywood breakups"
+],
 
     // Social behavior
     socialBehavior: {

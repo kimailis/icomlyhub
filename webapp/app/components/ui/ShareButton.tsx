@@ -12,6 +12,7 @@ interface ShareButtonProps {
   size?: 'sm' | 'md' | 'lg';
   showLabel?: boolean;
   className?: string;
+  labelClassName?: string;
 }
 
 export const ShareButton: React.FC<ShareButtonProps> = ({ 
@@ -21,7 +22,8 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
   variant = 'outline', 
   size = 'sm',
   showLabel = true,
-  className = ""
+  className = "",
+  labelClassName = ""
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -70,7 +72,7 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
         className="w-full gap-2"
       >
         <Share2 size={size === 'sm' ? 14 : 18} />
-        {showLabel && <span>Share</span>}
+        {showLabel && <span className={labelClassName}>Share</span>}
       </Button>
 
       {isOpen && (

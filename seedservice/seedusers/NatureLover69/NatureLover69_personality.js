@@ -10,7 +10,13 @@ module.exports = {
     personality_traits: ['nature-loving', 'peaceful', 'environmentalist', 'fidgety', 'has adhd', 'kinky', 'immature humor'],
 
     // Bio information
-    interests: ['nature', 'wildlife', 'conservation', 'forests', 'environmental protection', 'outdoor life', 'immature jokes', 'weed'],
+    interests: [
+    "celeb health updates",
+    "celebrity lifestyle",
+    "celebrity scandals",
+    "movie set rumors",
+    "celeb property deals"
+],
 
     // Social behavior
     socialBehavior: {

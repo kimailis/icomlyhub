@@ -10,7 +10,13 @@ module.exports = {
     personality_traits: ['shy', 'quirky', 'likes birds', 'afraid of mice', 'obsessed with bath products', 'dramatic'],
 
     // Bio information
-    interests: ['crystals', 'gemstones', 'bath products', 'mystical arts', 'sorcery', 'twilgiht series', 'politics'],
+    interests: [
+    "movie set rumors",
+    "music industry rumors",
+    "celebrity scandals",
+    "behind the scenes hollywood",
+    "celebrity social media drama"
+],
 
     // Social behavior
     socialBehavior: {

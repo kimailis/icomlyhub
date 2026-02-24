@@ -7,35 +7,94 @@ export async function getFeedServer(): Promise<GossipHeadline[]> {
     const cachedFeed = await redisClient.get('feed:global');
     if (cachedFeed) return JSON.parse(cachedFeed);
 
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const feed = await prisma.article.findMany({
+    const twentyFourHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000); // 48h for more content
+
+    // Fetch Articles
+    const articles = await prisma.article.findMany({
       where: { publishedAt: { gte: twentyFourHoursAgo } },
-      take: 50,
+      take: 40,
       orderBy: { publishedAt: 'desc' },
       include: {
         celebrity: {
           select: { id: true, name: true, imageUrl: true, noiseRating: true, trendDirection: true, category: true }
+        },
+        _count: {
+          select: { likes: true, comments: true }
         }
       }
     });
 
-    const mappedFeed: GossipHeadline[] = feed.map((item) => ({
-      id: item.id,
-      headline: item.headline,
-      summary: item.summary,
-      celebName: item.celebrity.name,
-      celebId: item.celebrity.id,
-      mentionedCelebs: [item.celebrity.name],
-      source: item.source,
-      sourceUrl: item.sourceUrl,
-      timeAgo: getTimeAgo(new Date(item.publishedAt)),
-      category: item.celebrity.category || item.category,
-      impactScore: item.impactScore,
-      imageUrl: item.celebrity.imageUrl,
-    }));
+    // Fetch Verified User Posts (Scoops)
+    const scoops = await prisma.post.findMany({
+      where: {
+        verified: true,
+        isFeedCandidate: true,
+        createdAt: { gte: twentyFourHoursAgo }
+      },
+      take: 20,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: { select: { id: true, name: true, profilePath: true } },
+        targetCeleb: { select: { id: true, name: true, imageUrl: true } },
+        _count: {
+            select: { likes: true, comments: true }
+        }
+      }
+    });
 
-    await redisClient.set('feed:global', JSON.stringify(mappedFeed), { EX: 900 });
-    return mappedFeed;
+    const unifiedFeed: GossipHeadline[] = [
+      ...articles.map(a => ({
+        id: a.id,
+        type: 'ARTICLE' as const,
+        headline: a.headline,
+        summary: a.summary,
+        source: a.source,
+        sourceUrl: a.sourceUrl,
+        publishedAt: a.publishedAt.toISOString(),
+        impactScore: a.impactScore,
+        category: a.category,
+        celebId: a.celebrity.id,
+        celebName: a.celebrity.name,
+        timestamp: new Date(a.publishedAt).getTime(),
+        likeCount: a._count.likes,
+        commentCount: a._count.comments,
+        imageUrl: a.celebrity.imageUrl,
+        timeAgo: getTimeAgo(new Date(a.publishedAt)),
+        mentionedCelebs: [a.celebrity.name]
+      })),
+      ...scoops.map(s => ({
+        id: s.id,
+        type: 'SCOOP' as const,
+        headline: `User Scoop: ${s.targetCeleb?.name || 'Celebrity Update'}`,
+        summary: s.content,
+        source: s.user.name || 'Anonymous Agent',
+        sourceUrl: `/celebrity/${s.targetCelebId}?post=${s.id}`,
+        publishedAt: s.createdAt.toISOString(),
+        impactScore: 75,
+        category: 'Community',
+        celebId: s.targetCelebId || '',
+        celebName: s.targetCeleb?.name || '',
+        user: {
+            id: s.user.id,
+            name: s.user.name,
+            profilePath: s.user.profilePath
+        },
+        timestamp: new Date(s.createdAt).getTime(),
+        likeCount: s._count.likes,
+        commentCount: s._count.comments,
+        imageUrl: s.targetCeleb?.imageUrl || '',
+        timeAgo: getTimeAgo(new Date(s.createdAt)),
+        mentionedCelebs: s.targetCeleb ? [s.targetCeleb.name] : []
+      }))
+    ];
+
+    // Sort by timestamp
+    unifiedFeed.sort((a, b) => b.timestamp! - a.timestamp!);
+
+    const finalFeed = unifiedFeed.slice(0, 50);
+
+    await redisClient.set('feed:global', JSON.stringify(finalFeed), { EX: 300 });
+    return finalFeed;
   } catch (error) {
     console.error('getFeedServer error:', error);
     return [];
@@ -116,10 +175,13 @@ export async function getProfileServer(id: string): Promise<any> {
             actualFollowerCount: celebrity.followerCount,
             category: celebrity.category,
             nationality: celebrity.nationality,
+            verified: celebrity.verified,
             lifeSummary: celebrity.lifeSummary,
             hobbies: celebrity.hobbies,
             relationshipStatus: celebrity.relationshipStatus,
+            lastUpdated: celebrity.lastUpdated.getTime(),
             recentStories: celebrity.articles.map(a => ({
+                id: a.id,
                 title: a.headline,
                 snippet: a.summary,
                 url: a.sourceUrl,
@@ -176,10 +238,9 @@ export async function getMapDataServer(): Promise<any[]> {
         }
       },
       orderBy: { date: 'desc' },
-      take: 500 // Fetch more to allow for deduplication
+      take: 500
     });
 
-    // Deduplicate: Keep only the latest sighting per celebrity
     const seenCelebs = new Set<string>();
     const uniqueSightings = [];
     
@@ -206,15 +267,17 @@ export async function getMapDataServer(): Promise<any[]> {
 
 function getTimeAgo(date: Date): string {
   const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
-  let interval = seconds / 31536000;
-  if (interval > 1) return Math.floor(interval) + " years ago";
+  if (seconds < 0) return "just now";
+  if (seconds < 60) return seconds + "s ago";
+  let interval = seconds / 60;
+  if (interval < 60) return Math.floor(interval) + "m ago";
+  interval = interval / 60;
+  if (interval < 24) return Math.floor(interval) + "h ago";
+  interval = interval / 24;
+  if (interval < 7) return Math.floor(interval) + "d ago";
+  interval = interval / 7;
+  if (interval < 4) return Math.floor(interval) + "w ago";
   interval = seconds / 2592000;
-  if (interval > 1) return Math.floor(interval) + " months ago";
-  interval = seconds / 86400;
-  if (interval > 1) return Math.floor(interval) + " days ago";
-  interval = seconds / 3600;
-  if (interval > 1) return Math.floor(interval) + " hours ago";
-  interval = seconds / 60;
-  if (interval > 1) return Math.floor(interval) + " minutes ago";
-  return Math.floor(seconds) + " seconds ago";
+  if (interval < 12) return Math.floor(interval) + "mo ago";
+  return Math.floor(seconds / 31536000) + "y ago";
 }

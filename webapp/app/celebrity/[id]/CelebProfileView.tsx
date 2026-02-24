@@ -5,18 +5,19 @@ import { CelebProfile as CelebProfileType } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { 
   ArrowLeft, Activity, TrendingUp, TrendingDown, 
-  Minus, Users, Calendar, MapPin, ExternalLink, Shield, Info,
+  Minus, Users, MapPin, ExternalLink, Shield, Info,
   Heart, HeartOff, ThumbsUp, ThumbsDown, MessageSquare
 } from 'lucide-react';
 import { Button } from '@/app/components/ui/Button';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { useUI } from '@/app/providers/UIProvider';
 import { backend } from '@/lib/api';
-import dynamic from 'next/dynamic';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import PostWall from '@/app/components/social/PostWall';
 import CommentSection from '@/app/components/social/CommentSection';
 import { ShareButton } from '@/app/components/ui/ShareButton';
+import { formatRelativeTime } from '@/lib/utils';
+import { RelativeTime } from '@/app/components/ui/RelativeTime';
 
 interface CelebProfileViewProps {
     profile: CelebProfileType & { totalArticles?: number, actualFollowerCount?: number };
@@ -26,7 +27,7 @@ export default function CelebProfileView({ profile }: CelebProfileViewProps) {
   const router = useRouter();
   const { user, token, updateUser } = useAuth();
   const { openAuthModal } = useUI();
-  const [activeTab, setActiveTab] = useState<'insights' | 'scoops' | 'community'>('insights');
+  const [activeTab, setActiveTab] = useState<'scoops' | 'insights'>('scoops');
   const [visibleScoops, setVisibleScoops] = useState(3);
   const [expandedScoopId, setExpandedScoopId] = useState<string | null>(null);
   const [following, setFollowing] = useState(user?.following?.includes(profile.id) || false);
@@ -64,50 +65,63 @@ export default function CelebProfileView({ profile }: CelebProfileViewProps) {
               <ArrowLeft size={16} /> Back
           </Button>
           <div className="flex items-center gap-2 text-[10px] font-mono text-gray-500 bg-white/5 px-3 py-1 rounded-full border border-white/10">
-              ID: {profile.id.toUpperCase()} // VERIFIED: YES
+              ID: {profile.id.toUpperCase()}
           </div>
       </div>
 
       {/* Hero Section */}
       <section className="relative rounded-3xl overflow-hidden border border-white/10 shadow-2xl">
         <div className="absolute inset-0">
-          <img src={profile.imageUrl} className="w-full h-full object-cover opacity-60" referrerPolicy="no-referrer" />
+          <img 
+            src={profile.imageUrl} 
+            alt={`${profile.name} Background`}
+            className="w-full h-full object-cover opacity-60" 
+            referrerPolicy="no-referrer" 
+          />
           <div className="absolute inset-0 bg-gradient-to-t from-[#09090b] via-[#09090b]/40 to-transparent" />
         </div>
         
-        <div className="relative p-6 md:p-12 flex flex-col md:flex-row items-end gap-8">
+        <div className="relative p-6 md:p-12 flex flex-col items-start md:flex-row md:items-end gap-8">
             <div className="w-32 h-32 md:w-48 md:h-48 rounded-2xl overflow-hidden border-4 border-white/10 shadow-2xl flex-shrink-0">
-                <img src={profile.imageUrl} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                <img 
+                    src={profile.imageUrl} 
+                    alt={profile.name}
+                    className="w-full h-full object-cover" 
+                    referrerPolicy="no-referrer" 
+                />
             </div>
             
-            <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-3 mb-2">
+            <div className="flex-1 min-w-0 w-full text-left">
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-2 md:gap-3 mb-2">
                     <span className="px-2 py-0.5 bg-primary/20 text-primary rounded text-[10px] font-bold uppercase tracking-widest border border-primary/30">
                         {profile.category || 'Celebrity'}
                     </span>
-                    <div className="h-4 w-px bg-white/10" />
+                    <div className="hidden md:block h-4 w-px bg-white/10" />
                     <span className="text-gray-400 text-xs font-mono">{profile.nationality || 'Global Citizen'}</span>
                 </div>
                 <h1 className="text-4xl md:text-7xl font-black text-white leading-none mb-4 tracking-tighter">
                     {profile.name}
                 </h1>
-                <p className="text-gray-300 max-w-2xl text-sm md:text-base leading-relaxed line-clamp-3">
-                    {profile.bio}
-                </p>
             </div>
 
-            <div className="flex flex-row md:flex-col gap-4 w-full md:w-auto">
-                <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex-1 md:w-32 text-center">
+            <div className="grid grid-cols-2 md:flex md:flex-col gap-3 w-full md:w-auto">
+                <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-2xl p-4 md:w-32 text-center col-span-1">
                     <div className="text-3xl font-black text-primary mb-0">{profile.noiseRating}</div>
                     <div className="text-[10px] text-gray-500 font-mono uppercase tracking-widest">Noise</div>
                     <div className="flex justify-center mt-1">{getTrendIcon(profile.trendDirection)}</div>
                 </div>
 
-                <div className="flex-1 md:w-32">
+                <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-2xl p-4 md:w-32 text-center col-span-1">
+                    <div className="text-3xl font-black text-white mb-0">{profile.actualFollowerCount || 0}</div>
+                    <div className="text-[10px] text-gray-500 font-mono uppercase tracking-widest">Tracking</div>
+                    <div className="flex justify-center mt-1"><Users className="text-blue-400" size={18} /></div>
+                </div>
+
+                <div className="col-span-1 md:w-32">
                     <Button 
                         onClick={handleFollow}
                         disabled={loadingFollow}
-                        className={`w-full h-full md:h-24 rounded-2xl flex flex-col items-center justify-center gap-1 transition-all ${
+                        className={`w-full h-16 md:h-24 rounded-xl flex flex-col items-center justify-center gap-1 transition-all ${
                             following 
                             ? 'bg-white/5 border border-white/10 text-white hover:bg-white/10' 
                             : 'bg-gradient-to-br from-primary to-secondary text-white shadow-lg shadow-primary/20 hover:scale-[1.02]'
@@ -120,17 +134,12 @@ export default function CelebProfileView({ profile }: CelebProfileViewProps) {
                     </Button>
                 </div>
 
-                <div className="flex-1 md:w-32 flex flex-col gap-2">
-                    <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex-1 text-center">
-                        <div className="text-2xl font-black text-white mb-0">{profile.actualFollowerCount || 0}</div>
-                        <div className="text-[10px] text-gray-500 font-mono uppercase tracking-widest">Tracking</div>
-                        <div className="flex justify-center mt-1"><Users className="text-blue-400" size={18} /></div>
-                    </div>
+                <div className="col-span-1 md:w-32">
                     <ShareButton 
                         url={`/celebrity/${profile.id}`} 
                         title={`Check out ${profile.name} on Icomly!`}
                         variant="ghost"
-                        className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 hover:bg-white/10"
+                        className="w-full h-16 md:h-auto bg-white/5 border border-white/10 rounded-xl flex flex-col md:flex-row items-center justify-center gap-2 hover:bg-white/10"
                     />
                 </div>
             </div>
@@ -138,34 +147,25 @@ export default function CelebProfileView({ profile }: CelebProfileViewProps) {
       </section>
 
       {/* Tab Navigation */}
-      <div className="flex items-center gap-1 p-1 bg-white/5 rounded-2xl border border-white/10 w-fit">
-          <button 
-            onClick={() => setActiveTab('insights')}
-            className={`px-6 py-2 rounded-xl text-xs font-bold transition-all ${activeTab === 'insights' ? 'bg-primary text-white' : 'text-gray-500 hover:text-gray-300'}`}
-          >
-            Insights
-          </button>
+      <div className="flex items-center gap-1 p-1 bg-white/5 rounded-2xl border border-white/10 w-full md:w-fit overflow-x-auto no-scrollbar">
           <button 
             onClick={() => setActiveTab('scoops')}
-            className={`px-6 py-2 rounded-xl text-xs font-bold transition-all ${activeTab === 'scoops' ? 'bg-primary text-white' : 'text-gray-500 hover:text-gray-300'}`}
+            className={`px-4 md:px-8 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex-1 md:flex-none ${activeTab === 'scoops' ? 'bg-primary text-white' : 'text-gray-500 hover:text-gray-300'}`}
           >
             Latest Scoops
           </button>
           <button 
-            onClick={() => setActiveTab('community')}
-            className={`px-6 py-2 rounded-xl text-xs font-bold transition-all ${activeTab === 'community' ? 'bg-primary text-white' : 'text-gray-500 hover:text-gray-300'}`}
+            onClick={() => setActiveTab('insights')}
+            className={`px-4 md:px-8 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex-1 md:flex-none ${activeTab === 'insights' ? 'bg-primary text-white' : 'text-gray-500 hover:text-gray-300'}`}
           >
-            Community Wall
+            Celeb Insights
           </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Column */}
           <div className="lg:col-span-2 space-y-10">
-              
               {activeTab === 'insights' && (
                 <div className="space-y-10 animate-fade-in">
-                    {/* Analytics Section */}
                     <section className="bg-surface/30 border border-white/5 rounded-3xl p-6 md:p-8">
                         <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
                             <Activity className="text-primary" size={20} /> Buzz Velocity (30-Day Trend)
@@ -198,7 +198,6 @@ export default function CelebProfileView({ profile }: CelebProfileViewProps) {
                         </div>
                     </section>
 
-                    {/* Profile Details (Life Summary etc) */}
                     {(profile.lifeSummary || profile.hobbies) && (
                         <section className="space-y-4">
                             <h2 className="text-xl font-bold text-white flex items-center gap-2">
@@ -261,26 +260,28 @@ export default function CelebProfileView({ profile }: CelebProfileViewProps) {
                                         </a>
                                     </div>
 
-                                    <div className="flex items-center gap-6 pt-4 border-t border-white/5">
-                                        <div className="flex items-center gap-4">
-                                            <button className="flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-primary transition-colors">
-                                                <ThumbsUp size={14} /> 0
-                                            </button>
-                                            <button className="text-gray-500 hover:text-red-500 transition-colors">
-                                                <ThumbsDown size={14} />
+                                    <div className="flex flex-col md:flex-row md:items-center gap-4 pt-4 border-t border-white/5">
+                                        <div className="flex items-center justify-between md:justify-start gap-6">
+                                            <div className="flex items-center gap-4">
+                                                <button className="flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-primary transition-colors">
+                                                    <ThumbsUp size={14} /> 0
+                                                </button>
+                                                <button className="text-gray-500 hover:text-red-500 transition-colors">
+                                                    <ThumbsDown size={14} />
+                                                </button>
+                                            </div>
+                                            <button 
+                                                onClick={() => setExpandedScoopId(expandedScoopId === story.id ? null : story.id)}
+                                                className="flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-white transition-colors"
+                                            >
+                                                <MessageSquare size={14} /> Comments
                                             </button>
                                         </div>
-                                        <button 
-                                            onClick={() => setExpandedScoopId(expandedScoopId === (story as any).id ? null : (story as any).id)}
-                                            className="flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-white transition-colors"
-                                        >
-                                            <MessageSquare size={14} /> Comments
-                                        </button>
                                     </div>
 
-                                    {expandedScoopId === (story as any).id && (
+                                    {expandedScoopId === story.id && (
                                         <div className="mt-4 pt-4 border-t border-white/5">
-                                            <CommentSection articleId={(story as any).id} />
+                                            <CommentSection articleId={story.id} />
                                         </div>
                                     )}
                                 </div>
@@ -298,17 +299,9 @@ export default function CelebProfileView({ profile }: CelebProfileViewProps) {
                     </div>
                 </section>
               )}
-
-              {activeTab === 'community' && (
-                  <div className="animate-fade-in">
-                      <PostWall targetCelebId={profile.id} />
-                  </div>
-              )}
           </div>
 
-          {/* Sidebar */}
           <div className="space-y-8">
-              {/* Sightings */}
               <section className="space-y-4">
                   <h2 className="text-xl font-bold text-white flex items-center gap-2">
                       <MapPin className="text-primary" size={20} /> Recent Sightings
@@ -320,10 +313,7 @@ export default function CelebProfileView({ profile }: CelebProfileViewProps) {
                           </div>
                       ) : (
                         (() => {
-                            // Filter for unique locations (latest one for each)
                             const uniqueLocations = new Map();
-                            
-                            // Sort sightings by date descending first (latest first)
                             const sortedSightings = [...profile.sightings].sort((a, b) => 
                                 new Date(b.date).getTime() - new Date(a.date).getTime()
                             );
@@ -335,18 +325,16 @@ export default function CelebProfileView({ profile }: CelebProfileViewProps) {
                                 if (uniqueLocations.size >= 3) break;
                             }
 
-                            const displaySightings = Array.from(uniqueLocations.values());
-
-                            return displaySightings.map((sighting, i) => (
+                            return Array.from(uniqueLocations.values()).map((sighting, i) => (
                                 <div key={i} className="p-4 rounded-xl bg-surface/30 border border-white/5 space-y-2">
                                     <div className="flex items-start justify-between gap-4">
                                         <div className="flex items-start gap-2 min-w-0">
                                             <MapPin size={14} className="text-primary flex-shrink-0 mt-0.5" />
                                             <span className="text-xs font-bold text-white leading-tight">{sighting.location}</span>
                                         </div>
-                                        <span className="text-[10px] text-gray-500 whitespace-nowrap mt-0.5">{new Date(sighting.date).toLocaleDateString()}</span>
+                                        <RelativeTime date={sighting.date} className="text-[10px] text-gray-500 whitespace-nowrap mt-0.5" />
                                     </div>
-                                    <p className="text-xs text-gray-400 italic line-clamp-2">"{sighting.snippet}"</p>
+                                    <p className="text-xs text-gray-400 italic line-clamp-2">&quot;{sighting.snippet}&quot;</p>
                                     <div className="pt-2 flex justify-between items-center">
                                          <div className="w-24 h-1 bg-white/5 rounded-full overflow-hidden">
                                             <div 
@@ -363,7 +351,6 @@ export default function CelebProfileView({ profile }: CelebProfileViewProps) {
                   </div>
               </section>
 
-              {/* Noise History/Status */}
               <section className="bg-surface/30 border border-white/5 rounded-2xl p-6 space-y-4">
                   <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
                       <Shield size={16} className="text-primary" /> Tracking Status
@@ -371,11 +358,15 @@ export default function CelebProfileView({ profile }: CelebProfileViewProps) {
                   <div className="space-y-4">
                       <div className="flex justify-between items-center">
                           <span className="text-xs text-gray-500">Last Synced</span>
-                          <span className="text-xs text-gray-300 font-mono">LIVE</span>
+                          <div className="text-xs text-gray-300 font-mono">
+                            {profile.lastUpdated ? <RelativeTime date={profile.lastUpdated} /> : 'LIVE'}
+                          </div>
                       </div>
                       <div className="flex justify-between items-center">
-                          <span className="text-xs text-gray-500">Confidence Interval</span>
-                          <span className="text-xs text-green-500 font-mono">HIGH-RES</span>
+                          <span className="text-xs text-gray-500">Data Integrity</span>
+                          <span className={`text-xs font-mono ${profile.verified ? 'text-green-500' : 'text-yellow-500'}`}>
+                            {profile.verified ? 'VERIFIED' : 'HIGH-RES'}
+                          </span>
                       </div>
                       <div className="flex justify-between items-center">
                           <span className="text-xs text-gray-500">Relationship Status</span>
@@ -384,9 +375,6 @@ export default function CelebProfileView({ profile }: CelebProfileViewProps) {
                           </span>
                       </div>
                   </div>
-                  <Button className="w-full mt-4" variant="outline" size="sm">
-                      Request Refresh
-                  </Button>
               </section>
           </div>
       </div>

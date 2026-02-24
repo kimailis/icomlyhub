@@ -5,14 +5,13 @@ const { validateHashtags } = require('./contentGenerator');
 
 class OpenAIContentGenerator {
     constructor() {
-        this.specialTask = "create useful blogger-style tips that provide real value to followers";
+        this.specialTask = "create trending gossip and celebrity updates that provide real value to followers and spark discussion";
         this.topics = [
-            'morning routine', 'coffee thoughts', 'work struggles', 'weekend plans',
-            'food cravings', 'weather feels', 'tech frustrations', 'friendship moments',
-            'family time', 'personal growth', 'random observations', 'daily wins',
-            'small victories', 'life lessons', 'mood swings', 'social media thoughts',
-            'productivity tips', 'self care', 'creative blocks', 'motivation',
-            'relationships', 'career thoughts', 'hobby time', 'travel dreams'
+            'celebrity scandals', 'hollywood gossip', 'celeb relationships', 'red carpet fashion',
+            'award show drama', 'celebrity feuds', 'celeb sightings', 'movie set rumors',
+            'hollywood breakups', 'secret celeb weddings', 'celebrity lifestyle', 'celeb fitness secrets',
+            'behind the scenes hollywood', 'celeb property deals', 'influencer gossip', 'reality tv drama',
+            'music industry rumors', 'hollywood casting news', 'celeb health updates', 'celebrity social media drama'
         ];
         
         // Diverse anecdote story structures to prevent formulaic patterns
@@ -278,7 +277,12 @@ class OpenAIContentGenerator {
                 personalityAnalysis = this.analyzePersonalityForContent(personalityData.personalityTraits || []);
             }
 
-            let prompt = `You are ${username}, creating a ${postType} social media post. ${specificPrompt}`;
+            const promptExtras = `
+IMPORTANT: NO MEDIA, PICTURES, VIDEOS, OR LINKS should be mentioned or included in the post. 
+The post must be STRICTLY text-based gossip or celebrity news. 
+Avoid any phrases like "Check out this photo" or "Watch this video" or "Link in bio".`;
+
+            let prompt = `You are ${username}, creating a ${postType} social media post about celebrity gossip. ${specificPrompt} ${promptExtras}`;
 
             if (usePersonality && personalityData.personalityTraits) {
                 prompt += `
@@ -462,8 +466,8 @@ Return only the complete post, nothing else.`;
             console.log(`[OpenAI Content] Sending engaging post prompt to OpenAI GPT-4.1 nano`);
 
             const systemMessage = usePersonality && personalityData.personalityTraits ? 
-                "You are creating a social media post as a real person with certain personality traits. Let your personality influence your perspective and tone naturally, but don't force it. Write like a normal person who happens to have these characteristics. Be subtle - your personality should enhance your voice, not dominate every sentence. Focus on creating engaging content first." :
-                "You are creating an engaging social media post. Write naturally and authentically. Be creative and original with your scenarios and examples.";
+                "You are creating a social media post as a real person who loves celebrity gossip. Let your personality influence your perspective and tone naturally. Write like a normal person sharing the latest hollywood rumors. Be subtle - your personality should enhance your voice. Focus on creating engaging gossip content first." :
+                "You are creating an engaging celebrity gossip post. Write naturally and authentically. Be creative and original with your gossip and celeb news.";
 
             const response = await this.openai.chat.completions.create({
                 model: "gpt-4.1-nano",
@@ -1410,7 +1414,7 @@ Return only the complete post, nothing else.`;
             console.log(`[OpenAI Content] ${commenterUsername} comment alignment: ${alignment.commentType} - ${alignment.reason}`);
 
             // Always include post content for context, even for minimal posts
-            let prompt = `You are ${commenterUsername}, commenting on this post:\n\n"${postContent}"\n\n`;
+            let prompt = `You are ${commenterUsername}, a fan of celebrity gossip, commenting on this gossip post:\n\n"${postContent}"\n\n`;
 
             if (personalityData.personalityTraits) {
                 prompt += `PERSONALITY TRAITS (you MUST embody ALL of these in your comment):
@@ -1505,8 +1509,8 @@ IMPORTANT GUIDELINES:
 Return only the comment text, nothing else.`;
 
             const systemMessage = personalityData.personalityTraits ? 
-                "You are commenting as a real person with certain personality traits. Let your personality influence your tone and perspective naturally, but don't force it. Write like a normal person who happens to have these characteristics. Be subtle and focus on natural conversation." :
-                "You are writing a natural, authentic social media comment. Be genuine and conversational.";
+                "You are commenting as a real person who loves celebrity gossip. Let your personality influence your tone and perspective naturally. Write like a normal person sharing thoughts on hollywood rumors. Be subtle and focus on natural conversation about the gossip shared." :
+                "You are writing a natural, authentic celebrity gossip comment. Be genuine and conversational about the latest celeb news.";
 
             const response = await this.openai.chat.completions.create({
                 model: "gpt-4.1-nano",

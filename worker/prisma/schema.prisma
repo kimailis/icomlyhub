@@ -30,6 +30,8 @@ model User {
   receivedPosts   Post[]       @relation("ReceivedPosts")
   comments        Comment[]
   likes           Like[]
+  notifications   Notification[] @relation("UserNotifications")
+  sentNotifications Notification[] @relation("SentNotifications")
 
   // Stripe Integration
   stripeCustomerId       String?   @unique
@@ -39,7 +41,6 @@ model User {
 
   // User Settings (JSON blob for flexibility)
   notificationSettings   String?   @db.Text  // JSON: { email: bool, push: bool, weeklyDigest: bool }
-  notifications          Notification[]
 }
 
 model Notification {
@@ -51,10 +52,11 @@ model Notification {
   createdAt   DateTime @default(now())
 
   userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User     @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
 
   // Meta (Optional refs to source of notification)
   senderId    String?
+  sender      User?    @relation("SentNotifications", fields: [senderId], references: [id], onDelete: SetNull)
   postId      String?
   commentId   String?
 
@@ -120,6 +122,7 @@ model Post {
   @@index([targetUserId])
   @@index([targetCelebId])
   @@index([createdAt(sort: Desc)])
+  @@index([isFeedCandidate, verified])
 }
 
 model Comment {
@@ -250,6 +253,10 @@ model Article {
   // Relations
   comments    Comment[]
   likes       Like[]
+
+  @@index([celebrityId])
+  @@index([publishedAt(sort: Desc)])
+  @@index([impactScore(sort: Desc)])
 }
 
 model Sighting {
@@ -279,6 +286,7 @@ model Sighting {
   @@index([lat, lng])
   @@index([country])
   @@index([region])
+  @@index([verified])
 }
 
 model NoiseHistory {

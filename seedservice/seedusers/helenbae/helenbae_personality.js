@@ -10,7 +10,13 @@ module.exports = {
     personality_traits: ['cute', 'bubbly', 'friendly', 'social', 'trendy', 'sweet', 'victim of sexual abuse and tries to hide it'],
 
     // Bio information
-    interests: ['giving tips on selling', 'fashion', 'music', 'cute things', 'edgar allan poe books', 'glock pistols'],
+    interests: [
+    "movie set rumors",
+    "hollywood gossip",
+    "celeb sightings",
+    "celebrity lifestyle",
+    "influencer gossip"
+],
 
     // Social behavior
     socialBehavior: {

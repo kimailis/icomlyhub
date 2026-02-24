@@ -10,7 +10,13 @@ module.exports = {
     personality_traits: ['technical', 'creative', 'emotional', 'trendy', 'intellectual', 'sociophobic', 'transhumanist'],
 
     // Bio information
-    interests: ['cybersecurity', 'cryptography', 'privacy', 'blockchain', 'anime', 'vintage tech', 'conspiracy theories'],
+    interests: [
+    "celeb sightings",
+    "hollywood gossip",
+    "celeb health updates",
+    "celeb fitness secrets",
+    "celebrity social media drama"
+],
 
     // Social behavior
     socialBehavior: {

@@ -1,15 +1,13 @@
 const categoryList = [
-    'food', 'tech', 'lifestyle', 'weather', 'provocative', 'health', 'travel', 'books', 'entertainment', 'art', 'sports', 'mindfulness', 'education', 'finance', 'career', 'diy', 'pets', 'fashion', 'sustainability', 'gaming', 'science', 'photography'
+    'celebs', 'gossip', 'provocative'
 ];
 
-// Calculate weights: provocative gets double, rest are equal
-const baseWeight = 1 / (categoryList.length + 1); // +1 for provocative's extra weight
-const provocativeWeight = baseWeight * 2;
-
-const categoryWeights = {};
-for (const cat of categoryList) {
-    categoryWeights[cat] = (cat === 'provocative') ? provocativeWeight : baseWeight;
-}
+// Calculate weights: celebs and gossip get 40% each, provocative gets 20%
+const categoryWeights = {
+    'celebs': 0.4,
+    'gossip': 0.4,
+    'provocative': 0.2
+};
 
 const config = {
     // Category weights (must sum to 1)

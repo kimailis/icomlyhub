@@ -25,14 +25,24 @@ async function seedUsers() {
   for (const personality of personalities) {
     const { username } = personality;
     const email = `${username.toLowerCase()}@icomly.com`;
-    // Map existing icomly profile pics to public paths
-    const profilePath = `/profiles/${username.toLowerCase()}.jpg`;
+    
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    
+    // Determine default profile path (ui-avatars)
+    const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=18181b&color=fff&size=200`;
+    
+    // Only update profilePath if it's currently empty, points to legacy /profiles/, or is missing
+    let finalProfilePath = existingUser?.profilePath;
+    if (!finalProfilePath || finalProfilePath.startsWith('/profiles/')) {
+      finalProfilePath = defaultAvatar;
+    }
     
     await prisma.user.upsert({
       where: { email },
       update: {
         bio: `The official Icomly account for ${username}. Interested in ${personality.interests.slice(0, 3).join(', ')}.`,
-        profilePath
+        profilePath: finalProfilePath
       },
       create: {
         email,
@@ -40,7 +50,7 @@ async function seedUsers() {
         password: '$2b$10$6KVlm8VfUJ.eSPrKBc3qWepNKbPdYc.TRFw0wLgdKnC8ckZGN5zY.', // Standard dev hash
         role: 'free',
         bio: `The official Icomly account for ${username}. Interested in ${personality.interests.slice(0, 3).join(', ')}.`,
-        profilePath
+        profilePath: finalProfilePath
       }
     });
   }

@@ -107,8 +107,9 @@ export const TopCelebsChart: React.FC<TopCelebsChartProps> = ({ celebs, onSelect
             margin={{ top: 0, right: 30, left: 10, bottom: 0 }}
             barCategoryGap={6}
             onClick={(state) => {
-              if (state && state.activePayload && state.activePayload[0]) {
-                onSelect(state.activePayload[0].payload.id);
+              const payload = state?.activePayload?.[0]?.payload;
+              if (payload && payload.id) {
+                onSelect(payload.id);
               }
             }}
           >
@@ -142,7 +143,9 @@ export const TopCelebsChart: React.FC<TopCelebsChartProps> = ({ celebs, onSelect
               barSize={16}
               cursor="pointer"
               onClick={(entry) => {
-                if (entry && entry.id) onSelect(entry.id);
+                if (entry && entry.payload && entry.payload.id) {
+                  onSelect(entry.payload.id);
+                }
               }}
               isAnimationActive={false}
             >

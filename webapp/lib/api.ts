@@ -42,17 +42,22 @@ class BackendService {
     const data = await this.fetchApi('/feed');
     return data.map((item: any) => ({
       id: item.id,
+      type: item.type,
       headline: item.headline,
       summary: item.summary,
-      celebName: item.celebrity.name,
-      celebId: item.celebrity.id,
-      mentionedCelebs: [item.celebrity.name],
+      celebName: item.celebrity?.name || item.celebName,
+      celebId: item.celebrity?.id || item.celebId,
+      mentionedCelebs: item.celebrity ? [item.celebrity.name] : [],
       source: item.source,
       sourceUrl: item.sourceUrl,
       timeAgo: this.getTimeAgo(new Date(item.publishedAt)),
       category: item.category,
       impactScore: item.impactScore,
-      imageUrl: item.celebrity.imageUrl,
+      imageUrl: item.celebrity?.imageUrl || item.imageUrl,
+      timestamp: item.timestamp || (item.publishedAt ? new Date(item.publishedAt).getTime() : undefined),
+      likeCount: item.likeCount || item._count?.likes || 0,
+      commentCount: item.commentCount || item._count?.comments || 0,
+      user: item.user
     }));
   }
 
@@ -167,6 +172,13 @@ class BackendService {
     });
   }
 
+  async googleLogin(credential: string): Promise<{ user: any, token: string }> {
+    return this.fetchApi('/auth/google', {
+      method: 'POST',
+      body: JSON.stringify({ credential })
+    });
+  }
+
   async getMe(token: string): Promise<any> {
     return this.fetchApi('/auth/me', {
       headers: { Authorization: `Bearer ${token}` }
@@ -197,23 +209,28 @@ class BackendService {
       lifeSummary: item.lifeSummary || undefined,
       hobbies: item.hobbies || undefined,
       relationshipStatus: item.relationshipStatus || undefined,
-      category: item.category || undefined
+      category: item.category || undefined,
+      nationality: item.nationality || undefined,
+      verified: item.verified || false,
+      lastUpdated: item.lastUpdated ? new Date(item.lastUpdated).getTime() : undefined
     };
   }
 
   private getTimeAgo(date: Date): string {
     const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
-    let interval = seconds / 31536000;
-    if (interval > 1) return Math.floor(interval) + " years ago";
+    if (seconds < 0) return "just now";
+    if (seconds < 60) return seconds + "s ago";
+    let interval = seconds / 60;
+    if (interval < 60) return Math.floor(interval) + "m ago";
+    interval = interval / 60;
+    if (interval < 24) return Math.floor(interval) + "h ago";
+    interval = interval / 24;
+    if (interval < 7) return Math.floor(interval) + "d ago";
+    interval = interval / 7;
+    if (interval < 4) return Math.floor(interval) + "w ago";
     interval = seconds / 2592000;
-    if (interval > 1) return Math.floor(interval) + " months ago";
-    interval = seconds / 86400;
-    if (interval > 1) return Math.floor(interval) + " days ago";
-    interval = seconds / 3600;
-    if (interval > 1) return Math.floor(interval) + " hours ago";
-    interval = seconds / 60;
-    if (interval > 1) return Math.floor(interval) + " minutes ago";
-    return Math.floor(seconds) + " seconds ago";
+    if (interval < 12) return Math.floor(interval) + "mo ago";
+    return Math.floor(seconds / 31536000) + "y ago";
   }
 }
 

@@ -10,7 +10,13 @@ module.exports = {
     personality_traits: ['mysterious', 'dark', 'smartass', 'egoistic', 'dramatic', 'mystical', 'likes wordplay'],
 
     // Bio information
-    interests: ['dark aesthetics', 'shopping', 'mystery', 'prague architecture', 'dark magic', 'riddles', 'her cat'],
+    interests: [
+    "celebrity feuds",
+    "celebrity scandals",
+    "secret celeb weddings",
+    "movie set rumors",
+    "red carpet fashion"
+],
 
     // Social behavior
     socialBehavior: {

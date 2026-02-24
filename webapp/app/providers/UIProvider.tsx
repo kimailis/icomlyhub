@@ -9,6 +9,17 @@ interface UIContextType {
   isProfileModalOpen: boolean;
   openProfileModal: (tab?: string) => void;
   closeProfileModal: () => void;
+  isConfirmModalOpen: boolean;
+  confirmConfig: {
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    confirmText?: string;
+    cancelText?: string;
+    variant?: 'danger' | 'primary';
+  };
+  openConfirmModal: (config: UIContextType['confirmConfig']) => void;
+  closeConfirmModal: () => void;
   authView: 'login' | 'register' | 'forgot' | 'terms' | 'privacy' | 'contact';
   profileTab: string;
 }
@@ -18,6 +29,12 @@ const UIContext = createContext<UIContextType | undefined>(undefined);
 export function UIProvider({ children }: { children: React.ReactNode }) {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [confirmConfig, setConfirmConfig] = useState<UIContextType['confirmConfig']>({
+    title: 'Are you sure?',
+    message: 'This action cannot be undone.',
+    onConfirm: () => {},
+  });
   const [authView, setAuthView] = useState<'login' | 'register' | 'forgot' | 'terms' | 'privacy' | 'contact'>('login');
   const [profileTab, setProfileTab] = useState('overview');
 
@@ -35,6 +52,13 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
         setIsProfileModalOpen(true);
       },
       closeProfileModal: () => setIsProfileModalOpen(false),
+      isConfirmModalOpen,
+      confirmConfig,
+      openConfirmModal: (config) => {
+        setConfirmConfig(config);
+        setIsConfirmModalOpen(true);
+      },
+      closeConfirmModal: () => setIsConfirmModalOpen(false),
       authView,
       profileTab
     }}>

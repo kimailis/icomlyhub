@@ -10,7 +10,13 @@ module.exports = {
     personality_traits: ['humorous', 'controversial', 'social', 'creative', 'emotional', 'trendy', 'secretly jealous of rich people'],
 
     // Bio information
-    interests: ['giving tips on decorating', 'humor', 'art', 'dance parties', 'hamburgers', 'hating neighbors'],
+    interests: [
+    "celeb health updates",
+    "award show drama",
+    "music industry rumors",
+    "movie set rumors",
+    "celebrity social media drama"
+],
 
     // Social behavior
     socialBehavior: {

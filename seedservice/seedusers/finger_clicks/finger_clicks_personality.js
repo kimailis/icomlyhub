@@ -10,7 +10,13 @@ module.exports = {
     personality_traits: ['quirky', 'rhythmic', 'musical', 'creative', 'spontaneous', 'expressive', 'gay'],
     
     // Bio information
-    interests: ['music', 'rhythm', 'percussion', 'sound design', 'beatboxing', 'finger drumming', 'relatioships', 'fashion', 'garlic bread'],
+    interests: [
+    "celeb property deals",
+    "celebrity lifestyle",
+    "behind the scenes hollywood",
+    "celeb fitness secrets",
+    "reality tv drama"
+],
     
     // Social behavior
     socialBehavior: {

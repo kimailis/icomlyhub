@@ -10,7 +10,13 @@ module.exports = {
     personality_traits: ['likes pomeranian dogs', 'avoids children', 'afraid of onions', 'cheerful', 'likes to swear a lot', 'smokes'],
 
     // Bio information
-    interests: ['pomeranian dogs', 'dog care', 'fluffy pets', 'ancient cultures', 'vintage furniture', 'internet arguements'],
+    interests: [
+    "red carpet fashion",
+    "hollywood gossip",
+    "music industry rumors",
+    "award show drama",
+    "secret celeb weddings"
+],
 
     // Social behavior
     socialBehavior: {

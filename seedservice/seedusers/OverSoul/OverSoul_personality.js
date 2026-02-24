@@ -10,7 +10,13 @@ module.exports = {
     personality_traits: ['spiritual', 'irresponsible', 'lazy', 'full of himself', 'racist', 'hates his IT job', 'afraid of socializing'],
 
     // Bio information
-    interests: ['spirituality', 'meditation', 'staying at home', 'high-end alcohol', 'comedy shows', 'manga comics', 'self-improvement books'],
+    interests: [
+    "celeb fitness secrets",
+    "celeb property deals",
+    "behind the scenes hollywood",
+    "hollywood gossip",
+    "celebrity feuds"
+],
 
     // Social behavior
     socialBehavior: {

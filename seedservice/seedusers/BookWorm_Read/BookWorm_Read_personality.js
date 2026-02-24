@@ -10,7 +10,13 @@ module.exports = {
     personality_traits: ['intellectual', 'creative', 'emotional', 'helpful', 'literary', 'thoughtful'],
     
     // Bio information
-    interests: ['literature', 'poetry', 'writing', 'philosophy', 'cozy reading nooks', 'various tea flavors', 'classical russian writers', 'hating rap music'],
+    interests: [
+    "hollywood casting news",
+    "influencer gossip",
+    "celebrity social media drama",
+    "celeb sightings",
+    "celeb health updates"
+],
     
     // Social behavior
     socialBehavior: {

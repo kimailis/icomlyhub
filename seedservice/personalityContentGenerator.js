@@ -6,38 +6,45 @@ class PersonalityContentGenerator {
         
         // Content templates organized by personality traits and topics
         this.contentTemplates = {
-            tech: {
+            celebs: {
                 high_technical: [
-                    "Just spent 3 hours debugging what turned out to be a missing semicolon. The struggle is real! 🔧",
-                    "Finally optimized that algorithm - 40% performance improvement! Sometimes the little things make a huge difference.",
-                    "Hot take: Clean code is more important than clever code. Readability wins every time.",
-                    "Anyone else fascinated by the potential of edge computing? The implications are mind-blowing.",
-                    "Refactored the entire module today. It's like giving your code a fresh haircut - feels so clean!",
-                    "Found a critical security vulnerability in our API. Thank goodness for thorough testing!",
-                    "Docker containers have changed my entire development workflow. How did we live without them?",
-                    "Machine learning models are getting scary good. We're living in the future, folks."
+                    "Just analyzed the latest leaked contract details for that A-list couple. The legal clauses are absolutely wild! 📄",
+                    "Did you see the metadata on that 'accidental' celebrity leak? Definitely staged for PR. The industry is so calculated.",
+                    "The algorithm behind celebrity trending topics is fascinatng. Some stars really know how to play the system.",
+                    "Looking into the production costs of the latest blockbuster. The numbers don't add up - something's fishy with the accounting.",
+                    "The tech used in the new celeb-backed app is actually pretty impressive, but will it survive the hype?",
+                    "Analyzed the social media engagement patterns of the top 10 celebs. The bot activity is higher than you'd think!"
                 ],
-                moderate_technical: [
-                    "Learning a new framework this week. The learning curve is steep but exciting!",
-                    "Coffee + coding = the perfect morning combination ☕",
-                    "That feeling when your code finally works after hours of debugging 🎉",
-                    "Technology moves so fast, feels like I'm always catching up!",
-                    "Finally got my development environment set up just right. Productivity mode: ON",
-                    "Reading about the latest tech trends. Some of this stuff sounds like science fiction!",
-                    "Backup your code, people! Learned that lesson the hard way today.",
-                    "The tech community is amazing - always someone willing to help solve a problem."
-                ],
-                low_technical: [
-                    "My phone updated and now everything looks different. Why do they keep changing things?",
-                    "Trying to figure out this new app. Technology can be confusing sometimes!",
-                    "Is it just me or are passwords getting more complicated every day?",
-                    "Set up my smart speaker today. It's like having a robot assistant!",
-                    "Finally organized my photos. Technology makes life easier when it works.",
-                    "Video calls with family are the best thing about modern tech ❤️",
-                    "Discovered a new feature on my favorite app. Still learning something new every day!",
-                    "Technology can be overwhelming, but it's amazing how it connects us all."
+                general: [
+                    "Is it just me or is that new celebrity couple totally fake? PR stunt written all over it! 💍",
+                    "Just heard a rumor about a certain director and a lead actress... the drama on set must be insane!",
+                    "Who saw the red carpet last night? Some of those looks were choices. Let's talk about that one dress!",
+                    "Rumor has it a major star is about to drop a surprise album. My sources say it's happening Friday!",
+                    "That celebrity apology video felt so scripted. Can we get some actual authenticity for once?",
+                    "Spotted: Two major rivals having dinner together in NYC. Are they finally making peace or is it a new project?",
+                    "The gossip about the upcoming award show host is getting spicy. Who do you think it is?",
+                    "Can we talk about the latest celebrity breakup? I totally saw it coming after that weird interview."
                 ]
             },
+            gossip: {
+                high_humor: [
+                    "If celebrities spent as much time on their relationships as they do on their 'candid' Instagram shots, they might actually stay married. 😂",
+                    "My bank account is like a celebrity marriage: it looks great for about three weeks and then everything collapses.",
+                    "Trying to keep up with all the celebrity drama is a full-time job. Where do I send my resume?",
+                    "I want a celebrity-style 'conscious uncoupling' with my alarm clock tomorrow morning.",
+                    "If I had a dollar for every time a celeb said 'I'm focusing on myself,' I could afford their lifestyle.",
+                    "The only thing faster than a celebrity breakup is how quickly they find a 'new spark' two days later."
+                ],
+                general: [
+                    "The tea today is piping hot! ☕️ You won't believe which A-lister was caught arguing with their assistant in public.",
+                    "Heard a whisper that a certain 'perfect' couple is actually living in separate houses. The mask is slipping!",
+                    "A certain pop star is reportedly fuming over their rival's latest chart success. The feud is back on!",
+                    "The latest blind item is so obvious. We all know who the 'difficult actor' on that hit show is!",
+                    "Gossip alert: A major fashion house is dropping their celebrity ambassador after that recent scandal.",
+                    "The rumors about the reality TV cast being 'totally real' are falling apart. It's all manufactured drama!"
+                ]
+            },
+            tech: {
             lifestyle: {
                 high_creative: [
                     "Spent the morning sketching in the park. There's something magical about creating with nature as your backdrop 🎨",
@@ -142,6 +149,23 @@ class PersonalityContentGenerator {
         this.commentTemplates = {
             // Context-specific comments for all interaction styles
             contextual: {
+                celeb_gossip: [
+                    "Omg, the tea is piping hot today! ☕️",
+                    "I knew something was up with them! Totally saw this coming.",
+                    "The drama in Hollywood never sleeps. I'm here for it! 🍿",
+                    "Who else is shocked by this? My jaw literally dropped.",
+                    "This is the gossip I needed today. Keep it coming!",
+                    "Wait, is this confirmed or just a rumor? I need to know!",
+                    "The plot thickens! Can't wait for the next update."
+                ],
+                feud_reaction: [
+                    "Team [Celeb1] or Team [Celeb2]? I'm definitely picking a side! 😂",
+                    "This feud is getting out of hand, but it's so entertaining.",
+                    "I love a good celebrity beef. It's like a soap opera but real life!",
+                    "The shade is real! 🕶️ Can't believe they actually said that.",
+                    "This is better than any reality TV show. Pure entertainment!",
+                    "Who do you think is winning this argument? The drama is intense."
+                ],
                 technical_debug: [
                     "Been there! Debugging can be such a rollercoaster 🎢",
                     "The feeling when you finally find that one character causing chaos!",
@@ -629,6 +653,14 @@ class PersonalityContentGenerator {
         
         // Enhanced content analysis with more specific patterns
         
+        // Celebrity gossip content
+        if (contentLower.includes('celeb') || contentLower.includes('gossip') || contentLower.includes('rumor') || contentLower.includes('hollywood')) {
+            return 'celeb_gossip';
+        }
+        if (contentLower.includes('feud') || contentLower.includes('beef') || contentLower.includes('shade') || contentLower.includes('argument')) {
+            return 'feud_reaction';
+        }
+
         // Technical content analysis - handle both old and new personality formats
         let isTechnical = false;
         if (personality.personality && personality.personality.technical >= 6) {

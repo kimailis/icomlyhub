@@ -122,6 +122,7 @@ model Post {
   @@index([targetUserId])
   @@index([targetCelebId])
   @@index([createdAt(sort: Desc)])
+  @@index([isFeedCandidate, verified])
 }
 
 model Comment {
@@ -252,6 +253,10 @@ model Article {
   // Relations
   comments    Comment[]
   likes       Like[]
+
+  @@index([celebrityId])
+  @@index([publishedAt(sort: Desc)])
+  @@index([impactScore(sort: Desc)])
 }
 
 model Sighting {
@@ -281,6 +286,7 @@ model Sighting {
   @@index([lat, lng])
   @@index([country])
   @@index([region])
+  @@index([verified])
 }
 
 model NoiseHistory {

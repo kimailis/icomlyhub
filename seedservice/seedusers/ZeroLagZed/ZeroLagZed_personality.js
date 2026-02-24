@@ -10,7 +10,13 @@ module.exports = {
     personality_traits: ['competitive', 'gamer', 'tech-savvy', 'energetic', 'quick-reflexes', 'performance-focused'],
     
     // Bio information
-    interests: ['esports', 'new game releases', 'gaming tips', 'gaming hardware', 'old obscure games'],
+    interests: [
+    "red carpet fashion",
+    "celeb health updates",
+    "celebrity scandals",
+    "hollywood gossip",
+    "behind the scenes hollywood"
+],
     
     // Social behavior
     socialBehavior: {

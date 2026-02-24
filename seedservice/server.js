@@ -1328,7 +1328,15 @@ async function copySeedUserProfilePictures() {
             });
             
             if (imageFiles.length === 0) {
-                console.log(`No profile picture found for user ${username}`);
+                console.log(`No profile picture found for user ${username}, setting default UI avatar`);
+                const initials = username.substring(0, 2).toUpperCase();
+                const defaultAvatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=18181b&color=fff&size=200`;
+                
+                await db.promise().query(
+                    'UPDATE users SET profilepath = ? WHERE user_id = ?',
+                    [defaultAvatarUrl, user_id]
+                );
+                
                 skippedCount++;
                 continue;
             }
@@ -1348,10 +1356,15 @@ async function copySeedUserProfilePictures() {
             const currentProfilePath = existingProfile[0]?.profilepath;
             
             // Skip if file already exists AND database already has the correct path
-            if (fs.existsSync(destPath) && currentProfilePath === regularPath) {
-                console.log(`Profile picture already set for user ${username}: ${sourceFile}`);
-                skippedCount++;
-                continue;
+            if (fs.existsSync(destPath) && (currentProfilePath === regularPath || currentProfilePath?.includes('ui-avatars.com'))) {
+                // If it's a ui-avatars URL, we actually WANT to overwrite it with the real file path
+                if (currentProfilePath?.includes('ui-avatars.com')) {
+                    console.log(`Overwriting default avatar with real profile picture for user ${username}`);
+                } else {
+                    console.log(`Profile picture already set for user ${username}: ${sourceFile}`);
+                    skippedCount++;
+                    continue;
+                }
             }
             
             try {

@@ -432,6 +432,26 @@ class EnhancedCommentManager extends CommentManager {
     // Generate varied dismissive comments based on post category
     generateDismissiveComment(category, hasPicture) {
         const dismissiveByCategory = {
+            celebs: [
+                "who cares about this star?",
+                "totally staged PR",
+                "boring celeb news",
+                "so over this person",
+                "not real talent",
+                "slow news day?",
+                "irrelevant",
+                "fake drama"
+            ],
+            gossip: [
+                "old tea",
+                "nobody believes this",
+                "fake news",
+                "boring rumors",
+                "stop making people famous for nothing",
+                "who even leaked this?",
+                "clearly a lie",
+                "not interesting"
+            ],
             technical: [
                 "meh, seen better code",
                 "not impressed",
@@ -664,6 +684,26 @@ class EnhancedCommentManager extends CommentManager {
     // Generate varied supportive comments based on post category
     generateSupportiveComment(category, hasPicture) {
         const supportiveByCategory = {
+            celebs: [
+                "wow, I love this celeb!",
+                "they look so good together!",
+                "hope the rumors are true",
+                "total legend",
+                "can't wait for their next project!",
+                "so talented",
+                "deserve all the success!",
+                "best star ever!"
+            ],
+            gossip: [
+                "omg, the tea is hot!",
+                "I knew it!",
+                "tell me more!",
+                "spill the details!",
+                "I'm here for the drama!",
+                "so juicy!",
+                "who else saw this coming?",
+                "loving this tea!"
+            ],
             technical: [
                 "nice code work!",
                 "solid solution",

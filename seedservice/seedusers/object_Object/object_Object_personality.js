@@ -10,7 +10,13 @@ module.exports = {
     personality_traits: ['programmatic', 'systematic', 'diabetic', 'socially awkward', 'untactful', 'bizzare humor'],
 
     // Bio information
-    interests: ['programming', 'object-oriented design', 'googling for cryptic stuff', 'conspiracies', 'elon musk','his diabetes', 'plushies shaped like organs'],
+    interests: [
+    "secret celeb weddings",
+    "hollywood breakups",
+    "celeb fitness secrets",
+    "movie set rumors",
+    "celebrity social media drama"
+],
 
     // Social behavior
     socialBehavior: {

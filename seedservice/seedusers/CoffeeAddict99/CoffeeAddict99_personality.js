@@ -10,7 +10,13 @@ module.exports = {
     personality_traits: ['energetic', 'friendly', 'social', 'humorous', 'caffeine-dependent', 'productive', 'prefers rainy days', 'dreams of being a lawyer'],
     
     // Bio information
-    interests: ['coffee culture', 'morning routines', 'productivity', 'cozy vibes', 'cafe hopping', 'espresso', 'law practices', 'webcomics', 'brewing techniques'],
+    interests: [
+    "red carpet fashion",
+    "celeb relationships",
+    "hollywood gossip",
+    "hollywood casting news",
+    "hollywood breakups"
+],
     
     // Social behavior
     socialBehavior: {

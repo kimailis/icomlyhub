@@ -10,7 +10,13 @@ module.exports = {
     personality_traits: ['romantic', 'artistic', 'likes to appear intelligent', 'optimistic', 'snobbish', 'contemplative'],
 
     // Bio information
-    interests: ['hip fashion', 'photography', 'fetishes', 'easy girls', 'luxury cars', 'avoiding taxes'],
+    interests: [
+    "hollywood gossip",
+    "reality tv drama",
+    "red carpet fashion",
+    "celeb health updates",
+    "celebrity feuds"
+],
 
     // Social behavior
     socialBehavior: {

@@ -10,7 +10,13 @@ module.exports = {
     personality_traits: ['observant', 'contemplative', 'charming', 'charismatic', 'flirty', 'laid-back'],
 
     // Bio information
-    interests: ['sky watching', 'astrophotography', 'picking up girls', 'coffee shops', 'romantic dates', 'poetry', 'french cousine'],
+    interests: [
+    "reality tv drama",
+    "hollywood gossip",
+    "secret celeb weddings",
+    "celeb fitness secrets",
+    "hollywood breakups"
+],
 
     // Social behavior
     socialBehavior: {
