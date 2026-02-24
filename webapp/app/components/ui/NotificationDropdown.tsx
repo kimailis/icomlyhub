@@ -161,7 +161,7 @@ export function NotificationDropdown() {
   if (!user) return null;
 
   const NotificationContent = (isMobile: boolean) => (
-    <div className={`${isMobile ? 'fixed inset-x-4 top-[10%] bottom-[10%] z-[9999]' : 'absolute top-14 right-0 w-80 max-h-[480px]'} bg-surface border border-white/10 rounded-[40px] md:rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 md:slide-in-from-top-2 duration-300`}>
+    <div className={`${isMobile ? 'fixed inset-x-[10%] top-[22%] bottom-[22%] z-[9999]' : 'absolute top-14 right-0 w-80 max-h-[480px]'} bg-surface border border-white/10 rounded-[40px] md:rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 md:slide-in-from-top-2 duration-300`}>
       <div className="p-6 md:p-4 border-b border-white/5 flex items-center justify-between bg-white/5">
         <h3 className="text-sm md:text-xs font-bold text-white uppercase tracking-widest">Notifications</h3>
         <div className="flex items-center gap-4">
