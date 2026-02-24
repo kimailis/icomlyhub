@@ -79,38 +79,7 @@ class PersonalityService {
   }
 
   generatePersonalityHashtags(username: string, content: string): string {
-    const personality = this.getPersonality(username);
-    if (!personality) return '';
-
-    const hashtagStyle = personality.socialBehavior.hashtagStyle || 'moderate';
-    if (hashtagStyle === 'none') return '';
-
-    const hashtags: string[] = [];
-    const traits = personality.personality_traits.map(t => t.toLowerCase());
-
-    if (traits.some(t => ['technical', 'programmer', 'coding', 'tech', 'developer'].includes(t))) {
-      hashtags.push('#tech', '#code', '#dev');
-    }
-    if (traits.some(t => ['creative', 'artistic', 'art', 'design', 'visual'].includes(t))) {
-      hashtags.push('#art', '#design', '#creative');
-    }
-    if (traits.some(t => ['humorous', 'funny', 'humor', 'comedic', 'witty'].includes(t))) {
-      hashtags.push('#funny', '#humor', '#lol');
-    }
-    if (traits.some(t => ['trendy', 'viral', 'popular', 'fashionable', 'modern'].includes(t))) {
-      hashtags.push('#trend', '#viral', '#hot');
-    }
-    if (traits.some(t => ['intellectual', 'thoughtful', 'philosophical', 'analytical', 'smart'].includes(t))) {
-      hashtags.push('#think', '#deep', '#mind');
-    }
-
-    // Limit based on style
-    let maxTags = 4;
-    if (hashtagStyle === 'minimal') maxTags = 2;
-    if (hashtagStyle === 'heavy') maxTags = 8;
-
-    const shuffled = hashtags.sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, maxTags).join(' ');
+    return '';
   }
 
   shouldUserPost(username: string): boolean {
@@ -170,7 +139,7 @@ Current Topic of Interest: ${topic}
 
 The user is posting on ${targetName}'s ${isCeleb ? 'official celebrity' : 'user'} wall.
 The post should reflect the user's personality and their current interest in ${topic}.
-Include these hashtags at the end: ${hashtags}
+ABSOLUTELY NO HASHTAGS.
 Return ONLY the text of the post. No quotes. Use an authentic human tone with emojis.`;
 
     return prompt;
@@ -182,13 +151,13 @@ Return ONLY the text of the post. No quotes. Use an authentic human tone with em
     
     const traits = personality.personality_traits.join(', ');
     const style = personality.socialBehavior.interactionStyle;
-    const hashtags = this.generatePersonalityHashtags(username, content);
     
     let prompt = `Write a brief, one-sentence comment from ${username} responding to this ${type}: "${content}".
 Personality traits: ${traits}
 Interaction style: ${style}
 
-Keep it very brief, like a real social media user. ${hashtags ? `Include one relevant hashtag from: ${hashtags}` : ''}
+Keep it very brief, like a real social media user.
+ABSOLUTELY NO HASHTAGS.
 Return ONLY the comment text. No quotes.`;
 
     return prompt;

@@ -706,18 +706,6 @@ Return only the complete post, nothing else.`;
             // Generate the tip content based on topic, username, and personality
             let content = getTipTemplate(topic, username, personalityData);
 
-            // Add hashtags at the end (1-3 hashtags, max 7 characters each)
-            const numHashtags = Math.floor(Math.random() * 3) + 1; // 1-3 hashtags
-            let selectedHashtags = '';
-
-            if (numHashtags > 0 && personalityHashtags.length > 0) {
-                selectedHashtags = ' ' + personalityHashtags
-                    .sort(() => Math.random() - 0.5)
-                    .slice(0, numHashtags)
-                    .join(' ');
-                content = `${content}${selectedHashtags}`;
-            }
-
             // Ensure proper length for blogger tips (600-850 characters)
             if (content.length > 850) {
                 // Find the last complete sentence before 847 characters
@@ -756,17 +744,6 @@ Return only the complete post, nothing else.`;
             console.error(`[OpenAI Content] Intelligent fallback failed:`, error);
 
             // Final emergency fallback - still a blogger tip format
-            const emergencyHashtags = ['#tips', '#life', '#hack'];
-            const numHashtags = Math.floor(Math.random() * 3) + 1; // 1-3 hashtags
-            let hashtagString = '';
-
-            if (numHashtags > 0) {
-                hashtagString = ' ' + emergencyHashtags
-                    .sort(() => Math.random() - 0.5)
-                    .slice(0, numHashtags)
-                    .join(' ');
-            }
-
             const emergencyTips = [
                 `Simple productivity tip that changed my day: write down just 3 things you want to accomplish tomorrow before bed! 📝 Sounds basic but it saves so much mental energy in the morning. Instead of waking up wondering what to do, you already have your roadmap. I used to spend the first hour of my day just figuring out priorities. Now I hit the ground running and actually get stuff done. Takes 2 minutes at night but saves 30 minutes of confusion the next day. Been doing this for months and my productivity is through the roof!`,
                 `Life hack I wish I learned sooner: set a timer for 15 minutes when doing chores! ⏰ Makes boring tasks feel like a game and you'll be amazed how much you can get done. I used to procrastinate cleaning forever because it felt overwhelming. Now I race the clock and actually enjoy it. Often finish before the timer goes off and feel accomplished instead of stressed. The psychological trick of a deadline makes all the difference. Transform any boring task into a mini challenge!`,
@@ -774,10 +751,9 @@ Return only the complete post, nothing else.`;
             ];
 
             const randomTip = emergencyTips[Math.floor(Math.random() * emergencyTips.length)];
-            const emergencyContent = `${randomTip}${hashtagString}`;
 
             return {
-                content: emergencyContent,
+                content: randomTip,
                 hashtags: '',
                 isPuterGenerated: false,
                 isPersonalityGenerated: false,
@@ -797,10 +773,9 @@ Return only the complete post, nothing else.`;
         ];
 
         const selectedTemplate = anecdoteTemplates[Math.floor(Math.random() * anecdoteTemplates.length)];
-        const hashtags = personalityHashtags.slice(0, 2).join(' ');
 
         return {
-            content: `${selectedTemplate} ${hashtags}`,
+            content: selectedTemplate,
             hashtags: '',
             isPersonalityGenerated: !!personalityData,
             isOpenAIGenerated: false,
@@ -817,10 +792,9 @@ Return only the complete post, nothing else.`;
         ];
 
         const selectedTemplate = opinionTemplates[Math.floor(Math.random() * opinionTemplates.length)];
-        const hashtags = personalityHashtags.slice(0, 2).join(' ');
 
         return {
-            content: `${selectedTemplate} ${hashtags}`,
+            content: selectedTemplate,
             hashtags: '',
             isPersonalityGenerated: !!personalityData,
             isOpenAIGenerated: false,
@@ -837,10 +811,9 @@ Return only the complete post, nothing else.`;
         ];
 
         const selectedTemplate = newsTemplates[Math.floor(Math.random() * newsTemplates.length)];
-        const hashtags = personalityHashtags.slice(0, 2).join(' ');
 
         return {
-            content: `${selectedTemplate} ${hashtags}`,
+            content: selectedTemplate,
             hashtags: '',
             isPersonalityGenerated: !!personalityData,
             isOpenAIGenerated: false,
@@ -857,10 +830,9 @@ Return only the complete post, nothing else.`;
         ];
 
         const selectedTemplate = provocativeTemplates[Math.floor(Math.random() * provocativeTemplates.length)];
-        const hashtags = personalityHashtags.slice(0, 2).join(' ');
 
         return {
-            content: `${selectedTemplate} ${hashtags}`,
+            content: selectedTemplate,
             hashtags: '',
             isPersonalityGenerated: !!personalityData,
             isOpenAIGenerated: false,
@@ -1787,7 +1759,7 @@ DO NOT:
 
 Be specific and personal. Start directly with your genuine thoughts about the product or your experience.
 
-Include 2-3 relevant hashtags at the end.
+ABSOLUTELY NO HASHTAGS.
 
 Write the post now:`;
 
@@ -1796,7 +1768,7 @@ Write the post now:`;
                 messages: [
                     {
                         role: 'system',
-                        content: 'You are a social media content creator who writes authentic, personal product recommendations. You start posts with specific thoughts about products, never generic greetings. Your posts feel genuine and conversational, never promotional or salesy.'
+                        content: 'You are a social media content creator who writes authentic, personal product recommendations. You start posts with specific thoughts about products, never generic greetings. Your posts feel genuine and conversational, never promotional or salesy. ABSOLUTELY NO HASHTAGS.'
                     },
                     {
                         role: 'user',
@@ -1809,101 +1781,80 @@ Write the post now:`;
                 frequency_penalty: 0.3
             });
 
-            const assistantMessage = response.choices[0]?.message?.content?.trim();
+            if (response.choices && response.choices[0] && response.choices[0].message) {
+                let content = response.choices[0].message.content.trim();
 
-            if (!assistantMessage) {
-                throw new Error('No content received from OpenAI');
-            }
+                // Remove any hashtags that might have been included despite instructions
+                content = content.replace(/#\w+/g, '').trim();
 
-            console.log(`[OpenAI Affiliate] Raw response: ${assistantMessage.substring(0, 100)}...`);
-
-            // Parse the response to separate content and hashtags
-            const lines = assistantMessage.split('\n').filter(line => line.trim());
-            let content = assistantMessage;
-            let hashtags = '';
-
-            // Check if the last line contains hashtags
-            const lastLine = lines[lines.length - 1];
-            if (lastLine && lastLine.includes('#')) {
-                // Split content and hashtags
-                const hashtagMatch = assistantMessage.match(/^(.*?)\s*(#[\w\s#]+)$/s);
-                if (hashtagMatch) {
-                    content = hashtagMatch[1].trim();
-                    hashtags = hashtagMatch[2].trim();
-                    
-                    // Validate hashtags to ensure they meet 12-character limit
-                    const hashtagArray = hashtags.split(' ').filter(tag => tag.trim());
-                    const validHashtags = validateHashtags(hashtagArray);
-                    hashtags = validHashtags.join(' ');
-                }
-            }
-
-            // Ensure the product link is included in the content
-            if (!content.includes(productLink)) {
-                content += `\n\n${productLink}`;
-            }
-
-            // Validate content length (should be reasonable for social media)
-            if (content.length < 50) {
-                throw new Error('Generated content too short');
-            }
-
-            // Improved truncation that preserves complete sentences
-            if (content.length > 750) {
-                // Find the last complete sentence before character limit
-                const truncated = content.substring(0, 700);
-                const lastSentence = truncated.lastIndexOf('. ');
-                const lastExclamation = truncated.lastIndexOf('! ');
-                const lastQuestion = truncated.lastIndexOf('? ');
-
-                // Find the latest sentence ending
-                const lastSentenceEnd = Math.max(lastSentence, lastExclamation, lastQuestion);
-
-                if (lastSentenceEnd > 300) {
-                    // Truncate at sentence boundary
-                    content = content.substring(0, lastSentenceEnd + 1).trim();
-                } else {
-                    // If no good sentence boundary, truncate at word boundary
-                    const truncated = content.substring(0, 697);
-                    const lastSpace = truncated.lastIndexOf(' ');
-                    content = content.substring(0, lastSpace) + '...';
-                }
-
-                // Ensure link is still included after truncation
+                // Ensure the product link is included in the content
                 if (!content.includes(productLink)) {
                     content += `\n\n${productLink}`;
                 }
+
+                // Validate content length (should be reasonable for social media)
+                if (content.length < 50) {
+                    throw new Error('Generated content too short');
+                }
+
+                // Improved truncation that preserves complete sentences
+                if (content.length > 750) {
+                    // Find the last complete sentence before character limit
+                    const truncated = content.substring(0, 700);
+                    const lastSentence = truncated.lastIndexOf('. ');
+                    const lastExclamation = truncated.lastIndexOf('! ');
+                    const lastQuestion = truncated.lastIndexOf('? ');
+
+                    // Find the latest sentence ending
+                    const lastSentenceEnd = Math.max(lastSentence, lastExclamation, lastQuestion);
+
+                    if (lastSentenceEnd > 300) {
+                        // Truncate at sentence boundary
+                        content = content.substring(0, lastSentenceEnd + 1).trim();
+                    } else {
+                        // If no good sentence boundary, truncate at word boundary
+                        const truncated = content.substring(0, 697);
+                        const lastSpace = truncated.lastIndexOf(' ');
+                        content = content.substring(0, lastSpace) + '...';
+                    }
+
+                    // Ensure link is still included after truncation
+                    if (!content.includes(productLink)) {
+                        content += `\n\n${productLink}`;
+                    }
+                }
+
+                // Check for and reject generic openings
+                const genericOpenings = [
+                    'hey friends!',
+                    'hey everyone!',
+                    'hey guys!',
+                    'hello friends!',
+                    'hi everyone!',
+                    'what\'s up friends!',
+                    'friends,',
+                    'hey y\'all!'
+                ];
+
+                const contentLower = content.toLowerCase();
+                const hasGenericOpening = genericOpenings.some(opening =>
+                    contentLower.startsWith(opening) || contentLower.includes('\n' + opening)
+                );
+
+                if (hasGenericOpening) {
+                    console.log(`[OpenAI Affiliate] Rejecting content with generic opening: ${content.substring(0, 50)}...`);
+                    throw new Error('Content contains generic greeting opening');
+                }
+
+                console.log(`[OpenAI Affiliate] Generated affiliate content: ${content.substring(0, 50)}...`);
+
+                return {
+                    content: content,
+                    hashtags: ''
+                };
+            } else {
+                throw new Error('No content received from OpenAI');
             }
-
-            // Check for and reject generic openings
-            const genericOpenings = [
-                'hey friends!',
-                'hey everyone!',
-                'hey guys!',
-                'hello friends!',
-                'hi everyone!',
-                'what\'s up friends!',
-                'friends,',
-                'hey y\'all!'
-            ];
-
-            const contentLower = content.toLowerCase();
-            const hasGenericOpening = genericOpenings.some(opening =>
-                contentLower.startsWith(opening) || contentLower.includes('\n' + opening)
-            );
-
-            if (hasGenericOpening) {
-                console.log(`[OpenAI Affiliate] Rejecting content with generic opening: ${content.substring(0, 50)}...`);
-                throw new Error('Content contains generic greeting opening');
-            }
-
-            console.log(`[OpenAI Affiliate] Generated affiliate content: ${content.substring(0, 50)}...`);
-
-            return {
-                content: content,
-                hashtags: hashtags
-            };
-
         } catch (error) {
             console.error(`[OpenAI Affiliate] Error in makeAffiliateOpenAICall:`, error);
             throw error;
@@ -1923,10 +1874,9 @@ Write the post now:`;
         ];
 
         const selectedTemplate = recommendationTemplates[Math.floor(Math.random() * recommendationTemplates.length)];
-        const hashtags = personalityHashtags.slice(0, 2).join(' ');
 
         return {
-            content: `${selectedTemplate} ${hashtags}`,
+            content: selectedTemplate,
             hashtags: '',
             isPersonalityGenerated: !!personalityData,
             isOpenAIGenerated: false,

@@ -86,7 +86,7 @@ class PersonalityManager {
                 interactionStyle: 'neutral'
             },
             contentGeneration: {
-                hashtagStyle: 'moderate',
+                hashtagStyle: 'none',
                 linkSharing: 0.2
             }
         };
@@ -211,114 +211,7 @@ class PersonalityManager {
 
     // Generate personality-appropriate hashtags
     generatePersonalityHashtags(username, content, baseTags = []) {
-        const personality = this.getPersonality(username);
-        const hashtagStyle = personality.contentGeneration?.hashtagStyle || 'moderate';
-        
-        let hashtags = [...baseTags];
-        
-        // Function to validate hashtag length (12 characters maximum including #)
-        const isValidHashtag = (tag) => {
-            const tagWithoutHash = tag.startsWith('#') ? tag.slice(1) : tag;
-            return tagWithoutHash.length <= 11; // 11 chars + 1 for # = 12 total
-        };
-        
-        // Function to add hashtag if it meets length requirements
-        const addValidHashtag = (tag) => {
-            const hashtag = tag.startsWith('#') ? tag : `#${tag}`;
-            if (isValidHashtag(hashtag)) {
-                hashtags.push(hashtag);
-            }
-        };
-        
-        // Handle both old and new personality formats
-        if (personality.personality) {
-            // Old format with numeric traits
-            const traits = personality.personality;
-            
-            if (traits.technical >= 7) {
-                addValidHashtag('#tech');
-                addValidHashtag('#code');
-                addValidHashtag('#dev');
-            }
-            if (traits.creative >= 7) {
-                addValidHashtag('#art');
-                addValidHashtag('#design');
-                addValidHashtag('#creative');
-            }
-            if (traits.humor >= 7) {
-                addValidHashtag('#funny');
-                addValidHashtag('#humor');
-                addValidHashtag('#lol');
-            }
-            if (traits.trendy >= 7) {
-                addValidHashtag('#trend');
-                addValidHashtag('#viral');
-                addValidHashtag('#hot');
-            }
-            if (traits.intellectual >= 7) {
-                addValidHashtag('#think');
-                addValidHashtag('#deep');
-                addValidHashtag('#mind');
-            }
-        } else if (personality.personality_traits && Array.isArray(personality.personality_traits)) {
-            // New format with string array traits
-            const traits = personality.personality_traits.map(t => t.toLowerCase());
-            
-            if (traits.some(t => ['technical', 'programmer', 'coding', 'tech', 'developer'].includes(t))) {
-                addValidHashtag('#tech');
-                addValidHashtag('#code');
-                addValidHashtag('#dev');
-            }
-            if (traits.some(t => ['creative', 'artistic', 'art', 'design', 'visual'].includes(t))) {
-                addValidHashtag('#art');
-                addValidHashtag('#design');
-                addValidHashtag('#creative');
-            }
-            if (traits.some(t => ['humorous', 'funny', 'humor', 'comedic', 'witty'].includes(t))) {
-                addValidHashtag('#funny');
-                addValidHashtag('#humor');
-                addValidHashtag('#lol');
-            }
-            if (traits.some(t => ['trendy', 'viral', 'popular', 'fashionable', 'modern'].includes(t))) {
-                addValidHashtag('#trend');
-                addValidHashtag('#viral');
-                addValidHashtag('#hot');
-            }
-            if (traits.some(t => ['intellectual', 'thoughtful', 'philosophical', 'analytical', 'smart'].includes(t))) {
-                addValidHashtag('#think');
-                addValidHashtag('#deep');
-                addValidHashtag('#mind');
-            }
-        }
-
-        // Add emoji usage based on preference
-        const emojiUsage = personality.contentPreferences?.emojiUsage || 'moderate';
-        if (emojiUsage === 'heavy' && !content.includes('💭') && !content.includes('🎯')) {
-            // Add some common emojis for heavy users
-            const emojis = ['✨', '💭', '🎯', '🔥', '💡', '🌟', '🚀', '💪'];
-            hashtags.push(emojis[Math.floor(Math.random() * emojis.length)]);
-        }
-
-        // Limit hashtags based on style
-        let maxTags = 5;
-        switch (hashtagStyle) {
-            case 'none':
-                return '';
-            case 'minimal':
-                maxTags = 2;
-                break;
-            case 'moderate':
-                maxTags = 4;
-                break;
-            case 'heavy':
-                maxTags = 8;
-                break;
-        }
-
-        // Remove duplicates and limit count
-        hashtags = [...new Set(hashtags)].slice(0, maxTags);
-        
-        return hashtags.join(' ');
+        return '';
     }
 
     // Determine if user should post based on their frequency

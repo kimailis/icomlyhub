@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUI } from '@/app/providers/UIProvider';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { backend } from '@/lib/api';
 import { FollowingStat } from '@/lib/types';
-import { X, CreditCard, Shield, LogOut, Check, Zap, ChevronRight, User as UserIcon, Settings, Download, ArrowLeft, Eye, EyeOff, Bell } from 'lucide-react';
+import { X, CreditCard, Shield, LogOut, Check, Zap, ChevronRight, User as UserIcon, Settings, Download, ArrowLeft, Eye, EyeOff, Bell, Camera } from 'lucide-react';
 import { Button } from './ui/Button';
 import { TERMS_AND_CONDITIONS, PRIVACY_POLICY } from '@/lib/legal';
 
@@ -52,8 +52,38 @@ export const ProfileModal: React.FC = () => {
     });
     const [profileData, setProfileData] = useState({
         name: user?.name || '',
-        bio: user?.bio || ''
+        bio: user?.bio || '',
+        profilePath: user?.profilePath || ''
     });
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !token) return;
+
+        setUpdating(true);
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const res = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData,
+            });
+            const data = await res.json();
+            if (data.url) {
+                setProfileData({ ...profileData, profilePath: data.url });
+            } else {
+                alert("Upload failed: " + (data.message || "Unknown error"));
+            }
+        } catch (error) {
+            console.error("Upload error:", error);
+            alert("Failed to upload image.");
+        } finally {
+            setUpdating(false);
+        }
+    };
 
     const [notificationSettings, setNotificationSettings] = useState(() => {
         if (user?.notificationSettings) {
@@ -141,7 +171,8 @@ export const ProfileModal: React.FC = () => {
         try {
             const updatedUser = await backend.updateUser({ 
                 name: profileData.name, 
-                bio: profileData.bio 
+                bio: profileData.bio,
+                profilePath: profileData.profilePath
             }, token);
             updateUser(updatedUser.user || updatedUser);
             alert("Profile updated successfully!");
@@ -178,7 +209,7 @@ export const ProfileModal: React.FC = () => {
                 <div className={`w-full md:w-64 bg-surface/30 border-b md:border-b-0 md:border-r border-white/5 p-6 flex flex-col shrink-0 pt-16 md:pt-6 ${activeTab === 'settings' && settingsView !== 'menu' ? 'hidden md:flex' : 'flex'}`}>
                     <div className="flex md:flex-col items-center gap-4 md:gap-0 mb-6 md:mb-8 text-left md:text-center">
                         <div className="w-16 h-16 md:w-20 md:h-20 rounded-full border-2 border-primary p-1 md:mb-3 shrink-0">
-                            <img src={user.avatarUrl || `https://ui-avatars.com/api/?name=${displayName}`} alt="User" className="w-full h-full rounded-full object-cover" />
+                            <img src={user.profilePath || user.avatarUrl || `https://ui-avatars.com/api/?name=${displayName}`} alt="User" className="w-full h-full rounded-full object-cover" />
                         </div>
                         <div>
                             <h2 className="text-lg md:text-xl font-bold text-white mb-1">{displayName}</h2>
@@ -350,7 +381,7 @@ export const ProfileModal: React.FC = () => {
                                             <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
                                                 <Bell size={18} className="text-gray-400" /> Notifications
                                             </h3>
-                                            <div className="space-y-1 bg-surface/30 rounded-xl border border-white/5 overflow-hidden">
+                                            <div className="w-[80%] md:w-full mx-auto space-y-1 bg-surface/30 rounded-xl border border-white/5 overflow-hidden">
                                                 <div className="flex items-center justify-between p-4 border-b border-white/5">
                                                     <div>
                                                         <div className="text-xs font-bold text-white">Email Updates</div>
@@ -387,28 +418,28 @@ export const ProfileModal: React.FC = () => {
                                             <div className="space-y-3">
                                                 <button 
                                                     onClick={() => setSettingsView('profile')}
-                                                    className="w-full flex items-center justify-between p-3 bg-surface/30 border border-white/5 rounded-lg hover:bg-surface/50 text-left transition-colors"
+                                                    className="w-[80%] md:w-full mx-auto flex items-center justify-between p-3 bg-surface/30 border border-white/5 rounded-lg hover:bg-surface/50 text-left transition-colors"
                                                 >
                                                     <span className="text-xs text-gray-300">Edit Public Profile</span>
                                                     <ChevronRight size={16} className="text-gray-500" />
                                                 </button>
                                                 <button 
                                                     onClick={() => setSettingsView('password')}
-                                                    className="w-full flex items-center justify-between p-3 bg-surface/30 border border-white/5 rounded-lg hover:bg-surface/50 text-left transition-colors"
+                                                    className="w-[80%] md:w-full mx-auto flex items-center justify-between p-3 bg-surface/30 border border-white/5 rounded-lg hover:bg-surface/50 text-left transition-colors"
                                                 >
                                                     <span className="text-xs text-gray-300">Change Password</span>
                                                     <ChevronRight size={16} className="text-gray-500" />
                                                 </button>
                                                 <button 
                                                     onClick={() => setSettingsView('privacy')}
-                                                    className="w-full flex items-center justify-between p-3 bg-surface/30 border border-white/5 rounded-lg hover:bg-surface/50 text-left transition-colors"
+                                                    className="w-[80%] md:w-full mx-auto flex items-center justify-between p-3 bg-surface/30 border border-white/5 rounded-lg hover:bg-surface/50 text-left transition-colors"
                                                 >
                                                     <span className="text-xs text-gray-300">Privacy Policy</span>
                                                     <ChevronRight size={16} className="text-gray-500" />
                                                 </button>
                                                 <button 
                                                     onClick={() => setSettingsView('terms')}
-                                                    className="w-full flex items-center justify-between p-3 bg-surface/30 border border-white/5 rounded-lg hover:bg-surface/50 text-left transition-colors"
+                                                    className="w-[80%] md:w-full mx-auto flex items-center justify-between p-3 bg-surface/30 border border-white/5 rounded-lg hover:bg-surface/50 text-left transition-colors"
                                                 >
                                                     <span className="text-xs text-gray-300">Terms & Conditions</span>
                                                     <ChevronRight size={16} className="text-gray-500" />
@@ -417,7 +448,7 @@ export const ProfileModal: React.FC = () => {
                                                 <div className="pt-4 border-t border-white/5 mt-4">
                                                     <button 
                                                         onClick={() => { logout(); closeProfileModal(); }}
-                                                        className="w-full flex items-center justify-between p-3 bg-[#3a0b0b] border border-red-900/30 rounded-lg hover:bg-[#4a0d0d] text-left transition-colors font-bold group"
+                                                        className="w-[80%] md:w-full mx-auto flex items-center justify-between p-3 bg-[#3a0b0b] border border-red-900/30 rounded-lg hover:bg-[#4a0d0d] text-left transition-colors font-bold group"
                                                     >
                                                         <span className="text-xs text-red-400">Log Out</span>
                                                         <LogOut size={16} className="text-red-400 group-hover:translate-x-1 transition-transform" />
@@ -446,6 +477,37 @@ export const ProfileModal: React.FC = () => {
                                     {settingsView === 'profile' ? (
                                         <form className="space-y-5 flex-1 overflow-y-auto pr-1 scrollbar-hide pb-20 md:pb-10" onSubmit={handleProfileUpdate}>
                                             <div className="space-y-4">
+                                                <div className="flex flex-col items-center gap-4 mb-4">
+                                                    <div className="relative w-24 h-24 group">
+                                                        <img 
+                                                            src={profileData.profilePath || user.avatarUrl || `https://ui-avatars.com/api/?name=${displayName}`} 
+                                                            alt="Preview" 
+                                                            className="w-full h-full rounded-full object-cover border-2 border-primary/50"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => fileInputRef.current?.click()}
+                                                            className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                                        >
+                                                            <Camera size={24} className="text-white" />
+                                                        </button>
+                                                    </div>
+                                                    <input 
+                                                        type="file"
+                                                        ref={fileInputRef}
+                                                        onChange={handleFileUpload}
+                                                        accept="image/*"
+                                                        className="hidden"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => fileInputRef.current?.click()}
+                                                        className="text-xs text-primary font-bold hover:underline"
+                                                    >
+                                                        {updating ? 'Uploading...' : 'Change Profile Picture'}
+                                                    </button>
+                                                </div>
+
                                                 <div className="space-y-1.5">
                                                     <label className="text-[10px] font-mono text-gray-500 uppercase tracking-wider ml-1">Broadcast Name</label>
                                                     <input 
@@ -453,7 +515,7 @@ export const ProfileModal: React.FC = () => {
                                                         required
                                                         value={profileData.name}
                                                         onChange={(e) => setProfileData({...profileData, name: e.target.value})}
-                                                        className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-xs text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 focus:bg-white/[0.08] transition-all" 
+                                                        className="w-[80%] md:w-full mx-auto block bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-xs text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 focus:bg-white/[0.08] transition-all" 
                                                         placeholder="Your public name"
                                                     />
                                                 </div>
@@ -463,14 +525,14 @@ export const ProfileModal: React.FC = () => {
                                                     <textarea 
                                                         value={profileData.bio}
                                                         onChange={(e) => setProfileData({...profileData, bio: e.target.value})}
-                                                        className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-xs text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 focus:bg-white/[0.08] transition-all min-h-[100px] resize-none" 
+                                                        className="w-[80%] md:w-full mx-auto block bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-xs text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 focus:bg-white/[0.08] transition-all min-h-[100px] resize-none" 
                                                         placeholder="Tell the community about yourself..."
                                                     />
                                                 </div>
                                             </div>
 
                                             <div className="pt-2">
-                                                <Button type="submit" disabled={updating} className="w-full font-bold py-6 rounded-xl shadow-lg shadow-primary/20">
+                                                <Button type="submit" disabled={updating} className="w-[80%] md:w-full mx-auto flex font-bold py-6 rounded-xl shadow-lg shadow-primary/20">
                                                     {updating ? 'Updating Broadcast...' : 'Update Public Profile'}
                                                 </Button>
                                             </div>
@@ -485,7 +547,7 @@ export const ProfileModal: React.FC = () => {
                                                         required
                                                         value={passwordData.current}
                                                         onChange={(e) => setPasswordData({...passwordData, current: e.target.value})}
-                                                        className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-xs text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 focus:bg-white/[0.08] transition-all" 
+                                                        className="w-[80%] md:w-full mx-auto block bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-xs text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 focus:bg-white/[0.08] transition-all" 
                                                         placeholder="••••••••"
                                                     />
                                                 </div>
@@ -499,7 +561,7 @@ export const ProfileModal: React.FC = () => {
                                                         required
                                                         value={passwordData.new}
                                                         onChange={(e) => setPasswordData({...passwordData, new: e.target.value})}
-                                                        className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-xs text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 focus:bg-white/[0.08] transition-all" 
+                                                        className="w-[80%] md:w-full mx-auto block bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-xs text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 focus:bg-white/[0.08] transition-all" 
                                                         placeholder="Minimum 8 characters"
                                                     />
                                                 </div>
@@ -511,14 +573,14 @@ export const ProfileModal: React.FC = () => {
                                                         required
                                                         value={passwordData.confirm}
                                                         onChange={(e) => setPasswordData({...passwordData, confirm: e.target.value})}
-                                                        className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-xs text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 focus:bg-white/[0.08] transition-all" 
+                                                        className="w-[80%] md:w-full mx-auto block bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-xs text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 focus:bg-white/[0.08] transition-all" 
                                                         placeholder="Repeat new password"
                                                     />
                                                 </div>
                                             </div>
 
                                             <div className="pt-2">
-                                                <Button type="submit" className="w-full font-bold py-6 rounded-xl shadow-lg shadow-primary/20">
+                                                <Button type="submit" className="w-[80%] md:w-full mx-auto flex font-bold py-6 rounded-xl shadow-lg shadow-primary/20">
                                                     Update Security Credentials
                                                 </Button>
                                                 <p className="text-[9px] text-center text-gray-500 mt-4 leading-relaxed">

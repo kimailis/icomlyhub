@@ -1,5 +1,6 @@
 import { Queue, Worker, Job } from 'bullmq';
 import { geminiOptimizedService } from '../services/gemini-optimized.service';
+import { openaiOptimizedService } from '../services/openai-optimized.service';
 import prisma from '../config/prisma';
 import redisClient from '../config/redis';
 import axios from 'axios';
@@ -1129,19 +1130,27 @@ const regionalFeedGenerator = async () => {
     try {
         const regions = ['Asia', 'Europe', 'North America'];
         const prompt = `
-TASK: Search for the TOP REAL celebrity news story for EACH of these regions: ${regions.join(', ')}.
+TASK: Generate the TOP trending celebrity gossip story for EACH of these regions: ${regions.join(', ')}.
 CONTEXT: Today is ${getCurrentDateString()}.
-1. Find ONE major breaking news story per region from the LAST 48 HOURS.
-2. For each, provide a detailed 3-4 sentence summary and a direct source URL.
-3. If no major news exists for a region, focus on a top trending star from that area.
+1. Provide ONE major trending news story per region.
+2. For each, provide a detailed 3-4 sentence summary.
+3. Use your knowledge of recent events and celebrity status.
 
 Format JSON: { 
   "articles": [
-    { "headline": "text", "summary": "text", "source": "text", "sourceUrl": "text", "celebName": "FULL NAME", "buzzScore": 50, "category": "text", "region": "Region Name" }
+    { "headline": "text", "summary": "text", "source": "Entertainment Weekly", "sourceUrl": "https://ew.com", "celebName": "FULL NAME", "buzzScore": 50, "category": "text", "region": "Region Name" }
   ] 
 }`;
 
-        const data = await geminiOptimizedService.generateContent(prompt, { useSearch: true });
+        // Use OpenAI for regional feed generation to diversify API usage
+        const responseText = await openaiOptimizedService.generateText(prompt);
+        let data;
+        try {
+            data = JSON.parse(responseText);
+        } catch (e) {
+            // Fallback to Gemini if OpenAI JSON is malformed
+            data = await geminiOptimizedService.generateContent(prompt);
+        }
 
         if (data.articles && Array.isArray(data.articles)) {
             for (const item of data.articles) {

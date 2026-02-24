@@ -21,8 +21,8 @@ const config = {
     postIntervalMax: 10800000,    // Maximum time between posts (ms) - 3 hours
 
     // Hashtag settings
-    minHashtags: 2,
-    maxHashtags: 4,
+    minHashtags: 0,
+    maxHashtags: 0,
 
     // Content type weights per category
     contentTypeWeights: {

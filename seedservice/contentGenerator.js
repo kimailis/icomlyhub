@@ -104,91 +104,7 @@ function validateHashtags(hashtags) {
 }
 
 function generateHashtags(personality, content, templateType, apiTags, minTags, maxTags) {
-    const hashtags = new Set();
-    
-    // If we have API tags, prioritize them
-    if (apiTags && apiTags.length > 0) {
-        apiTags.forEach(tag => {
-            const hashtag = `#${tag.toLowerCase().replace(/\s+/g, '')}`;
-            if (hashtag.length <= 12) { // 12 characters maximum including #
-                hashtags.add(hashtag);
-            }
-        });
-        const validHashtags = validateHashtags(Array.from(hashtags));
-        return validHashtags.slice(0, maxTags).join(' ');
-    }
-
-    const contentLower = content.toLowerCase();
-    
-    // Category-specific hashtag generation based on template type
-    if (templateType === 'tech') {
-        hashtags.add('#tech');
-        hashtags.add('#code');
-    } else if (templateType === 'health') {
-        hashtags.add('#health');
-        hashtags.add('#well');
-    } else if (templateType === 'travel') {
-        hashtags.add('#travel');
-        hashtags.add('#trip');
-    } else if (templateType === 'books') {
-        hashtags.add('#book');
-        hashtags.add('#read');
-    } else if (templateType === 'food') {
-        hashtags.add('#food');
-        hashtags.add('#cook');
-    } else if (templateType === 'lifestyle') {
-        hashtags.add('#life');
-        hashtags.add('#style');
-    } else if (templateType === 'weather') {
-        hashtags.add('#weather');
-        hashtags.add('#nature');
-    } else if (templateType === 'personal') {
-        hashtags.add('#personal');
-        hashtags.add('#thoughts');
-    }
-
-    // Add context-based hashtags (ensuring they're 9 chars or less)
-    if (contentLower.includes('bug') || contentLower.includes('error')) hashtags.add('#debug');
-    if (contentLower.includes('learn') || contentLower.includes('til')) hashtags.add('#learn');
-    if (contentLower.includes('performance') || contentLower.includes('optimize')) hashtags.add('#perf');
-    if (contentLower.includes('security')) hashtags.add('#secure');
-    if (contentLower.includes('mindful') || contentLower.includes('meditation')) hashtags.add('#mind');
-    if (contentLower.includes('fitness') || contentLower.includes('workout')) hashtags.add('#fit');
-    if (contentLower.includes('productivity')) hashtags.add('#prod');
-    if (contentLower.includes('weather') || contentLower.includes('nature')) hashtags.add('#nature');
-
-    // If we still don't have enough hashtags, add some general ones based on category
-    if (hashtags.size < minTags) {
-        const generalTags = {
-            tech: ['coding', 'program', 'tech', 'dev', 'soft'],
-            food: ['foodie', 'eats', 'yum', 'tasty', 'meal'],
-            lifestyle: ['motiv', 'well', 'insp', 'balance', 'life'],
-            weather: ['sky', 'outdoor', 'nature', 'climate', 'air'],
-            health: ['health', 'well', 'care', 'fit', 'active'],
-            travel: ['travel', 'trip', 'explore', 'adventure', 'go'],
-            books: ['book', 'read', 'story', 'words', 'page'],
-            entertainment: ['movie', 'music', 'show', 'fun', 'play'],
-            art: ['art', 'creative', 'design', 'visual', 'draw'],
-            sports: ['sport', 'train', 'fit', 'game', 'play'],
-            provocative: ['opinion', 'truth', 'think', 'view', 'talk'],
-            default: ['cool', 'share', 'community', 'like', 'post']
-        };
-
-        const categoryTags = generalTags[templateType] || generalTags.default;
-        let tagsToAdd = [...categoryTags];
-
-        while (hashtags.size < minTags && tagsToAdd.length > 0) {
-            const tag = tagsToAdd.shift();
-            const hashtag = `#${tag}`;
-            if (hashtag.length <= 12) { // 12 characters maximum including #
-                hashtags.add(hashtag);
-            }
-        }
-    }
-
-    // Validate and filter hashtags to ensure 9-character limit
-    const validHashtags = validateHashtags(Array.from(hashtags));
-    return validHashtags.slice(0, maxTags).join(' ');
+    return '';
 }
 
 // Function to ensure content length is between min and max characters
@@ -293,14 +209,7 @@ async function generateContent(username) {
         if (apiData) {
             return {
                 content: apiData.content.trim(),
-                hashtags: generateHashtags(
-                    null,
-                    apiData.content,
-                    'apiContent',
-                    apiData.tags,
-                    config.minHashtags,
-                    config.maxHashtags
-                ),
+                hashtags: '',
                 type: 'apiContent',
                 category: apiData.context
             };
@@ -339,19 +248,9 @@ async function generateContent(username) {
         // Generate content using the rotated subcategory
         const content = generateStructuredContent(category, specificSubcategory);
         
-        // Generate hashtags
-        const hashtags = generateHashtags(
-            null, 
-            content, 
-            category,
-            [],
-            config.minHashtags,
-            config.maxHashtags
-        );
-        
         return {
             content: content.trim(),
-            hashtags: hashtags,
+            hashtags: '',
             type: specificSubcategory,
             category: category
         };
@@ -364,11 +263,10 @@ async function generateContent(username) {
 // Function to generate default content when other methods fail
 function generateDefaultContent(username) {
     const defaultContent = "Just thinking about how amazing technology is and how it continues to evolve every day!";
-    const defaultHashtags = "#tech #thoughts #innovation #future";
     
     return {
         content: defaultContent,
-        hashtags: defaultHashtags,
+        hashtags: '',
         type: 'default',
         category: 'tech'
     };
@@ -382,23 +280,23 @@ async function generatePersonalityContent(username) {
         const generator = getPersonalityContentGenerator();
         const result = generator.generatePersonalityContent(username);
         
-        // Split content and hashtags
-        const parts = result.content.split('\n\n');
-        let content, hashtags;
+        // Ensure content is strictly cleaned of any hashtags
+        let content = result.content;
         
-        if (parts.length > 1 && parts[parts.length - 1].startsWith('#')) {
+        // Split content and hashtags if they are present at the end
+        const parts = content.split('\n\n');
+        if (parts.length > 1 && parts[parts.length - 1].includes('#')) {
             content = parts.slice(0, -1).join('\n\n');
-            hashtags = parts[parts.length - 1];
-        } else {
-            content = result.content;
-            hashtags = '';
         }
+        
+        // Remove any remaining hashtags throughout the content
+        content = content.replace(/#\w+/g, '').trim();
         
         console.log(`Generated personality content for ${username}: ${content.substring(0, 50)}...`);
         
         return {
             content,
-            hashtags,
+            hashtags: '',
             topic: result.topic,
             isPersonalityGenerated: true
         };

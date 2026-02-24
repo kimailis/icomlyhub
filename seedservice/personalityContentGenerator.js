@@ -44,7 +44,6 @@ class PersonalityContentGenerator {
                     "The rumors about the reality TV cast being 'totally real' are falling apart. It's all manufactured drama!"
                 ]
             },
-            tech: {
             lifestyle: {
                 high_creative: [
                     "Spent the morning sketching in the park. There's something magical about creating with nature as your backdrop 🎨",
@@ -379,11 +378,8 @@ class PersonalityContentGenerator {
         // Apply personality modifications
         content = this.applyPersonalityModifications(content, personality);
         
-        // Generate hashtags
-        const hashtags = this.personalityManager.generatePersonalityHashtags(username, content);
-        
         return {
-            content: hashtags ? `${content}\n\n${hashtags}` : content,
+            content,
             topic: selectedTopic,
             isPersonalityGenerated: true
         };

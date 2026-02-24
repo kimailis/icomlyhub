@@ -265,9 +265,13 @@ const socialWorker = new Worker('social-generation', async (job: Job) => {
 // Schedule recurring jobs
 (async () => {
   await socialQueue.add('seed-users', {}, { repeat: { pattern: '0 0 * * *' } }); // Daily sync
+  
+  // Activity generation is now handled by the separate seedservice
+  /*
   await socialQueue.add('generate-activity', {}, { repeat: { every: 3600000 } }); // Hourly
   await socialQueue.add('generate-interactions', {}, { repeat: { every: 1800000 } }); // Every 30 mins
   await socialQueue.add('generate-likes', {}, { repeat: { every: 900000 } }); // Every 15 mins
+  */
   
   // Run seed users immediately on startup
   await socialQueue.add('seed-users', {});
