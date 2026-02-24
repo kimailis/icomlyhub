@@ -105,7 +105,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
 
           <div className="flex-1 text-center md:text-left space-y-1">
             <div className="flex flex-wrap justify-center md:justify-start items-center gap-3">
-              <h1 className="text-3xl md:text-5xl font-black text-white tracking-tighter">
+              <h1 className="text-base md:text-2xl font-black text-white tracking-tighter">
                 {userProfile.name || 'Anonymous User'}
               </h1>
               <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${userProfile.role === 'pro' ? 'bg-gradient-to-r from-primary to-secondary text-white border border-primary/30' : 'bg-gray-800 text-gray-400 border border-white/5'}`}>
@@ -160,7 +160,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
 
       {/* Profile Wall */}
       <section className="bg-surface/10 rounded-3xl p-4 md:p-6 border border-white/5 shadow-2xl">
-        <PostWall targetUserId={userId} title={`${userProfile.name || 'User'}'s Wall`} />
+        <PostWall targetUserId={userId} title="Wall" />
       </section>
     </div>
   );

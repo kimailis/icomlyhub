@@ -148,31 +148,37 @@ export function NotificationDropdown() {
   if (!user) return null;
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative md:static lg:relative" ref={dropdownRef}>
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="p-2.5 rounded-2xl bg-white/5 border border-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-all relative"
+        className="flex flex-col md:block items-center gap-0.5 md:p-2.5 rounded-lg md:rounded-2xl bg-transparent md:bg-white/5 border border-transparent md:border-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-all relative"
       >
-        <Bell size={20} />
+        <Bell size={20} className="md:size-[20px] size-[18px]" />
+        <span className="text-[10px] font-medium leading-tight md:hidden">Alerts</span>
         {unreadCount > 0 && (
-          <span className="absolute top-2 right-2 w-4 h-4 bg-primary text-white text-[10px] font-bold flex items-center justify-center rounded-full animate-pulse">
+          <span className="absolute top-0 right-1 md:top-2 md:right-2 w-4 h-4 bg-primary text-white text-[10px] font-bold flex items-center justify-center rounded-full animate-pulse">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
       </button>
 
       {isOpen && (
-        <div className="absolute top-14 right-0 w-80 max-h-[480px] bg-surface border border-white/10 rounded-3xl shadow-2xl z-50 overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="fixed inset-x-4 bottom-20 md:absolute md:inset-auto md:top-14 md:right-0 md:w-80 max-h-[480px] bg-surface border border-white/10 rounded-3xl shadow-2xl z-50 overflow-hidden flex flex-col animate-in fade-in slide-in-from-bottom-2 md:slide-in-from-top-2 duration-200">
           <div className="p-4 border-b border-white/5 flex items-center justify-between bg-white/5">
             <h3 className="text-sm font-bold text-white uppercase tracking-wider">Notifications</h3>
-            {unreadCount > 0 && (
-              <button 
-                onClick={() => markAsRead()}
-                className="text-[10px] font-bold text-primary hover:underline uppercase tracking-tighter"
-              >
-                Mark all read
+            <div className="flex items-center gap-4">
+              {unreadCount > 0 && (
+                <button 
+                  onClick={() => markAsRead()}
+                  className="text-[10px] font-bold text-primary hover:underline uppercase tracking-tighter"
+                >
+                  Mark all read
+                </button>
+              )}
+              <button onClick={() => setIsOpen(false)} className="md:hidden text-gray-500 hover:text-white">
+                <X size={18} />
               </button>
-            )}
+            </div>
           </div>
 
           <div className="overflow-y-auto flex-1 custom-scrollbar">
