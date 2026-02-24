@@ -84,13 +84,17 @@ export function NotificationDropdown() {
   }, []);
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
   }, []);
 
   const markAsRead = async (id?: string) => {
@@ -150,8 +154,11 @@ export function NotificationDropdown() {
   return (
     <div className="relative md:static lg:relative" ref={dropdownRef}>
       <button 
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex flex-col md:block items-center gap-0.5 md:p-2.5 rounded-lg md:rounded-2xl bg-transparent md:bg-white/5 border border-transparent md:border-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-all relative"
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsOpen(!isOpen);
+        }}
+        className="flex flex-col md:block items-center gap-0.5 p-1.5 md:p-2.5 rounded-lg md:rounded-2xl bg-transparent md:bg-white/5 border border-transparent md:border-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-all relative"
       >
         <Bell size={20} className="md:size-[20px] size-[18px]" />
         <span className="text-[10px] font-medium leading-tight md:hidden">Alerts</span>
@@ -163,7 +170,7 @@ export function NotificationDropdown() {
       </button>
 
       {isOpen && (
-        <div className="fixed inset-x-4 bottom-20 md:absolute md:inset-auto md:top-14 md:right-0 md:w-80 max-h-[480px] bg-surface border border-white/10 rounded-3xl shadow-2xl z-50 overflow-hidden flex flex-col animate-in fade-in slide-in-from-bottom-2 md:slide-in-from-top-2 duration-200">
+        <div className="fixed inset-x-4 bottom-24 md:absolute md:inset-auto md:top-14 md:right-0 md:w-80 max-h-[480px] bg-surface border border-white/10 rounded-3xl shadow-2xl z-[100] overflow-hidden flex flex-col animate-in fade-in slide-in-from-bottom-2 md:slide-in-from-top-2 duration-200">
           <div className="p-4 border-b border-white/5 flex items-center justify-between bg-white/5">
             <h3 className="text-sm font-bold text-white uppercase tracking-wider">Notifications</h3>
             <div className="flex items-center gap-4">
