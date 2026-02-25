@@ -513,16 +513,16 @@ const backfillCelebJob = async (name: string) => {
 
     if (!celeb) return;
 
-    if (celeb._count.articles < 3) {
+    if (celeb._count.articles < 1) {
         const prompt = `
             TASK: Research REAL intelligence for ${cleanName} (${celeb.category || 'Celebrity'} from ${celeb.country || 'Global'}).
             CONTEXT: Today is ${getCurrentDateString()}.
             
-            1. Find Three (3) REAL, RECENT gossip headlines or news stories (JSON array).
+            1. Find One (1) REAL, RECENT gossip headline or news story (JSON array).
                - USE GOOGLE SEARCH.
                - MUST be from the last 7 days.
                - INCLUDE publishedAt date.
-               - EACH summary MUST be a detailed paragraph (at least 3-4 sentences) providing deep context, specific details, and background. Do not be brief.
+               - THE summary MUST be a detailed paragraph (at least 3-4 sentences) providing deep context, specific details, and background. Do not be brief.
                - sourceUrl MUST be the DIRECT, PERMANENT link to the original news article. DO NOT use search results, temporary redirects (like vertexaisearch.cloud.google.com), or landing pages.
             2. One (1) current sighting report (JSON object) INCLUDING lat/lng coordinates.
                - Snippet MUST be a short, punchy sentence or two (e.g. "Spotted grabbing coffee in Soho, wearing an oversized hoodie.")
@@ -916,9 +916,10 @@ TASK: Search for and retrieve 5 REAL, TRENDING celebrity news stories.
 CONTEXT: Today is ${getCurrentDateString()}.
 1. USE GOOGLE SEARCH to find actual breaking news from the LAST 24-48 HOURS.
 2. FOCUS on Major Stars (A-List).
-3. VERIFY the events are REAL and occurring NOW.
-4. Each summary MUST be a detailed paragraph (at least 3-4 sentences) providing extensive detail, background context, and juicy specifics. Avoid brief 1-2 sentence summaries.
-5. IMPORTANT: sourceUrl MUST be the DIRECT, PERMANENT link to the original news article. DO NOT use search results, temporary redirects (like vertexaisearch.cloud.google.com), or landing pages.
+3. ENSURE each story is for a DIFFERENT celebrity.
+4. VERIFY the events are REAL and occurring NOW.
+5. Each summary MUST be a detailed paragraph (at least 3-4 sentences) providing extensive detail, background context, and juicy specifics. Avoid brief 1-2 sentence summaries.
+6. IMPORTANT: sourceUrl MUST be the DIRECT, PERMANENT link to the original news article. DO NOT use search results, temporary redirects (like vertexaisearch.cloud.google.com), or landing pages.
 
 CRITICAL: Return ONLY a valid JSON object. NO preamble, NO markdown blocks, NO commentary.
 Ensure all double quotes INSIDE string values are properly escaped with a backslash (\\").
@@ -928,11 +929,24 @@ Format: JSON object { "articles": [{ "headline": "text", "summary": "text", "sou
         const data = await geminiOptimizedService.generateContent(prompt, { useSearch: true });
 
         if (data.articles && Array.isArray(data.articles)) {
+            const processedCelebs = new Set<string>();
+
             for (const item of data.articles) {
                 if (item.celebName.includes('[') || item.celebName.includes('CelebName')) {
                     console.log(`[GlobalFeed] Skipping invalid name: ${item.celebName}`);
                     continue;
                 }
+
+                // Check if we already handled this celebrity in this run
+                const normalizedName = normalizePersonName(item.celebName);
+                const cleanName = cleanCelebName(normalizedName);
+                const slug = slugify(cleanName);
+
+                if (processedCelebs.has(slug)) {
+                    console.log(`[GlobalFeed] Skipping duplicate celeb in this run: ${cleanName}`);
+                    continue;
+                }
+                processedCelebs.add(slug);
 
                 // Check for valid publishedAt date
                 let publishedDate = new Date();
@@ -941,10 +955,6 @@ Format: JSON object { "articles": [{ "headline": "text", "summary": "text", "sou
                 publishedDate = new Date();
                 publishedDate.setMinutes(publishedDate.getMinutes() - Math.floor(Math.random() * 120));
 
-                // Normalize the name to prevent duplicates like "Jungkook" vs "Jungkook (BTS)"
-                const normalizedName = normalizePersonName(item.celebName);
-                const cleanName = cleanCelebName(normalizedName);
-                const slug = slugify(cleanName);
                 const avatarName = getAvatarName(cleanName);
 
                 // STRICT: Only allow creation if we find a real image (no hallucinations)
@@ -1079,32 +1089,14 @@ Format: JSON object { "articles": [{ "headline": "text", "summary": "text", "sou
         include: { celebrity: true }
     });
 
-    // Post-processing: Prevent consecutive items for the same celebrity
+    // Post-processing: Keep ONLY the most recent article for each celebrity
     const feed: typeof rawFeed = [];
-    const deferred: typeof rawFeed = [];
+    const seenCelebs = new Set<string>();
 
     for (const item of rawFeed) {
-        if (feed.length > 0 && feed[feed.length - 1].celebrityId === item.celebrityId) {
-            deferred.push(item);
-        } else {
+        if (!seenCelebs.has(item.celebrityId)) {
             feed.push(item);
-        }
-    }
-
-    // Try to weave deferred items back in
-    for (const item of deferred) {
-        let inserted = false;
-        for (let i = 1; i < feed.length; i++) {
-            const prev = feed[i - 1];
-            const next = feed[i];
-            if (prev.celebrityId !== item.celebrityId && next.celebrityId !== item.celebrityId) {
-                feed.splice(i, 0, item);
-                inserted = true;
-                break;
-            }
-        }
-        if (!inserted) {
-            feed.push(item);
+            seenCelebs.add(item.celebrityId);
         }
     }
 
