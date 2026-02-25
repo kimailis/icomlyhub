@@ -142,8 +142,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialFeed = [], initialT
     };
     window.addEventListener('feed-updated', handleUpdate);
     
+    // Add periodic refresh (60 seconds)
+    const interval = setInterval(handleUpdate, 60 * 1000);
+    
     load();
-    return () => window.removeEventListener('feed-updated', handleUpdate);
+    return () => {
+        window.removeEventListener('feed-updated', handleUpdate);
+        clearInterval(interval);
+    };
   }, []);
 
   const toggleExpand = (e: React.MouseEvent | React.KeyboardEvent, id: string) => {

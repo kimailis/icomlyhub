@@ -155,7 +155,7 @@ class EnhancedCommentManager extends CommentManager {
                 JOIN "Celebrity" c ON a."celebrityId" = c."id"
                 WHERE a."publishedAt" > NOW() - INTERVAL '24 hours'
                 ORDER BY a."publishedAt" DESC
-                LIMIT 10
+                LIMIT 50
             `);
             const articles = recentArticlesRes.rows;
 
@@ -168,7 +168,7 @@ class EnhancedCommentManager extends CommentManager {
                 JOIN "Celebrity" c ON s."celebrityId" = c."id"
                 WHERE s."date" > NOW() - INTERVAL '24 hours'
                 ORDER BY s."date" DESC
-                LIMIT 5
+                LIMIT 30
             `);
             const sightings = recentSightingsRes.rows;
 
@@ -187,10 +187,17 @@ class EnhancedCommentManager extends CommentManager {
                 const targetInteractions = Math.floor(Math.random() * 5) + 3; // Aim for 3-8 interactions
                 const currentInteractions = parseInt(article.comment_count) + parseInt(article.like_count);
                 
-                if (currentInteractions >= targetInteractions) continue;
+                console.log(`[Enhanced Comment] Article "${article.headline}" (ID: ${article.id}) has ${currentInteractions} interactions, target is ${targetInteractions}`);
+
+                if (currentInteractions >= targetInteractions) {
+                    console.log(`[Enhanced Comment] Skipping article "${article.headline}" (sufficient interactions)`);
+                    continue;
+                }
 
                 const usersNeeded = targetInteractions - currentInteractions;
                 const availableUsers = seedUsers.sort(() => Math.random() - 0.5).slice(0, usersNeeded);
+
+                console.log(`[Enhanced Comment] Adding ${usersNeeded} interactions to "${article.headline}" using ${availableUsers.map(u => u.username).join(', ')}`);
 
                 for (const user of availableUsers) {
                     try {
@@ -214,7 +221,6 @@ class EnhancedCommentManager extends CommentManager {
                         }
 
                         console.log(`[Enhanced Comment] ${user.username} interacted with ${article.celeb_name}'s news`);
-                        await new Promise(resolve => setTimeout(resolve, 2000));
                     } catch (e) { console.error(e); }
                 }
             }
@@ -224,10 +230,17 @@ class EnhancedCommentManager extends CommentManager {
                 const targetInteractions = Math.floor(Math.random() * 3) + 2; // Aim for 2-5 interactions
                 const currentInteractions = parseInt(sighting.comment_count) + parseInt(sighting.like_count);
                 
-                if (currentInteractions >= targetInteractions) continue;
+                console.log(`[Enhanced Comment] Sighting for ${sighting.celeb_name} (ID: ${sighting.id}) has ${currentInteractions} interactions, target is ${targetInteractions}`);
+
+                if (currentInteractions >= targetInteractions) {
+                    console.log(`[Enhanced Comment] Skipping sighting for ${sighting.celeb_name} (sufficient interactions)`);
+                    continue;
+                }
 
                 const usersNeeded = targetInteractions - currentInteractions;
                 const availableUsers = seedUsers.sort(() => Math.random() - 0.5).slice(0, usersNeeded);
+
+                console.log(`[Enhanced Comment] Adding ${usersNeeded} interactions to ${sighting.celeb_name}'s sighting using ${availableUsers.map(u => u.username).join(', ')}`);
 
                 for (const user of availableUsers) {
                     try {
@@ -251,7 +264,6 @@ class EnhancedCommentManager extends CommentManager {
                         }
 
                         console.log(`[Enhanced Comment] ${user.username} interacted with ${sighting.celeb_name}'s sighting`);
-                        await new Promise(resolve => setTimeout(resolve, 2000));
                     } catch (e) { console.error(e); }
                 }
             }

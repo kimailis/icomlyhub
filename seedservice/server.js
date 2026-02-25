@@ -335,8 +335,8 @@ const PORT = process.env.PORT || 5050;
                     openaiContentGenerator = new OpenAIContentGenerator();
                     try {
                         enhancedCommentManager = new EnhancedCommentManager(db);
-                        enhancedCommentManager.startPeriodicCommentGeneration(15);
-                        enhancedCommentManager.startPeriodicFeedInteraction(20);
+                        enhancedCommentManager.startPeriodicCommentGeneration(8);
+                        enhancedCommentManager.startPeriodicFeedInteraction(5);
                     } catch (e) {
                         console.error('Enhanced comment manager failed:', e.message);
                     }

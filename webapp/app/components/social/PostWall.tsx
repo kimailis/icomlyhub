@@ -7,7 +7,6 @@ import { Button } from '@/app/components/ui/Button';
 import { MessageSquare, ThumbsUp, ThumbsDown, Send, User as UserIcon, Shield, Activity, Trash2 } from 'lucide-react';
 import CommentSection from './CommentSection';
 import { ShareButton } from '../ui/ShareButton';
-import { formatRelativeTime } from '@/lib/utils';
 import { RelativeTime } from '@/app/components/ui/RelativeTime';
 import Link from 'next/link';
 import { AdBanner } from '../AdBanner';
@@ -47,6 +46,7 @@ export default function PostWall({ targetUserId, targetCelebId, title = "Communi
   const [submitting, setSubmitting] = useState(false);
   const [expandedPostId, setExpandedPostId] = useState<string | null>(null);
 
+  const [visibleCount, setVisibleCount] = useState(9);
   const [hasMore, setHasMore] = useState(true);
   const shouldShowAds = !user || user.plan === 'free';
 
@@ -57,7 +57,7 @@ export default function PostWall({ targetUserId, targetCelebId, title = "Communi
       const params = new URLSearchParams();
       if (targetUserId) params.append('targetUserId', targetUserId);
       if (targetCelebId) params.append('targetCelebId', targetCelebId);
-      params.append('limit', '8');
+      params.append('limit', '9');
 
       if (isLoadMore && posts.length > 0) {
         params.append('cursor', posts[posts.length - 1].id);
@@ -68,10 +68,11 @@ export default function PostWall({ targetUserId, targetCelebId, title = "Communi
         const data = await res.json();
         if (isLoadMore) {
           setPosts(prev => [...prev, ...data]);
-          if (data.length < 8) setHasMore(false);
+          if (data.length < 9) setHasMore(false);
         } else {
           setPosts(data);
-          setHasMore(data.length === 8);
+          setHasMore(data.length === 9);
+          setVisibleCount(9);
         }
       }
     } catch (error) {
@@ -86,7 +87,14 @@ export default function PostWall({ targetUserId, targetCelebId, title = "Communi
   }, [targetUserId, targetCelebId]);
 
   const handleLoadMore = () => {
-    fetchPosts(true);
+    if (visibleCount + 9 <= posts.length) {
+        setVisibleCount(prev => prev + 9);
+    } else if (hasMore) {
+        fetchPosts(true);
+        setVisibleCount(prev => prev + 9);
+    } else {
+        setVisibleCount(posts.length);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -220,14 +228,14 @@ export default function PostWall({ targetUserId, targetCelebId, title = "Communi
               The wall is currently silent.
           </div>
         ) : (
-          posts.map((post, index) => (
+          posts.slice(0, visibleCount).map((post, index) => (
             <React.Fragment key={post.id}>
               <div className="group p-4 rounded-3xl bg-surface/40 border border-white/5 hover:border-white/10 transition-all space-y-3">
                 <div className="flex items-center justify-between">
                   <Link href={`/user/${post.user.id}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                     <div className="w-10 h-10 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center overflow-hidden">
                       {post.user.profilePath ? (
-                        <img src={post.user.profilePath} className="w-full h-full object-cover" />
+                        <img src={post.user.profilePath} alt={post.user.name || 'User Profile'} className="w-full h-full object-cover" />
                       ) : (
                         <UserIcon size={18} className="text-primary" />
                       )}
@@ -315,7 +323,7 @@ export default function PostWall({ targetUserId, targetCelebId, title = "Communi
                   </div>
                 )}
               </div>
-              {shouldShowAds && (index + 1) % 4 === 0 && <AdBanner />}
+              {shouldShowAds && (index + 1) % 3 === 0 && <AdBanner />}
             </React.Fragment>
           ))
         )}
@@ -327,7 +335,7 @@ export default function PostWall({ targetUserId, targetCelebId, title = "Communi
           </div>
         )}
         
-        {hasMore && posts.length > 0 && !loading && (
+        {((hasMore && !loading) || visibleCount < posts.length) && posts.length > 0 && (
           <div className="flex justify-center pt-4 pb-8">
               <Button 
                 variant="secondary" 
@@ -335,12 +343,12 @@ export default function PostWall({ targetUserId, targetCelebId, title = "Communi
                 onClick={handleLoadMore}
                 className="w-full md:w-auto min-w-[200px] gap-2 shadow-xl shadow-secondary/10"
               >
-                  <LoadMoreIcon size={18} /> Load More Posts
+                  <LoadMoreIcon size={18} /> Load More Juice
               </Button>
           </div>
         )}
 
-        {!hasMore && posts.length > 0 && (
+        {(!hasMore && visibleCount >= posts.length) && posts.length > 0 && (
           <div className="py-12 text-center text-[10px] font-mono text-gray-600 uppercase tracking-[0.3em]">
             End of Broadcast History
           </div>

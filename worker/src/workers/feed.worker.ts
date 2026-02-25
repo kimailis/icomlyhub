@@ -1090,7 +1090,12 @@ Format: JSON object { "articles": [{ "headline": "text", "summary": "text", "sou
         where: { publishedAt: { gte: timeWindow } },
         take: 60,
         orderBy: { publishedAt: 'desc' },
-        include: { celebrity: true }
+        include: { 
+            celebrity: true,
+            _count: {
+                select: { likes: true, comments: true }
+            }
+        }
     });
 
     // Post-processing: Keep ONLY the most recent article for each celebrity
@@ -1115,6 +1120,8 @@ Format: JSON object { "articles": [{ "headline": "text", "summary": "text", "sou
         impactScore: a.impactScore,
         category: a.category,
         celebrity: a.celebrity,
+        likeCount: a._count.likes,
+        commentCount: a._count.comments,
         timestamp: new Date(a.publishedAt).getTime()
     }));
 
