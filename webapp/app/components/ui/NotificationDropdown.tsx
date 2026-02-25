@@ -229,8 +229,8 @@ export function NotificationDropdown() {
           </div>
         ) : notifications.length === 0 ? (
           <div className="p-12 text-center">
-            <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center mx-auto mb-3 border border-white/5">
-              <Bell className="text-gray-800" size={24} />
+            <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center mx-auto mb-3 border border-white/10">
+              <Bell className="text-gray-400" size={24} />
             </div>
             <p className="text-[10px] text-gray-500 font-mono uppercase tracking-widest">No activity.</p>
           </div>
@@ -239,19 +239,13 @@ export function NotificationDropdown() {
             {notifications.slice(0, displayCount).map((notification) => (
               <div 
                 key={notification.id}
-                className={`m-1 p-2.5 rounded-2xl border border-white/5 flex gap-3 group hover:bg-white/[0.04] transition-all relative ${!notification.read ? 'bg-primary/5 border-primary/10' : 'bg-white/[0.02]'}`}
+                className={`m-1 p-3 rounded-2xl border border-white/5 flex items-center gap-3 group hover:bg-white/[0.04] transition-all relative ${!notification.read ? 'bg-primary/5 border-primary/10' : 'bg-white/[0.02]'}`}
               >
-                <div className="flex-shrink-0 mt-0.5">
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center border ${!notification.read ? 'bg-primary/20 border-primary/20' : 'bg-white/5 border-white/5'}`}>
-                    {getIcon(notification.type)}
-                  </div>
-                </div>
-                
                 <div className="flex-1 min-w-0">
                   <p className={`text-xs leading-snug ${notification.read ? 'text-gray-400' : 'text-white font-medium'}`}>
                     {notification.message}
                   </p>
-                  <div className="flex items-center gap-3 mt-1">
+                  <div className="flex items-center gap-3 mt-1.5">
                     <span className="text-[9px] text-gray-600 font-mono uppercase tracking-tighter">
                       {new Date(notification.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
@@ -272,16 +266,16 @@ export function NotificationDropdown() {
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-1.5">
+                <div className="flex-shrink-0">
                   <button 
                     onClick={(e) => {
                       e.stopPropagation();
                       deleteNotification(notification.id);
                     }}
-                    className="p-1.5 rounded-lg text-gray-500 hover:text-red-500 hover:bg-red-500/10 transition-all bg-white/5"
+                    className="p-2 rounded-lg text-gray-500 hover:text-red-500 hover:bg-red-500/10 transition-all bg-white/5"
                     title="Delete"
                   >
-                    <Trash2 size={12} />
+                    <Trash2 size={16} />
                   </button>
                 </div>
               </div>
