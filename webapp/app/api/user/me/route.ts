@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import jwt from 'jsonwebtoken';
+import { emailService } from '@/lib/services/email.service';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'secret';
 
@@ -90,6 +91,28 @@ export async function PUT(req: Request) {
         notificationSettings: true,
       }
     });
+
+    // Sync with Email Service (SMTP microservice)
+    try {
+      if (updatedUser.email) {
+        const prefs = updatedUser.notificationSettings ? JSON.parse(updatedUser.notificationSettings) : {};
+        
+        // If they have any notification enabled, subscribe/update them
+        // If they disabled all, we could unsubscribe them, but usually we just update prefs
+        await emailService.subscribe(
+          updatedUser.email, 
+          updatedUser.name || updatedUser.email.split('@')[0],
+          {
+            weekly_digest: prefs.weeklyDigest !== false,
+            gossip_updates: prefs.gossipUpdates !== false,
+            notifications: prefs.notifications !== false
+          }
+        );
+      }
+    } catch (syncError) {
+      console.error('[User API] Failed to sync with Email Service:', syncError);
+      // Don't fail the whole request if email sync fails
+    }
 
     return NextResponse.json({
       ...updatedUser,

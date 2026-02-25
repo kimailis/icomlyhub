@@ -47,6 +47,16 @@ function db() {
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )`);
 
+        // Subscribers Table
+        database.run(`CREATE TABLE IF NOT EXISTS subscribers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT UNIQUE,
+            user_name TEXT,
+            preferences TEXT, -- JSON string for preferences like { weekly_digest: true, gossip_updates: true }
+            subscribed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            unsubscribed_at DATETIME
+        )`);
+
         // Mail Queue Table
         database.run(`CREATE TABLE IF NOT EXISTS mail_queue (
             id INTEGER PRIMARY KEY AUTOINCREMENT,

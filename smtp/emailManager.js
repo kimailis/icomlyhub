@@ -392,55 +392,86 @@ ${html || body}`;
     }
 
     static startQueueProcessor(logger) {
+        // Process queue every 30 seconds
         setInterval(async () => {
             const database = db();
             if (!database) return;
 
-            database.all('SELECT * FROM mail_queue WHERE status = "pending" AND attempts < 5', async (err, rows) => {
+            // Fetch a batch of pending emails
+            database.all('SELECT * FROM mail_queue WHERE status = "pending" AND attempts < 5 LIMIT 50', async (err, rows) => {
                 if (err) {
                     logger.error('Queue processor DB error:', err);
                     return;
                 }
 
+                if (rows.length === 0) return;
+
+                logger.info(`Processing ${rows.length} emails from queue...`);
+
                 for (const mail of rows) {
                     try {
-                        // Format email content
-                        const emailContent = `From: ${mail.from_address}
-To: ${mail.to_address}
-Subject: ${mail.subject}
-Content-Type: text/plain; charset=utf-8
-
-${mail.body}`;
-
-                        // Write to a temporary file
-                        const tempFile = `/tmp/email_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-                        fs.writeFileSync(tempFile, emailContent);
-
-                        // Use sendmail to deliver the email through postfix
-                        await new Promise((resolve, reject) => {
-                            exec(`/usr/sbin/sendmail -i -t -f "${mail.from_address}" < ${tempFile}`, (error, stdout, stderr) => {
-                                // fs.unlinkSync(tempFile); // Clean up temp file
-                                if (error) {
-                                    // reject(error); // Don't reject, just log (allow loop to continue)
-                                    logger.error('Sendmail error:', error);
-                                }
-                                fs.unlinkSync(tempFile);
-                                resolve();
-                            });
+                        // Mark as processing to avoid double-send
+                        await new Promise((resolve) => {
+                            database.run('UPDATE mail_queue SET status = "processing", last_attempt = CURRENT_TIMESTAMP WHERE id = ?', [mail.id], resolve);
                         });
 
-                        // Update status to sent
-                        database.run('UPDATE mail_queue SET status = "sent", last_attempt = CURRENT_TIMESTAMP WHERE id = ?', [mail.id]);
+                        // For external addresses, we might prefer using the transport we have
+                        // but if the system is configured to use postfix sendmail, we use it.
+                        // Actually, looking at deliverEmail, it uses transport for external.
+                        // Let's use the same logic here or just rely on a unified delivery method.
+
+                        // If it's internal, we handle it separately.
+                        const isInternal = mail.to_address.endsWith('@icomly.com');
+
+                        if (isInternal) {
+                            const username = mail.to_address.split('@')[0];
+                            const maildir = `/var/mail/${username}/Maildir/new`;
+                            if (!fs.existsSync(maildir)) fs.mkdirSync(maildir, { recursive: true });
+                            const filename = path.join(maildir, `${Date.now()}.${Math.random().toString(36).slice(2)}.eml`);
+                            fs.writeFileSync(filename, `From: ${mail.from_address}\nTo: ${mail.to_address}\nSubject: ${mail.subject}\n\n${mail.body}`);
+                            
+                            database.run('UPDATE mail_queue SET status = "sent" WHERE id = ?', [mail.id]);
+                        } else {
+                            // External delivery
+                            const transport = nodemailer.createTransport({
+                                host: process.env.SMTP_HOST || 'localhost',
+                                port: parseInt(process.env.SMTP_PORT || '587', 10),
+                                auth: {
+                                    user: process.env.SMTP_USER,
+                                    pass: process.env.SMTP_PASS
+                                },
+                                secure: false
+                            });
+
+                            await transport.sendMail({
+                                from: mail.from_address,
+                                to: mail.to_address,
+                                subject: mail.subject,
+                                html: mail.body.includes('<') ? mail.body : undefined,
+                                text: mail.body.includes('<') ? undefined : mail.body
+                            });
+
+                            database.run('UPDATE mail_queue SET status = "sent" WHERE id = ?', [mail.id]);
+                        }
+
                         logger.info('Queued email sent successfully', {
                             to: mail.to_address,
                             subject: mail.subject
                         });
-                    } catch (e) {
-                        // Error handling
+
+                        // Small delay between sends to avoid rate limits
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        
+                    } catch (error) {
+                        logger.error('Error processing queued email:', { id: mail.id, error: error.message });
+                        database.run(
+                            'UPDATE mail_queue SET status = "pending", attempts = attempts + 1, error = ? WHERE id = ?',
+                            [error.message, mail.id]
+                        );
                     }
                 }
             });
-        }, 60000); // Process queue every minute
+        }, 30000); // Check every 30 seconds
     }
 
     async handlePasswordReset(data) {

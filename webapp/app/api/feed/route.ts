@@ -94,7 +94,25 @@ export async function GET() {
     // Sort by timestamp
     unifiedFeed.sort((a, b) => b.timestamp - a.timestamp);
 
-    const finalFeed = unifiedFeed.slice(0, 50);
+    // DE-DUPLICATION and DIVERSITY:
+    // 1. Keep only one article per celeb in the top 50
+    // 2. Prevent exact same headlines
+    const finalFeed: any[] = [];
+    const seenCelebs = new Set<string>();
+    const seenHeadlines = new Set<string>();
+
+    for (const item of unifiedFeed) {
+      const headlineKey = item.headline.toLowerCase().trim();
+      if (seenHeadlines.has(headlineKey)) continue;
+      
+      if (item.celebId && seenCelebs.has(item.celebId)) continue;
+
+      finalFeed.push(item);
+      seenHeadlines.add(headlineKey);
+      if (item.celebId) seenCelebs.add(item.celebId);
+      
+      if (finalFeed.length >= 50) break;
+    }
 
     await redisClient.set('feed:global', JSON.stringify(finalFeed), { EX: 300 });
     return NextResponse.json(finalFeed);

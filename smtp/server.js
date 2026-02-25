@@ -61,6 +61,100 @@ const startServers = async () => {
     // Health Check
     app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
+    // Subscriber Management
+    app.post('/subscribe', (req, res) => {
+        const { email, userName, preferences } = req.body;
+        if (!email) return res.status(400).json({ error: 'Email is required' });
+
+        const prefs = JSON.stringify(preferences || { weekly_digest: true, gossip_updates: true });
+        const dbConn = db();
+
+        dbConn.run(
+            `INSERT INTO subscribers (email, user_name, preferences, subscribed_at, unsubscribed_at) 
+             VALUES (?, ?, ?, CURRENT_TIMESTAMP, NULL)
+             ON CONFLICT(email) DO UPDATE SET 
+                user_name = excluded.user_name,
+                preferences = excluded.preferences,
+                unsubscribed_at = NULL`,
+            [email, userName, prefs],
+            function(err) {
+                if (err) {
+                    logger.error('Error subscribing user:', err);
+                    return res.status(500).json({ error: 'Failed to subscribe' });
+                }
+                res.json({ message: 'Subscribed successfully' });
+            }
+        );
+    });
+
+    app.post('/unsubscribe', (req, res) => {
+        const { email } = req.body;
+        if (!email) return res.status(400).json({ error: 'Email is required' });
+
+        const dbConn = db();
+        dbConn.run(
+            'UPDATE subscribers SET unsubscribed_at = CURRENT_TIMESTAMP WHERE email = ?',
+            [email],
+            function(err) {
+                if (err) {
+                    logger.error('Error unsubscribing user:', err);
+                    return res.status(500).json({ error: 'Failed to unsubscribe' });
+                }
+                res.json({ message: 'Unsubscribed successfully' });
+            }
+        );
+    });
+
+    // Broadcast endpoint for gossip updates or manual digests
+    app.post('/broadcast', (req, res) => {
+        const { type, subject, body, html, highlights } = req.body;
+        if (!type || !subject) return res.status(400).json({ error: 'Type and subject are required' });
+
+        const dbConn = db();
+        const from = '"Icomly" <noreply@icomly.com>';
+
+        // Get all active subscribers
+        dbConn.all('SELECT email, user_name, preferences FROM subscribers WHERE unsubscribed_at IS NULL', [], async (err, subscribers) => {
+            if (err) {
+                logger.error('Error fetching subscribers:', err);
+                return res.status(500).json({ error: 'Failed to fetch subscribers' });
+            }
+
+            logger.info(`Starting broadcast for ${subscribers.length} subscribers`);
+
+            // Queue emails one by one
+            for (const sub of subscribers) {
+                try {
+                    const prefs = JSON.parse(sub.preferences || '{}');
+                    // Check if user has subscribed to this type of update
+                    if (type === 'gossip_update' && prefs.gossip_updates === false) continue;
+                    if (type === 'weekly_digest' && prefs.weekly_digest === false) continue;
+
+                    let emailHtml = html;
+                    let emailText = body;
+
+                    if (type === 'weekly_digest') {
+                        emailHtml = emailManager.templates.weeklyDigest.createHtml(sub.user_name || 'there', highlights || []);
+                        emailText = emailManager.templates.weeklyDigest.createText(sub.user_name || 'there', highlights || []);
+                    } else if (type === 'gossip_update') {
+                        emailHtml = emailManager.templates.notification.createHtml(subject, body, req.body.link);
+                        emailText = emailManager.templates.notification.createText(subject, body, req.body.link);
+                    }
+
+                    // We add to queue to process one by one
+                    dbConn.run(
+                        'INSERT INTO mail_queue (to_address, from_address, subject, body, status) VALUES (?, ?, ?, ?, ?)',
+                        [sub.email, from, subject, emailHtml || emailText, 'pending']
+                    );
+                } catch (e) {
+                    logger.error(`Error queueing broadcast email for ${sub.email}:`, e);
+                }
+            }
+
+            res.json({ message: `Broadcast initiated for ${subscribers.length} potential recipients` });
+        });
+    });
+
     // HTTP endpoint for password reset requests (used by Backend)
     app.post('/send-email', async (req, res) => {
         try {

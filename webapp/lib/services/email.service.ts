@@ -22,6 +22,59 @@ export class EmailService {
     }
 
     /**
+     * Subscribe user to email updates in the SMTP microservice
+     */
+    async subscribe(email: string, userName: string, preferences?: any): Promise<boolean> {
+        try {
+            await axios.post(this.mailServiceUrl.replace('/send-email', '/subscribe'), {
+                email,
+                userName,
+                preferences
+            });
+            console.log(`[EmailService] User ${email} subscribed in Mail Service`);
+            return true;
+        } catch (error) {
+            console.error(`[EmailService] Failed to subscribe user ${email}:`, error);
+            return false;
+        }
+    }
+
+    /**
+     * Unsubscribe user from email updates in the SMTP microservice
+     */
+    async unsubscribe(email: string): Promise<boolean> {
+        try {
+            await axios.post(this.mailServiceUrl.replace('/send-email', '/unsubscribe'), {
+                email
+            });
+            console.log(`[EmailService] User ${email} unsubscribed in Mail Service`);
+            return true;
+        } catch (error) {
+            console.error(`[EmailService] Failed to unsubscribe user ${email}:`, error);
+            return false;
+        }
+    }
+
+    /**
+     * Trigger a broadcast (gossip update or manual digest)
+     */
+    async broadcast(type: 'weekly_digest' | 'gossip_update', subject: string, body: string, options: { highlights?: any[], link?: string } = {}): Promise<boolean> {
+        try {
+            await axios.post(this.mailServiceUrl.replace('/send-email', '/broadcast'), {
+                type,
+                subject,
+                body,
+                ...options
+            });
+            console.log(`[EmailService] Broadcast ${type} initiated`);
+            return true;
+        } catch (error) {
+            console.error(`[EmailService] Failed to initiate broadcast:`, error);
+            return false;
+        }
+    }
+
+    /**
      * Send generic email via HTTP API
      */
     async sendEmail(to: string, subject: string, html: string): Promise<boolean> {

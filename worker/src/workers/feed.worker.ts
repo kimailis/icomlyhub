@@ -1030,9 +1030,9 @@ Format: JSON object { "articles": [{ "headline": "text", "summary": "text", "sou
                         await tx.noiseHistory.createMany({ data: historyData });
                     }
 
-                    // Check if this article already exists (by headline in last 24h OR any article for this celeb in last 10m)
-                    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+                    // Check if this article already exists (by headline in last 48h OR any article for this celeb in last 24h)
                     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+                    const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
                     
                     const existingArticle = await tx.article.findFirst({
                         where: {
@@ -1040,18 +1040,18 @@ Format: JSON object { "articles": [{ "headline": "text", "summary": "text", "sou
                                 {
                                     celebrityId: c.id,
                                     headline: { equals: item.headline, mode: 'insensitive' },
-                                    publishedAt: { gte: twentyFourHoursAgo }
+                                    publishedAt: { gte: fortyEightHoursAgo }
                                 },
                                 {
                                     celebrityId: c.id,
-                                    publishedAt: { gte: tenMinutesAgo }
+                                    publishedAt: { gte: twentyFourHoursAgo }
                                 }
                             ]
                         }
                     });
 
                     if (existingArticle) {
-                        console.log(`[GlobalFeed] Skipping ${cleanName} - article already exists or too recent.`);
+                        console.log(`[GlobalFeed] Skipping ${cleanName} - article already exists or too recent (within 24h).`);
                         return; // Exit transaction early, skip this article
                     }
 
@@ -1156,6 +1156,20 @@ Format JSON: {
                 
                 const existingCeleb = await prisma.celebrity.findUnique({ where: { id: slug } });
                 if (!existingCeleb) continue;
+
+                // Duplicate check
+                const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+                const existingArticle = await prisma.article.findFirst({
+                    where: {
+                        celebrityId: existingCeleb.id,
+                        publishedAt: { gte: twentyFourHoursAgo }
+                    }
+                });
+
+                if (existingArticle) {
+                    console.log(`[RegionalFeed] Skipping ${cleanName} - article already exists within 24h.`);
+                    continue;
+                }
 
                 await prisma.article.create({
                     data: {

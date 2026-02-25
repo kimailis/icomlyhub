@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { OAuth2Client } from 'google-auth-library';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
+import { emailService } from '@/lib/services/email.service';
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const JWT_SECRET = process.env.JWT_SECRET || 'secret';
@@ -68,6 +69,18 @@ export async function POST(req: Request) {
     console.log(`[Google Auth] Generating JWT for: ${email}`);
     const token = jwt.sign({ userId: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
     
+    // Sync with Email Service (SMTP microservice)
+    try {
+      const prefs = user.notificationSettings ? JSON.parse(user.notificationSettings) : {};
+      await emailService.subscribe(user.email, user.name || user.email.split('@')[0], {
+        weekly_digest: prefs.weeklyDigest !== false,
+        gossip_updates: prefs.gossipUpdates !== false,
+        notifications: prefs.notifications !== false
+      });
+    } catch (syncError) {
+      console.error('[Google Auth API] Failed to sync with Email Service:', syncError);
+    }
+
     // Return user without password
     const { password: _, role, ...userWithoutPassword } = user;
     

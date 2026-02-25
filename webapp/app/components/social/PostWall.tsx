@@ -10,6 +10,8 @@ import { ShareButton } from '../ui/ShareButton';
 import { formatRelativeTime } from '@/lib/utils';
 import { RelativeTime } from '@/app/components/ui/RelativeTime';
 import Link from 'next/link';
+import { AdBanner } from '../AdBanner';
+import { ChevronDown as LoadMoreIcon } from 'lucide-react';
 
 interface Post {
   id: string;
@@ -46,6 +48,7 @@ export default function PostWall({ targetUserId, targetCelebId, title = "Communi
   const [expandedPostId, setExpandedPostId] = useState<string | null>(null);
 
   const [hasMore, setHasMore] = useState(true);
+  const shouldShowAds = !user || user.plan === 'free';
 
   const fetchPosts = async (isLoadMore = false) => {
     if (loading) return;
@@ -54,7 +57,7 @@ export default function PostWall({ targetUserId, targetCelebId, title = "Communi
       const params = new URLSearchParams();
       if (targetUserId) params.append('targetUserId', targetUserId);
       if (targetCelebId) params.append('targetCelebId', targetCelebId);
-      params.append('limit', '10');
+      params.append('limit', '8');
 
       if (isLoadMore && posts.length > 0) {
         params.append('cursor', posts[posts.length - 1].id);
@@ -65,10 +68,10 @@ export default function PostWall({ targetUserId, targetCelebId, title = "Communi
         const data = await res.json();
         if (isLoadMore) {
           setPosts(prev => [...prev, ...data]);
-          if (data.length < 10) setHasMore(false);
+          if (data.length < 8) setHasMore(false);
         } else {
           setPosts(data);
-          setHasMore(data.length === 10);
+          setHasMore(data.length === 8);
         }
       }
     } catch (error) {
@@ -82,16 +85,9 @@ export default function PostWall({ targetUserId, targetCelebId, title = "Communi
     fetchPosts();
   }, [targetUserId, targetCelebId]);
 
-  // Infinite scroll observer
-  useEffect(() => {
-    const handleScroll = () => {
-      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500 && !loading && hasMore) {
-        fetchPosts(true);
-      }
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [loading, hasMore, posts]);
+  const handleLoadMore = () => {
+    fetchPosts(true);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -224,100 +220,103 @@ export default function PostWall({ targetUserId, targetCelebId, title = "Communi
               The wall is currently silent.
           </div>
         ) : (
-          posts.map((post) => (
-            <div key={post.id} className="group p-4 rounded-3xl bg-surface/40 border border-white/5 hover:border-white/10 transition-all space-y-3">
-              <div className="flex items-center justify-between">
-                <Link href={`/user/${post.user.id}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-                  <div className="w-10 h-10 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center overflow-hidden">
-                    {post.user.profilePath ? (
-                      <img src={post.user.profilePath} className="w-full h-full object-cover" />
-                    ) : (
-                      <UserIcon size={18} className="text-primary" />
+          posts.map((post, index) => (
+            <React.Fragment key={post.id}>
+              <div className="group p-4 rounded-3xl bg-surface/40 border border-white/5 hover:border-white/10 transition-all space-y-3">
+                <div className="flex items-center justify-between">
+                  <Link href={`/user/${post.user.id}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                    <div className="w-10 h-10 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center overflow-hidden">
+                      {post.user.profilePath ? (
+                        <img src={post.user.profilePath} className="w-full h-full object-cover" />
+                      ) : (
+                        <UserIcon size={18} className="text-primary" />
+                      )}
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-white leading-tight">{post.user.name || 'Anonymous'}</h4>
+                      <RelativeTime date={post.createdAt} className="text-[10px] text-gray-500 font-mono" />
+                    </div>
+                  </Link>
+                  <div className="flex items-center gap-2">
+                    {(post.verified || post.user.role === 'pro') && (
+                      <div className="flex items-center gap-1.5 px-2 py-0.5 bg-green-500/10 border border-green-500/20 rounded text-[9px] font-bold text-green-500 uppercase tracking-widest">
+                        <Shield size={10} /> Verified
+                      </div>
+                    )}
+                    {user?.id === post.user.id && (
+                      <button
+                        onClick={() => handleDeletePost(post.id)}
+                        className="p-1.5 text-gray-500 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                        title="Delete post"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     )}
                   </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-white leading-tight">{post.user.name || 'Anonymous'}</h4>
-                    <RelativeTime date={post.createdAt} className="text-[10px] text-gray-500 font-mono" />
+                </div>
+
+                <p className="text-gray-300 leading-relaxed text-sm md:text-base">
+                  {post.content}
+                </p>
+
+                <div className="flex flex-col md:flex-row md:items-center gap-4 pt-2 border-t border-white/5">
+                  <div className="flex items-center justify-between md:justify-start gap-4">
+                      <div className="flex items-center gap-1">
+                        <button 
+                          onClick={() => handleLike(post.id, true)}
+                          className="flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-primary transition-colors"
+                        >
+                          <ThumbsUp size={14} /> {post._count.likes}
+                        </button>
+                        <div className="w-px h-3 bg-white/5 mx-1" />
+                        <button 
+                          onClick={() => handleLike(post.id, false)}
+                          className="text-gray-500 hover:text-red-500 transition-colors"
+                        >
+                          <ThumbsDown size={14} />
+                        </button>
+                      </div>
+
+                      <button 
+                        onClick={() => setExpandedPostId(expandedPostId === post.id ? null : post.id)}
+                        className={`flex items-center gap-2 text-xs font-bold transition-colors ${
+                          expandedPostId === post.id ? 'text-primary' : 'text-gray-500 hover:text-white'
+                        }`}
+                      >
+                        <MessageSquare size={14} /> {post._count.comments} Comments
+                      </button>
                   </div>
-                </Link>
-                <div className="flex items-center gap-2">
-                  {(post.verified || post.user.role === 'pro') && (
-                    <div className="flex items-center gap-1.5 px-2 py-0.5 bg-green-500/10 border border-green-500/20 rounded text-[9px] font-bold text-green-500 uppercase tracking-widest">
-                      <Shield size={10} /> Verified
-                    </div>
-                  )}
-                  {user?.id === post.user.id && (
-                    <button
-                      onClick={() => handleDeletePost(post.id)}
-                      className="p-1.5 text-gray-500 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
-                      title="Delete post"
+
+                  <div className="hidden md:block flex-1" />
+
+                  <div className="flex items-center gap-2 w-full md:w-auto">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="gap-2 h-8 px-3 text-[10px] uppercase font-bold w-full md:w-auto text-gray-500 hover:text-white"
+                      onClick={() => window.location.href = `/user/${post.user.id}`}
                     >
-                      <Trash2 size={14} />
-                    </button>
-                  )}
+                      <Activity size={12} /> Profile
+                    </Button>
+                    <ShareButton 
+                      url={targetCelebId ? `/celebrity/${targetCelebId}?post=${post.id}` : targetUserId ? `/user/${targetUserId}?post=${post.id}` : `/post/${post.id}`} 
+                      title={`Check out this broadcast from ${post.user.name || 'Anonymous'} on Icomly!`}
+                      variant="ghost"
+                      size="sm"
+                      className="w-full md:w-auto"
+                    />
+                  </div>
                 </div>
+
+                {/* Nested Comments */}
+                {expandedPostId === post.id && (
+                  <div className="mt-6 pt-6 border-t border-white/5 animate-fade-in">
+                    <CommentSection postId={post.id} />
+                  </div>
+                )}
               </div>
-
-              <p className="text-gray-300 leading-relaxed text-sm md:text-base">
-                {post.content}
-              </p>
-
-              <div className="flex flex-col md:flex-row md:items-center gap-4 pt-2 border-t border-white/5">
-                <div className="flex items-center justify-between md:justify-start gap-4">
-                    <div className="flex items-center gap-1">
-                      <button 
-                        onClick={() => handleLike(post.id, true)}
-                        className="flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-primary transition-colors"
-                      >
-                        <ThumbsUp size={14} /> {post._count.likes}
-                      </button>
-                      <div className="w-px h-3 bg-white/5 mx-1" />
-                      <button 
-                        onClick={() => handleLike(post.id, false)}
-                        className="text-gray-500 hover:text-red-500 transition-colors"
-                      >
-                        <ThumbsDown size={14} />
-                      </button>
-                    </div>
-
-                    <button 
-                      onClick={() => setExpandedPostId(expandedPostId === post.id ? null : post.id)}
-                      className={`flex items-center gap-2 text-xs font-bold transition-colors ${
-                        expandedPostId === post.id ? 'text-primary' : 'text-gray-500 hover:text-white'
-                      }`}
-                    >
-                      <MessageSquare size={14} /> {post._count.comments} Comments
-                    </button>
-                </div>
-
-                <div className="hidden md:block flex-1" />
-
-                <div className="flex items-center gap-2 w-full md:w-auto">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="gap-2 h-8 px-3 text-[10px] uppercase font-bold w-full md:w-auto text-gray-500 hover:text-white"
-                    onClick={() => window.location.href = `/user/${post.user.id}`}
-                  >
-                    <Activity size={12} /> Profile
-                  </Button>
-                  <ShareButton 
-                    url={targetCelebId ? `/celebrity/${targetCelebId}?post=${post.id}` : targetUserId ? `/user/${targetUserId}?post=${post.id}` : `/post/${post.id}`} 
-                    title={`Check out this broadcast from ${post.user.name || 'Anonymous'} on Icomly!`}
-                    variant="ghost"
-                    size="sm"
-                    className="w-full md:w-auto"
-                  />
-                </div>
-              </div>
-
-              {/* Nested Comments */}
-              {expandedPostId === post.id && (
-                <div className="mt-6 pt-6 border-t border-white/5 animate-fade-in">
-                  <CommentSection postId={post.id} />
-                </div>
-              )}
-            </div>
+              {shouldShowAds && (index + 1) % 4 === 0 && <AdBanner />}
+            </React.Fragment>
           ))
         )}
         
@@ -328,6 +327,19 @@ export default function PostWall({ targetUserId, targetCelebId, title = "Communi
           </div>
         )}
         
+        {hasMore && posts.length > 0 && !loading && (
+          <div className="flex justify-center pt-4 pb-8">
+              <Button 
+                variant="secondary" 
+                size="lg" 
+                onClick={handleLoadMore}
+                className="w-full md:w-auto min-w-[200px] gap-2 shadow-xl shadow-secondary/10"
+              >
+                  <LoadMoreIcon size={18} /> Load More Posts
+              </Button>
+          </div>
+        )}
+
         {!hasMore && posts.length > 0 && (
           <div className="py-12 text-center text-[10px] font-mono text-gray-600 uppercase tracking-[0.3em]">
             End of Broadcast History
