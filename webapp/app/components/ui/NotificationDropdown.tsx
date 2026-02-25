@@ -164,6 +164,24 @@ export function NotificationDropdown() {
     }
   };
 
+  const deleteAll = async () => {
+    if (!token) return;
+    try {
+      const res = await fetch('/api/notifications', {
+        method: 'DELETE',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        }
+      });
+      if (res.ok) {
+        setNotifications([]);
+      }
+    } catch (err) {
+      console.error('Failed to delete all notifications:', err);
+    }
+  };
+
   const getIcon = (type: string) => {
     switch (type) {
       case 'LIKE': return <Heart className="text-red-500" size={12} />;
@@ -184,6 +202,17 @@ export function NotificationDropdown() {
       <div className="p-4 md:p-3 border-b border-white/5 flex items-center justify-between bg-white/5">
         <h3 className="text-xs md:text-[10px] font-bold text-white uppercase tracking-widest">Notifications</h3>
         <div className="flex items-center gap-4">
+          {notifications.length > 0 && (
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                deleteAll();
+              }}
+              className="text-[10px] md:text-[9px] font-bold text-red-500 hover:underline uppercase tracking-tighter"
+            >
+              Delete all
+            </button>
+          )}
           <button 
             onClick={() => setIsOpen(false)} 
             className="p-1 -mr-1 text-gray-400 hover:text-white transition-colors"
