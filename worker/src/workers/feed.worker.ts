@@ -502,8 +502,8 @@ const seedCelebsJob = async () => {
     console.log('[SeedCelebs] Profiles created. Background enrichment queued.');
 };
 
-const backfillCelebJob = async (name: string) => {
-    console.log(`[BackfillCeleb] Starting for ${name}`);
+const backfillCelebJob = async (name: string, skipSearch: boolean = false) => {
+    console.log(`[BackfillCeleb] Starting for ${name} (skipSearch: ${skipSearch})`);
     const cleanName = cleanCelebName(name);
     const slug = slugify(cleanName);
     const celeb = await prisma.celebrity.findUnique({
@@ -513,37 +513,55 @@ const backfillCelebJob = async (name: string) => {
 
     if (!celeb) return;
 
-    if (celeb._count.articles < 1) {
-        const prompt = `
-            TASK: Research REAL intelligence for ${cleanName} (${celeb.category || 'Celebrity'} from ${celeb.country || 'Global'}).
-            CONTEXT: Today is ${getCurrentDateString()}.
-            
-            1. Find One (1) REAL, RECENT gossip headline or news story (JSON array).
-               - USE GOOGLE SEARCH.
-               - MUST be from the last 7 days.
-               - INCLUDE publishedAt date.
-               - THE summary MUST be a detailed paragraph (at least 3-4 sentences) providing deep context, specific details, and background. Do not be brief.
-               - sourceUrl MUST be the DIRECT, PERMANENT link to the original news article. DO NOT use search results, temporary redirects (like vertexaisearch.cloud.google.com), or landing pages.
-            2. One (1) current sighting report (JSON object) INCLUDING lat/lng coordinates.
-               - Snippet MUST be a short, punchy sentence or two (e.g. "Spotted grabbing coffee in Soho, wearing an oversized hoodie.")
-            3. Hobbies (comma-separated string).
-            4. Relationship Status (SPECIFIC: If married/dating, MUST include partner name).
-            5. Nationality (string).
-            
-            CRITICAL: Return ONLY a valid JSON object. NO preamble, NO markdown blocks, NO commentary.
-            Ensure all double quotes INSIDE string values are properly escaped with a backslash (\\").
-            
-            Format: { 
-                "articles": [{"headline": "text", "summary": "text", "source": "text", "sourceUrl": "text", "category": "text", "impactScore": 50, "publishedAt": "ISO Date"}], 
-                "sighting": {"location": "text", "lat": 0.0, "lng": 0.0, "snippet": "text"},
-                "hobbies": "surfing, coding",
-                "relationshipStatus": "Married to [Partner Name] OR Dating [Partner Name] OR Single",
-                "nationality": "American"
-            }
-        `;
+    // Check if we already have detailed metadata
+    const needsMeta = !celeb.hobbies || !celeb.relationshipStatus || !celeb.nationality;
+
+    if (needsMeta || celeb._count.articles < 1) {
+        let prompt;
+        if (skipSearch) {
+             prompt = `
+                TASK: Retrieve verified intelligence for ${cleanName} (${celeb.category || 'Celebrity'} from ${celeb.country || 'Global'}).
+                CONTEXT: Use your internal knowledge. DO NOT SEARCH.
+                
+                1. Provide One (1) SIGNIFICANT, RECENT gossip headline or news story (JSON array).
+                   - THE summary MUST be a detailed paragraph (at least 3-4 sentences).
+                   - sourceUrl MUST be a likely valid link (e.g. tmz, people, variety).
+                2. One (1) current sighting report (JSON object).
+                3. Hobbies (comma-separated string).
+                4. Relationship Status (SPECIFIC).
+                5. Nationality (string).
+                
+                Format JSON: { 
+                    "articles": [{"headline": "text", "summary": "text", "source": "text", "sourceUrl": "text", "category": "text", "impactScore": 50, "publishedAt": "ISO Date"}], 
+                    "sighting": {"location": "text", "lat": 0.0, "lng": 0.0, "snippet": "text"},
+                    "hobbies": "text", "relationshipStatus": "text", "nationality": "text"
+                }
+            `;
+        } else {
+            prompt = `
+                TASK: Research REAL intelligence for ${cleanName} (${celeb.category || 'Celebrity'} from ${celeb.country || 'Global'}).
+                CONTEXT: Today is ${getCurrentDateString()}.
+                
+                1. Find One (1) REAL, RECENT gossip headline or news story (JSON array).
+                   - USE GOOGLE SEARCH.
+                   - MUST be from the last 7 days.
+                   - THE summary MUST be a detailed paragraph (at least 3-4 sentences).
+                   - sourceUrl MUST be the DIRECT, PERMANENT link.
+                2. One (1) current sighting report (JSON object).
+                3. Hobbies (comma-separated string).
+                4. Relationship Status (SPECIFIC).
+                5. Nationality (string).
+                
+                Format JSON: { 
+                    "articles": [{"headline": "text", "summary": "text", "source": "text", "sourceUrl": "text", "category": "text", "impactScore": 50, "publishedAt": "ISO Date"}], 
+                    "sighting": {"location": "text", "lat": 0.0, "lng": 0.0, "snippet": "text"},
+                    "hobbies": "text", "relationshipStatus": "text", "nationality": "text"
+                }
+            `;
+        }
 
         try {
-            const data = await geminiOptimizedService.generateContent(prompt, { useSearch: true });
+            const data = await geminiOptimizedService.generateContent(prompt, { useSearch: !skipSearch });
 
             // Update Celebrity Metadata
             const metaUpdate: any = {};
@@ -659,20 +677,21 @@ const backfillCelebJob = async (name: string) => {
 };
 
 const bioRefresher = async () => {
-    // Find celebs that need bio updates (dull bios or missing structured fields)
+    // Find celebs that need bio updates (dull bios or stalest updates)
+    // Processing 50 per day ensures a ~22 day cycle for 1100 celebs
     const celebs = await prisma.celebrity.findMany({
         where: {
             OR: [
                 { bio: { contains: 'is a global icon' } },
-                { lifeSummary: null },
                 { bioLastUpdated: null },
-                { bioLastUpdated: { lt: new Date(Date.now() - 24 * 60 * 60 * 1000) } }
+                { bioLastUpdated: { lt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000) } }
             ]
         },
-        take: 10
+        orderBy: { bioLastUpdated: 'asc' }, // Get the stalest first
+        take: 50
     });
 
-    console.log(`[BioRefresher] Found ${celebs.length} celebs needing bio updates.`);
+    console.log(`[BioRefresher] Refreshing ${celebs.length} stale profiles.`);
     if (celebs.length === 0) return;
 
     // 1. Fetch Wikipedia bios first (FREE)
@@ -685,53 +704,38 @@ const bioRefresher = async () => {
                 bio: wikiBio.slice(0, 200) + (wikiBio.length > 200 ? '...' : ''),
                 bioLastUpdated: new Date()
             });
-            console.log(`[BioRefresher] Got Wikipedia bio for ${c.name}`);
         }
     }
 
-    // 2. Batch Gemini calls for structured fields (hobbies, status, nationality)
-    const prompts = celebs.map(c => `Research ${c.name} (${c.category || 'Celebrity'} from ${c.country || 'Unknown'}).
-            Return ONLY verified, publicly known information. Return null for any field you cannot verify.
-            Format as JSON:
-            {
-                "hobbies": "comma-separated list of known hobbies" or null,
-                "relationshipStatus": "Exact status. If married/dating, MUST include partner name (e.g. 'Married to John Doe', 'Dating Jane Smith'). If single, say 'Single'." or null,
-                "nationality": "primary nationality" or null
-            }`);
+    // 2. Batch Gemini calls for structured fields (NO SEARCH used here to stay in budget)
+    // We process in smaller chunks of 10 to keep the prompt size manageable for Gemini
+    const CHUNK_SIZE = 10;
+    for (let i = 0; i < celebs.length; i += CHUNK_SIZE) {
+        const chunk = celebs.slice(i, i + CHUNK_SIZE);
+        const prompts = chunk.map(c => `Return verified quick facts for ${c.name} (${c.category}). 
+            Format JSON: {"hobbies": "string", "relationshipStatus": "string", "nationality": "string"}`);
 
-    try {
-        const batchResponses = await geminiOptimizedService.generateBatch(prompts);
-        
-        for (let i = 0; i < celebs.length; i++) {
-            const c = celebs[i];
-            const res = batchResponses[i];
+        try {
+            const batchResponses = await geminiOptimizedService.generateBatch(prompts);
             
-            if (!res) continue;
+            for (let j = 0; j < chunk.length; j++) {
+                const c = chunk[j];
+                const res = batchResponses[j];
+                if (!res) continue;
 
-            const updateData = updateMap.get(c.id) || { bioLastUpdated: new Date() };
-            
-            if (res.hobbies && res.hobbies !== 'null') {
-                updateData.hobbies = res.hobbies;
-            }
-            if (res.relationshipStatus && res.relationshipStatus !== 'null') {
-                updateData.relationshipStatus = res.relationshipStatus;
-            }
-            if (res.nationality && res.nationality !== 'null') {
-                updateData.nationality = res.nationality;
-            }
+                const updateData = updateMap.get(c.id) || { bioLastUpdated: new Date() };
+                if (res.hobbies) updateData.hobbies = res.hobbies;
+                if (res.relationshipStatus) updateData.relationshipStatus = res.relationshipStatus;
+                if (res.nationality) updateData.nationality = res.nationality;
 
-            await prisma.celebrity.update({
-                where: { id: c.id },
-                data: updateData
-            });
-            console.log(`[BioRefresher] Updated structured bio for ${c.name}`);
-        }
-    } catch (e) {
-        console.error(`[BioRefresher] Batch Gemini failed:`, e);
-        
-        // Fallback: save whatever we got from Wikipedia
-        for (const [id, data] of updateMap.entries()) {
-            await prisma.celebrity.update({ where: { id }, data });
+                await prisma.celebrity.update({
+                    where: { id: c.id },
+                    data: updateData
+                });
+            }
+            console.log(`[BioRefresher] Chunk ${i/CHUNK_SIZE + 1} complete.`);
+        } catch (e) {
+            console.error(`[BioRefresher] Chunk failed:`, e);
         }
     }
 };
@@ -1365,7 +1369,7 @@ const processCelebrityForSeed = async (
         return false; // Already exists, skip
     }
 
-    // Validate with Wikipedia
+    // Validate with Wikipedia (FREE)
     const isPerson = await isRealPerson(cleanName);
     if (!isPerson) {
         console.log(`    [Skip] ${cleanName} - Not a person`);
@@ -1395,7 +1399,7 @@ const processCelebrityForSeed = async (
                 bio: bio?.slice(0, 200) || `${cleanName} is a ${category} from ${countryData.name}.`,
                 lifeSummary: bio,
                 imageUrl: image,
-                noiseRating: 50 + Math.floor(Math.random() * 30),
+                noiseRating: 40 + Math.floor(Math.random() * 30),
                 trendDirection: 'flat',
                 country: countryData.name,
                 region: countryData.region,
@@ -1418,8 +1422,9 @@ const processCelebrityForSeed = async (
         }
         await prisma.noiseHistory.createMany({ data: history });
 
-        // Trigger enrichment job
-        await feedQueue.add('BackfillCeleb', { name: cleanName });
+        // Trigger enrichment job WITHOUT search to save budget
+        // We will queue it, but the backfill job itself should be smart
+        await feedQueue.add('BackfillCeleb', { name: cleanName, skipSearch: true });
 
         console.log(`    [Added] ${cleanName}`);
         return true;
@@ -1437,36 +1442,31 @@ const massiveSeedJob = async () => {
     console.log(`[MassiveSeed] Current database count: ${startCount}`);
 
     // Skip if we already have enough celebrities
-    if (startCount >= 1000) {
-        console.log('[MassiveSeed] Database already has 1000+ celebrities, skipping seed.');
+    if (startCount >= 1100) {
+        console.log('[MassiveSeed] Database already has 1100+ celebrities, skipping seed.');
         return;
     }
 
     let totalAdded = 0;
+    const MAX_PER_RUN = 50; // Process 50 per run to avoid long timeouts
 
     for (const country of SEED_COUNTRIES) {
         const countryCount = await prisma.celebrity.count({ where: { country: country.name } });
         const needed = Math.max(0, TARGET_PER_COUNTRY - countryCount);
 
-        if (needed === 0) {
-            console.log(`[MassiveSeed] ${country.name} already has ${countryCount} celebrities, skipping.`);
-            continue;
-        }
+        if (needed === 0) continue;
 
-        console.log(`\n[MassiveSeed] ${country.name}: has ${countryCount}, needs ${needed} more`);
+        console.log(`\n[MassiveSeed] ${country.name}: needs ${needed} more`);
 
         let countryAdded = 0;
 
         for (const category of SEED_CATEGORIES) {
-            if (countryAdded >= needed) break;
+            if (countryAdded >= needed || totalAdded >= MAX_PER_RUN) break;
 
-            console.log(`  [${category}] Generating celebrities...`);
-
-            const names = await generateCelebritiesForCountry(country.name, category, CELEBS_PER_BATCH);
-            console.log(`  [${category}] Got ${names.length} names from Gemini`);
-
+            const names = await generateCelebritiesForCountry(country.name, category, Math.min(20, needed - countryAdded));
+            
             for (const name of names) {
-                if (countryAdded >= needed) break;
+                if (countryAdded >= needed || totalAdded >= MAX_PER_RUN) break;
                 if (!name || typeof name !== 'string') continue;
 
                 const added = await processCelebrityForSeed(name, country, category);
@@ -1474,26 +1474,15 @@ const massiveSeedJob = async () => {
                     countryAdded++;
                     totalAdded++;
                 }
-
-                // Small delay to avoid rate limiting
-                await delay(150);
+                await delay(100);
             }
-
-            // Delay between categories
-            await delay(1500);
+            await delay(500);
         }
 
-        console.log(`[MassiveSeed] ${country.name}: Added ${countryAdded} celebrities`);
-
-        // Delay between countries
-        await delay(2000);
+        if (totalAdded >= MAX_PER_RUN) break;
     }
 
-    const finalCount = await prisma.celebrity.count();
-    console.log('\n[MassiveSeed] === COMPLETE ===');
-    console.log(`[MassiveSeed] Started with: ${startCount}`);
-    console.log(`[MassiveSeed] Added: ${totalAdded}`);
-    console.log(`[MassiveSeed] Final count: ${finalCount}`);
+    console.log(`[MassiveSeed] Added ${totalAdded} celebrities this run.`);
 };
 
 // Weekly Digest Job - sends weekly email digest to users
@@ -1637,7 +1626,7 @@ const feedWorker = new Worker('feed-generation', async (job: Job) => {
     console.log(`[Worker] Processing job ${job.id}: ${job.name}`);
     if (job.name === 'SeedCelebs') await seedCelebsJob();
     else if (job.name === 'MassiveSeed') await massiveSeedJob();
-    else if (job.name === 'BackfillCeleb') await backfillCelebJob(job.data.name);
+    else if (job.name === 'BackfillCeleb') await backfillCelebJob(job.data.name, job.data.skipSearch);
     else if (job.name === 'GlobalFeedGenerator') await globalFeedGenerator();
     else if (job.name === 'ProfileRefresher') await profileRefresher(job);
     else if (job.name === 'BioRefresher') await bioRefresher();
@@ -1656,17 +1645,19 @@ const feedWorker = new Worker('feed-generation', async (job: Job) => {
 
 setTimeout(() => {
     feedQueue.add('SeedCelebs', {});
+    feedQueue.add('MassiveSeed', {}); // Start seeding on startup
     feedQueue.add('GlobalFeedGenerator', {});
     feedQueue.add('ProfileRefresher', { priority: true });
     feedQueue.add('NormalizeScores', {});
     feedQueue.add('RegionalFeedGenerator', {});
 }, 5000);
 
-feedQueue.add('GlobalFeedGenerator', {}, { repeat: { pattern: '0 */6 * * *' } }); // Every 6 hours (4/day)
-feedQueue.add('ProfileRefresher', { priority: true }, { repeat: { pattern: '0 */6 * * *' } }); // Top Stars Every 6h (4/day)
-feedQueue.add('ProfileRefresher', { priority: false }, { repeat: { pattern: '0 2 * * *' } }); // All Stars Daily (1/day)
-feedQueue.add('RegionalFeedGenerator', {}, { repeat: { pattern: '0 */12 * * *' } }); // Merged Regions (2/day)
-feedQueue.add('BioRefresher', {}, { repeat: { pattern: '0 0 * * *' } });
+feedQueue.add('GlobalFeedGenerator', {}, { repeat: { pattern: '0 */3 * * *' } }); // Every 3 hours (Safe & Fresh)
+feedQueue.add('MassiveSeed', {}, { repeat: { pattern: '0 */4 * * *' } }); // Every 4 hours until 1100 reached
+feedQueue.add('ProfileRefresher', { priority: true }, { repeat: { pattern: '0 0,12 * * *' } }); // Twice daily for top stars
+feedQueue.add('ProfileRefresher', { priority: false }, { repeat: { pattern: '0 4 * * *' } }); // Once daily at 4 AM for others
+feedQueue.add('RegionalFeedGenerator', {}, { repeat: { pattern: '0 2,14 * * *' } }); // Twice daily
+feedQueue.add('BioRefresher', {}, { repeat: { pattern: '0 1 * * *' } });
 feedQueue.add('OsintCollector', {}, { repeat: { pattern: '0 3 * * *' } });
 feedQueue.add('CleanupCrew', {}, { repeat: { pattern: '0 0 * * *' } });
 feedQueue.add('WeeklyDigest', {}, { repeat: { pattern: '0 9 * * 0' } });

@@ -142,6 +142,133 @@ class EnhancedCommentManager extends CommentManager {
         return generalComments[Math.floor(Math.random() * generalComments.length)];
     }
 
+    async interactWithFeed() {
+        try {
+            console.log('[Enhanced Comment] Starting feed interaction (Articles & Sightings)...');
+            
+            // 1. Fetch recent Articles (last 24h)
+            const recentArticlesRes = await this.db.query(`
+                SELECT a."id", a."headline", a."summary", a."celebrityId", c."name" as celeb_name,
+                       (SELECT COUNT(*) FROM "Comment" WHERE "articleId" = a."id") as comment_count,
+                       (SELECT COUNT(*) FROM "Like" WHERE "articleId" = a."id") as like_count
+                FROM "Article" a
+                JOIN "Celebrity" c ON a."celebrityId" = c."id"
+                WHERE a."publishedAt" > NOW() - INTERVAL '24 hours'
+                ORDER BY a."publishedAt" DESC
+                LIMIT 10
+            `);
+            const articles = recentArticlesRes.rows;
+
+            // 2. Fetch recent Sightings (last 24h)
+            const recentSightingsRes = await this.db.query(`
+                SELECT s."id", s."location", s."snippet", s."celebrityId", c."name" as celeb_name,
+                       (SELECT COUNT(*) FROM "Comment" WHERE "sightingId" = s."id") as comment_count,
+                       (SELECT COUNT(*) FROM "Like" WHERE "sightingId" = s."id") as like_count
+                FROM "Sighting" s
+                JOIN "Celebrity" c ON s."celebrityId" = c."id"
+                WHERE s."date" > NOW() - INTERVAL '24 hours'
+                ORDER BY s."date" DESC
+                LIMIT 5
+            `);
+            const sightings = recentSightingsRes.rows;
+
+            const seedUsersRes = await this.db.query(`
+                SELECT "id" as user_id, "name" as username 
+                FROM "User" 
+                WHERE "email" LIKE '%@icomly.com'
+                ORDER BY RANDOM()
+            `);
+            const seedUsers = seedUsersRes.rows;
+
+            if (seedUsers.length === 0) return;
+
+            // 3. Process Articles
+            for (const article of articles) {
+                const targetInteractions = Math.floor(Math.random() * 5) + 3; // Aim for 3-8 interactions
+                const currentInteractions = parseInt(article.comment_count) + parseInt(article.like_count);
+                
+                if (currentInteractions >= targetInteractions) continue;
+
+                const usersNeeded = targetInteractions - currentInteractions;
+                const availableUsers = seedUsers.sort(() => Math.random() - 0.5).slice(0, usersNeeded);
+
+                for (const user of availableUsers) {
+                    try {
+                        const interaction = await this.openaiGenerator.generateFeedInteraction(
+                            user.username, 'ARTICLE', article.headline + ': ' + article.summary, article.celeb_name
+                        );
+
+                        if (interaction.like) {
+                            await this.db.query(`
+                                INSERT INTO "Like" ("id", "userId", "articleId", "isUpvote", "createdAt")
+                                VALUES ($1, $2, $3, true, NOW())
+                                ON CONFLICT ("userId", "articleId") DO NOTHING
+                            `, [crypto.randomUUID(), user.user_id, article.id]);
+                        }
+
+                        if (interaction.comment) {
+                            await this.db.query(`
+                                INSERT INTO "Comment" ("id", "articleId", "userId", "content", "createdAt", "updatedAt")
+                                VALUES ($1, $2, $3, $4, NOW(), NOW())
+                            `, [crypto.randomUUID(), article.id, user.user_id, interaction.comment]);
+                        }
+
+                        console.log(`[Enhanced Comment] ${user.username} interacted with ${article.celeb_name}'s news`);
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+                    } catch (e) { console.error(e); }
+                }
+            }
+
+            // 4. Process Sightings
+            for (const sighting of sightings) {
+                const targetInteractions = Math.floor(Math.random() * 3) + 2; // Aim for 2-5 interactions
+                const currentInteractions = parseInt(sighting.comment_count) + parseInt(sighting.like_count);
+                
+                if (currentInteractions >= targetInteractions) continue;
+
+                const usersNeeded = targetInteractions - currentInteractions;
+                const availableUsers = seedUsers.sort(() => Math.random() - 0.5).slice(0, usersNeeded);
+
+                for (const user of availableUsers) {
+                    try {
+                        const interaction = await this.openaiGenerator.generateFeedInteraction(
+                            user.username, 'SIGHTING', sighting.location + ': ' + sighting.snippet, sighting.celeb_name
+                        );
+
+                        if (interaction.like) {
+                            await this.db.query(`
+                                INSERT INTO "Like" ("id", "userId", "sightingId", "isUpvote", "createdAt")
+                                VALUES ($1, $2, $3, true, NOW())
+                                ON CONFLICT ("userId", "sightingId") DO NOTHING
+                            `, [crypto.randomUUID(), user.user_id, sighting.id]);
+                        }
+
+                        if (interaction.comment) {
+                            await this.db.query(`
+                                INSERT INTO "Comment" ("id", "sightingId", "userId", "content", "createdAt", "updatedAt")
+                                VALUES ($1, $2, $3, $4, NOW(), NOW())
+                            `, [crypto.randomUUID(), sighting.id, user.user_id, interaction.comment]);
+                        }
+
+                        console.log(`[Enhanced Comment] ${user.username} interacted with ${sighting.celeb_name}'s sighting`);
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+                    } catch (e) { console.error(e); }
+                }
+            }
+
+        } catch (error) {
+            console.error('[Enhanced Comment] Error in interactWithFeed:', error);
+        }
+    }
+
+    startPeriodicFeedInteraction(intervalMinutes = 20) {
+        console.log(`[Enhanced Comment] Starting periodic feed interaction every ${intervalMinutes} minutes`);
+        this.interactWithFeed();
+        setInterval(() => {
+            this.interactWithFeed();
+        }, intervalMinutes * 60 * 1000);
+    }
+
     startPeriodicCommentGeneration(intervalMinutes = 8) {
         console.log(`[Enhanced Comment] Starting enhanced comment generation every ${intervalMinutes} minutes`);
         setInterval(() => {

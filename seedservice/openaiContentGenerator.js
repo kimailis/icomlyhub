@@ -1366,6 +1366,70 @@ Return only the complete post, nothing else.`;
         }
     }
 
+    // Generate AI-powered interaction for feed items (articles/sightings)
+    async generateFeedInteraction(username, itemType, itemContent, celebName) {
+        try {
+            console.log(`[OpenAI Content] Generating feed interaction for ${username} on ${itemType} about ${celebName}`);
+            if (!this.openai) {
+                throw new Error('OpenAI client not initialized');
+            }
+
+            const personalityData = this.formatPersonalityTraits(username);
+            const personalityAnalysis = personalityData.personalityTraits ? 
+                this.analyzePersonalityForContent(personalityData.personalityTraits) : null;
+
+            let prompt = `You are ${username}, a fan of celebrity gossip, reacting to this ${itemType} about ${celebName}:\n\n"${itemContent}"\n\n`;
+
+            if (personalityData.personalityTraits) {
+                prompt += `PERSONALITY TRAITS (embody these):
+${personalityData.personalityTraits.map(trait => `- ${trait}`).join('\n')}
+
+PERSONALITY ANALYSIS:
+- Writing style: ${personalityAnalysis.writingStyle}
+- Emotional tone: ${personalityAnalysis.emotionalTone}
+- Content approach: ${personalityAnalysis.contentApproach}
+- Social engagement: ${personalityAnalysis.socialEngagement}
+
+`;
+            }
+
+            prompt += `Task:
+1. Determine if you LIKE this (true/false)
+2. Write a short, authentic comment (10-150 characters) reacting to this news/sighting.
+3. Be specific to ${celebName} and the content provided.
+4. DO NOT USE HASHTAGS.
+
+Return ONLY a JSON object: { "like": boolean, "comment": "string" }`;
+
+            const response = await this.openai.chat.completions.create({
+                model: "gpt-4o-mini",
+                messages: [
+                    {
+                        "role": "system",
+                        "content": "You are a real social media user reacting to celebrity news and sightings. Be authentic, conversational, and specific."
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                temperature: 0.8,
+                response_format: { type: "json_object" }
+            });
+
+            const result = JSON.parse(response.choices[0].message.content);
+            console.log(`[OpenAI Content] Feed interaction for ${celebName}: Like=${result.like}, Comment="${result.comment}"`);
+            return result;
+
+        } catch (error) {
+            console.error(`[OpenAI Content] Feed interaction generation failed: ${error.message}`);
+            return {
+                like: Math.random() > 0.3,
+                comment: `Wow, ${celebName} is always in the news!`
+            };
+        }
+    }
+
     // Generate AI-powered comment using OpenAI
     async generateComment(postContent, commenterUsername, postAuthor = null) {
         try {

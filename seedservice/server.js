@@ -336,6 +336,7 @@ const PORT = process.env.PORT || 5050;
                     try {
                         enhancedCommentManager = new EnhancedCommentManager(db);
                         enhancedCommentManager.startPeriodicCommentGeneration(15);
+                        enhancedCommentManager.startPeriodicFeedInteraction(20);
                     } catch (e) {
                         console.error('Enhanced comment manager failed:', e.message);
                     }
