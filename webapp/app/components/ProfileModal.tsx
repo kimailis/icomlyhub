@@ -380,33 +380,33 @@ export const ProfileModal: React.FC = () => {
                     )}
 
                     {activeTab === 'subscription' && (
-                        <div className="space-y-6 animate-fade-in pb-10 md:pb-0">
-                            <h3 className="text-xl font-bold text-white mb-2">Plan Management</h3>
+                        <div className="space-y-4 animate-fade-in pb-10 md:pb-0">
+                            <h3 className="text-lg font-bold text-white mb-1">Plan Management</h3>
                             
-                            <div className="flex items-center gap-2 mb-8">
-                                <span className="text-sm text-gray-400">Current Plan:</span>
-                                <span className="px-3 py-1 rounded-md border border-white/10 bg-white/5 text-xs font-bold text-white">
+                            <div className="flex items-center gap-2 mb-4">
+                                <span className="text-xs text-gray-400">Current Plan:</span>
+                                <span className="px-2 py-0.5 rounded-md border border-white/10 bg-white/5 text-[10px] font-bold text-white">
                                     {user.plan === 'pro' ? 'Pro Plan' : 'Free Plan'}
                                 </span>
                             </div>
 
-                            <div className="p-8 bg-[#18181b] border border-white/10 rounded-2xl relative overflow-hidden group">
+                            <div className="p-5 bg-[#18181b] border border-white/10 rounded-xl relative overflow-hidden group">
                                 <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                                    <Zap size={120} className="text-primary" />
+                                    <Zap size={80} className="text-primary" />
                                 </div>
                                 
                                 <div className="relative z-10">
-                                    <h4 className="text-2xl font-black text-white mb-6 uppercase tracking-tight">Pro Plan</h4>
+                                    <h4 className="text-xl font-black text-white mb-3 uppercase tracking-tight">Pro Plan</h4>
                                     
-                                    <ul className="space-y-4 mb-8">
+                                    <ul className="space-y-2 mb-6">
                                         {[
                                             'get newest updates',
                                             'get weekly digest',
                                             'view more detailed info'
                                         ].map((bullet, i) => (
-                                            <li key={i} className="flex items-center gap-3 text-sm">
-                                                <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center shrink-0">
-                                                    <Check size={12} className="text-green-400" />
+                                            <li key={i} className="flex items-center gap-2.5 text-xs">
+                                                <div className="w-4 h-4 rounded-full bg-green-500/20 flex items-center justify-center shrink-0">
+                                                    <Check size={10} className="text-green-400" />
                                                 </div>
                                                 <span className="text-gray-400 group-hover:text-[#a3b18a] transition-colors">{bullet}</span>
                                             </li>
@@ -414,13 +414,13 @@ export const ProfileModal: React.FC = () => {
                                     </ul>
 
                                     {updateError && (
-                                        <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-xs font-bold flex items-center gap-2">
-                                            <X size={14} /> {updateError}
+                                        <div className="mb-3 p-2 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-[10px] font-bold flex items-center gap-2">
+                                            <X size={12} /> {updateError}
                                         </div>
                                     )}
 
                                     <Button 
-                                        className={`w-full py-6 rounded-xl font-black uppercase tracking-widest transition-all duration-300 ${
+                                        className={`w-full py-4 rounded-lg text-xs font-black uppercase tracking-widest transition-all duration-300 ${
                                             user.plan === 'pro' 
                                             ? 'bg-white/5 border border-white/10 text-white hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400' 
                                             : 'bg-gradient-to-r from-primary to-secondary text-white shadow-lg shadow-primary/20'
@@ -432,8 +432,8 @@ export const ProfileModal: React.FC = () => {
                                     </Button>
 
                                     {updateSuccess && (
-                                        <div className="mt-4 text-center text-green-400 text-xs font-bold animate-fade-in flex items-center justify-center gap-2">
-                                            <Check size={14} /> Subscription Updated!
+                                        <div className="mt-3 text-center text-green-400 text-[10px] font-bold animate-fade-in flex items-center justify-center gap-2">
+                                            <Check size={12} /> Subscription Updated!
                                         </div>
                                     )}
                                 </div>
@@ -713,17 +713,17 @@ export const ProfileModal: React.FC = () => {
             {showUpgradeModal && (
                 <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 animate-fade-in">
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setShowUpgradeModal(false)} />
-                    <div className="relative bg-[#18181b] border border-white/10 rounded-3xl p-8 max-w-sm w-full shadow-2xl space-y-6 text-center">
-                        <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-                            <Zap size={32} className="text-primary" />
+                    <div className="relative bg-[#18181b] border border-white/10 rounded-2xl p-5 max-w-[280px] w-full shadow-2xl space-y-4 text-center">
+                        <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+                            <Zap size={24} className="text-primary" />
                         </div>
                         <div>
-                            <h4 className="text-xl font-black text-white mb-2">PRO FEATURE</h4>
-                            <p className="text-gray-400 text-sm">Upgrade to pro for this feature and get exclusive updates.</p>
+                            <h4 className="text-lg font-black text-white mb-1 uppercase tracking-tight">Pro Feature</h4>
+                            <p className="text-gray-400 text-xs px-2">Upgrade to pro for this feature and get exclusive updates.</p>
                         </div>
-                        <div className="space-y-3 pt-2">
+                        <div className="space-y-2 pt-1">
                             <Button 
-                                className="w-full font-bold py-4 rounded-xl"
+                                className="w-full text-xs font-bold py-3 rounded-xl"
                                 onClick={() => {
                                     setShowUpgradeModal(false);
                                     setActiveTab('subscription');
@@ -733,7 +733,7 @@ export const ProfileModal: React.FC = () => {
                             </Button>
                             <button 
                                 onClick={() => setShowUpgradeModal(false)}
-                                className="text-xs text-gray-500 font-bold hover:text-white transition-colors"
+                                className="text-[10px] text-gray-500 font-bold hover:text-white transition-colors"
                             >
                                 Close
                             </button>

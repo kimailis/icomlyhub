@@ -85,6 +85,24 @@ services:
       - postgres
       - redis
 
+  seedservice:
+    build:
+      context: ./seedservice
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: user
+      DB_PASSWORD: password
+      DB_NAME: icomly
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      PORT: 5050
+    depends_on:
+      - postgres
+    ports:
+      - "5050:5050"
+
 volumes:
   postgres_data:
   redis_data:
