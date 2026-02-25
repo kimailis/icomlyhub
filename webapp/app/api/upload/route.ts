@@ -42,8 +42,11 @@ export async function POST(req: NextRequest) {
     // Ensure directory exists
     try {
       await mkdir(uploadDir, { recursive: true });
-    } catch (e) {
-      // Ignore if exists
+    } catch (e: any) {
+      if (e.code !== 'EEXIST') {
+        console.error(`[API /upload] Failed to create directory ${uploadDir}:`, e);
+        throw e; // Rethrow to be caught by the outer catch block
+      }
     }
 
     await writeFile(uploadPath, buffer);
