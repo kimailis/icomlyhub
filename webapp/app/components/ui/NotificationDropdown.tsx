@@ -111,10 +111,10 @@ export function NotificationDropdown() {
         }
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('click', handleClickOutside);
     document.addEventListener('touchstart', handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('click', handleClickOutside);
       document.removeEventListener('touchstart', handleClickOutside);
     };
   }, []);
@@ -196,7 +196,7 @@ export function NotificationDropdown() {
 
   const NotificationContent = (isMobile: boolean) => (
     <div 
-      className={`${isMobile ? 'fixed inset-x-[5%] top-[20%] bottom-[20%] z-[9999]' : 'absolute top-14 right-0 w-[300px] max-h-[480px]'} bg-surface border border-white/10 rounded-3xl md:rounded-xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 md:slide-in-from-top-2 duration-300`}
+      className={`${isMobile ? 'fixed inset-x-[5%] top-[20%] bottom-[20%] z-[9999]' : 'absolute top-14 right-0 w-[300px] max-w-[300px] max-h-[480px]'} bg-surface border border-white/10 rounded-3xl md:rounded-xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 md:slide-in-from-top-2 duration-300`}
       onClick={(e) => e.stopPropagation()}
     >
       <div className="p-4 md:p-3 border-b border-white/5 flex items-center justify-between bg-white/5">
