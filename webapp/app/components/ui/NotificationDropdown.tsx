@@ -22,6 +22,7 @@ export function NotificationDropdown() {
   const [mounted, setMounted] = useState(false);
   const [displayCount, setDisplayCount] = useState(10);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -104,7 +105,10 @@ export function NotificationDropdown() {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent | TouchEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      const isTriggerClick = dropdownRef.current && dropdownRef.current.contains(event.target as Node);
+      const isContentClick = contentRef.current && contentRef.current.contains(event.target as Node);
+
+      if (!isTriggerClick && !isContentClick) {
         // Only close via click outside on desktop
         if (window.innerWidth >= 768) {
           setIsOpen(false);
@@ -186,6 +190,7 @@ export function NotificationDropdown() {
 
   const NotificationContent = (isMobile: boolean) => (
     <div 
+      ref={contentRef}
       className={`${isMobile ? 'fixed left-1/2 -translate-x-1/2 top-[20%] bottom-[20%] z-[9999]' : 'absolute top-14 right-0 max-h-[480px]'} w-[300px] bg-surface border border-white/10 rounded-3xl md:rounded-xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 md:slide-in-from-top-2 duration-300`}
       onClick={(e) => e.stopPropagation()}
     >
