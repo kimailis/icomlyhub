@@ -131,7 +131,13 @@ class EnhancedCommentManager extends CommentManager {
     }
 
     generateSimpleFallback(username, postContent) {
-        const generalComments = ["cool", "nice", "interesting", "exactly", "mood", "facts"];
+        const generalComments = [
+            "completely agree", "this is so true", "wow, didn't know that", 
+            "mood", "facts", "100%", "no way!", "unreal", 
+            "love this", "so good", "actually facts", "speechless",
+            "yesss", "exactly this", "needed to hear this", "literally me",
+            "say it louder", "preach", "been saying this", "crazy"
+        ];
         return generalComments[Math.floor(Math.random() * generalComments.length)];
     }
 

@@ -467,7 +467,7 @@ Return only the complete post, nothing else.`;
                 "You are creating an engaging celebrity gossip post. Write naturally and authentically. Be creative and original with your gossip and celeb news.";
 
             const response = await this.openai.chat.completions.create({
-                model: "gpt-4.1-nano",
+                model: "gpt-4o-mini",
                 messages: [
                     {
                         "role": "system",
@@ -1093,14 +1093,14 @@ Return only the complete post, nothing else.`;
             content.includes('country')) {
 
             const politicsComments = [
-                "Interesting political take!",
-                "Politics is always complex.",
-                "Good point about democracy.",
-                "Civic engagement matters.",
-                "Political discourse is important.",
-                "Interesting perspective on this.",
-                "Politics affects us all.",
-                "Good to see people engaged."
+                "This whole situation is so wild to see unfold.",
+                "Big decisions being made right now.",
+                "Actually seeing people engage with this is wild.",
+                "Wait, this just changed my whole view on the matter.",
+                "Is this really where we're at now?",
+                "This news just made my morning.",
+                "Literally can't believe this is happening.",
+                "The way this is being handled is just crazy."
             ];
 
             if (traits.includes('intellectual') || traits.includes('analytical') || traits.includes('thoughtful')) {
@@ -1113,14 +1113,14 @@ Return only the complete post, nothing else.`;
             content.includes('finance') || content.includes('investment') || content.includes('market')) {
 
             const businessComments = [
-                "Business insights are always valuable.",
-                "Economic perspective is interesting.",
-                "Good business thinking.",
-                "Market awareness is key.",
-                "Financial literacy matters.",
-                "Business mindset is important.",
-                "Economic understanding is valuable.",
-                "Good business perspective."
+                "That move is actually genius from a business side.",
+                "Money talks, right?",
+                "The market is absolutely crazy today.",
+                "Big win for the industry if this works out.",
+                "Finally some real business insight here.",
+                "I was literally just looking at this.",
+                "This could change everything for the stock.",
+                "Need to keep a close eye on this development."
             ];
 
             if (traits.includes('analytical') || traits.includes('ambitious') || traits.includes('strategic')) {
@@ -1408,40 +1408,32 @@ IMPORTANT: Let your personality influence your comment naturally. Don't force tr
 - References specific details from the post in your response
 - Asks thoughtful questions or adds valuable insights related to what was shared
 - Expresses appreciation, curiosity, or shared enthusiasm about the specific content
-- Might share a brief related experience or ask for more details about what was mentioned
 - Sounds excited, supportive, or curious about the specific post content
 - Keep it between 20-150 characters
 - ALWAYS reference something specific from the post content
 
-Examples of SUPPORTIVE comments that reference post content:
-- "Love this tip about ${postContent.includes('coffee') ? 'coffee brewing' : 'this technique'}! How long have you been doing it this way?"
-- "This ${postContent.includes('photo') ? 'photo' : 'post'} is amazing! The ${postContent.includes('colors') ? 'colors' : 'details'} are incredible"
-- "Exactly what I needed to see today! Your ${postContent.includes('advice') ? 'advice' : 'perspective'} is spot on"
-- "This looks so good! Where did you learn ${postContent.includes('technique') ? 'this technique' : 'about this'}?"
-- "So true! I've been thinking about ${postContent.includes('this') ? 'this exact thing' : 'similar topics'} lately"`;
+Examples of SUPPORTIVE comments:
+- "This scoop on ${postContent.includes('news') ? 'this' : 'them'} is wild! How do you even find this out?"
+- "I'm literally obsessed with how ${postContent.includes('outfit') ? 'this look' : 'this'} turned out."
+- "Wait, if this is true then the whole drama last week makes way more sense now."
+- "Seriously needed to hear this today. Your take is actually so spot on."
+- "I was just saying the same thing to my friends! The details here are 100% correct."`;
 
             } else if (alignment.commentType === 'dismissive') {
                 prompt += `This topic doesn't really align with your interests, so you're somewhat dismissive or uninterested. Write a brief, polite but dismissive comment that:
 - Shows mild disinterest or polite dismissal of the specific post content
-- References the post content but expresses lack of engagement
 - Doesn't engage deeply with what was shared
-- Might express confusion or lack of understanding about the specific content
 - Could be neutral/indifferent or mildly critical of what was posted
 - Sounds like someone who isn't into this specific topic/content
 - Keep it between 20-150 characters
 - ALWAYS reference something from the post content, even if dismissively
 
-Examples of DISMISSIVE comments that reference post content:
-- "Not really my thing but ${postContent.includes('interesting') ? 'interesting' : 'ok'} I guess"
-- "Meh, ${postContent.includes('this') ? 'this' : 'that'} seems overrated"
-- "Don't really get the ${postContent.includes('hype') ? 'hype' : 'point'} around this"
-- "Cool I guess, but ${postContent.includes('not') ? 'not' : 'not really'} for me"
-- "Seems like a lot of work for ${postContent.includes('what') ? 'what' : 'something'} I don't need"
-- "Whatever works for you, but ${postContent.includes('this') ? 'this' : 'that'} seems unnecessary"
-- "Not my vibe, ${postContent.includes('but') ? 'but' : 'and'} to each their own"
-- "Eh, ${postContent.includes('pass') ? 'pass' : 'not interested'}"
-- "Why tho? ${postContent.includes('seems') ? 'Seems' : 'Looks'} like a waste of time"
-- "Hard pass on ${postContent.includes('this') ? 'this' : 'that'}"`;
+Examples of DISMISSIVE comments:
+- "Not really following this drama, seems a bit much for me."
+- "Meh, I've heard similar things before, not sure I buy the hype."
+- "Whatever works for you, but I'm sticking to my own sources on this one."
+- "I don't really get why everyone is talking about this today."
+- "Seems like a waste of energy honestly, but you do you."`;
 
             } else {
                 // Neutral comment
@@ -1453,13 +1445,12 @@ Examples of DISMISSIVE comments that reference post content:
 - Keep it between 20-150 characters
 - ALWAYS reference something from the post content
 
-Examples of NEUTRAL comments that reference post content:
-- "Nice ${postContent.includes('post') ? 'post' : 'content'}!"
-- "Cool ${postContent.includes('stuff') ? 'stuff' : 'content'}"
-- "Looks good, ${postContent.includes('interesting') ? 'interesting' : 'nice'} approach"
-- "Interesting ${postContent.includes('perspective') ? 'perspective' : 'take'} on this"
-- "That's neat, ${postContent.includes('thanks') ? 'thanks' : 'cool'} for sharing"
-- "Good ${postContent.includes('point') ? 'point' : 'content'}"`;
+Examples of NEUTRAL comments:
+- "That's a wild update, thanks for sharing."
+- "Seen a few people talking about this now, crazy if true."
+- "Fair points, definitely something to think about."
+- "Always something new happening in this industry, huh?"
+- "Interesting how this keeps coming up. Appreciate the insight!"`;
             }
 
             prompt += `
@@ -1483,7 +1474,7 @@ Return only the comment text, nothing else.`;
                 "You are writing a natural, authentic celebrity gossip comment. Be genuine and conversational about the latest celeb news.";
 
             const response = await this.openai.chat.completions.create({
-                model: "gpt-4.1-nano",
+                model: "gpt-4o-mini",
                 messages: [
                     {
                         "role": "system",
@@ -1615,7 +1606,7 @@ Return only the comment text, nothing else.`;
             }
 
             const response = await this.openai.chat.completions.create({
-                model: "gpt-4.1-nano",
+                model: "gpt-4o-mini",
                 messages: [
                     {
                         "role": "user",
