@@ -131,7 +131,7 @@ export const TopCelebsChart: React.FC<TopCelebsChartProps> = ({ celebs, onSelect
             <YAxis
               dataKey="name"
               type="category"
-              width={100}
+              width={130}
               interval={0}
               axisLine={false}
               tickLine={false}
@@ -159,8 +159,8 @@ export const TopCelebsChart: React.FC<TopCelebsChartProps> = ({ celebs, onSelect
               />
               {data.map((entry, index) => {
                 let fillUrl = 'url(#barGradientDefault)';
-                if (index < 3) fillUrl = 'url(#barGradientTop)';
-                else if (index < 6) fillUrl = 'url(#barGradientMid)';
+                if (index < 3) fillUrl = 'url(#barGradientMid)';
+                else if (index < 6) fillUrl = 'url(#barGradientTop)';
 
                 return (
                   <Cell

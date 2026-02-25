@@ -25,6 +25,8 @@ export async function GET(
     else if (ext === '.gif') contentType = 'image/gif';
     else if (ext === '.webp') contentType = 'image/webp';
     else if (ext === '.svg') contentType = 'image/svg+xml';
+    else if (ext === '.heic') contentType = 'image/heic';
+    else if (ext === '.heif') contentType = 'image/heif';
 
     return new NextResponse(fileBuffer, {
       headers: {

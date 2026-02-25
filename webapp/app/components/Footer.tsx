@@ -13,6 +13,7 @@ export const Footer: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
           <div className="md:col-span-2 space-y-4">
             <div className="flex items-center gap-2">
+              <img src="/logo.png" alt="iComly Logo" className="w-6 h-6 object-contain" />
               <span className="text-xl font-black text-white tracking-tighter"><span className="text-primary">i</span>Comly</span>
             </div>
             <p className="text-gray-500 text-sm max-w-sm leading-relaxed">

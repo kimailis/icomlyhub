@@ -45,7 +45,7 @@ export const Navbar: React.FC = () => {
         
         {/* Logo (Desktop) */}
         <Link href="/" className="hidden md:flex items-center gap-2 text-2xl font-bold tracking-tight text-white cursor-pointer hover:opacity-80 transition-opacity">
-          <Radar className="text-primary w-8 h-8" />
+          <img src="/logo.png" alt="iComly Logo" className="w-8 h-8 object-contain" />
           <span><span className="text-primary">i</span>Comly</span>
         </Link>
 

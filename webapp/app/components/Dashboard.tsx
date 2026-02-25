@@ -195,7 +195,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialFeed = [], initialT
       <header className="flex flex-col md:flex-row md:items-end justify-between border-b border-white/10 pb-6 gap-2 md:gap-0">
         <div>
             {/* Mobile Branding */}
-            <div className="md:hidden text-[30px] font-black text-primary tracking-[0.2em] mb-1">i<span className="text-white">Comly</span></div>
+            <div className="md:hidden flex items-center gap-2 mb-1">
+                <img src="/logo.png" alt="iComly Logo" className="w-8 h-8 object-contain" />
+                <div className="text-[30px] font-black text-primary tracking-[0.2em]">i<span className="text-white">Comly</span></div>
+            </div>
             
             <h1 className="text-xl md:text-4xl font-extrabold text-white mb-1 md:mb-2 flex items-center gap-2 tracking-tight">
                 <Zap className="text-yellow-400 fill-yellow-400 w-5 h-5 md:w-8 md:h-8" />

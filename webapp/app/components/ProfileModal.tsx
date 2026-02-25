@@ -63,19 +63,24 @@ export const ProfileModal: React.FC = () => {
     // Sync profileData when user object changes or when entering profile view
     useEffect(() => {
         if (user && settingsView === 'profile' && !updating && !updateSuccess) {
-            setProfileData({
-                name: user.name || '',
-                bio: user.bio || '',
-                profilePath: user.profilePath || '',
-                profileFolder: user.profileFolder || ''
-            });
+            // Check if we have unsaved upload (different path than current user path)
+            const hasUnsavedUpload = profileData.profilePath !== user.profilePath && profileData.profilePath !== '';
+            
+            if (!hasUnsavedUpload) {
+                setProfileData({
+                    name: user.name || '',
+                    bio: user.bio || '',
+                    profilePath: user.profilePath || '',
+                    profileFolder: user.profileFolder || ''
+                });
+            }
         }
         // Only reset if we're not currently showing success/error that we just set
         if (!updating && !updateSuccess && !updateError) {
             setUpdateSuccess(false);
             setUpdateError(null);
         }
-    }, [user, settingsView, updating, updateSuccess, updateError]);
+    }, [user, settingsView, updating, updateSuccess, updateError, profileData.profilePath]);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
