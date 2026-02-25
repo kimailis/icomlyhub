@@ -145,6 +145,9 @@ export function NotificationDropdown() {
   const deleteNotification = async (id: string) => {
     if (!token) return;
     try {
+      // First mark as read locally to update unread count immediately
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+      
       const res = await fetch('/api/notifications', {
         method: 'DELETE',
         headers: { 
@@ -154,7 +157,7 @@ export function NotificationDropdown() {
         body: JSON.stringify({ id })
       });
       if (res.ok) {
-        setNotifications(notifications.filter(n => n.id !== id));
+        setNotifications(prev => prev.filter(n => n.id !== id));
       }
     } catch (err) {
       console.error('Failed to delete notification:', err);
@@ -174,18 +177,13 @@ export function NotificationDropdown() {
   if (!user) return null;
 
   const NotificationContent = (isMobile: boolean) => (
-    <div className={`${isMobile ? 'fixed inset-x-[5%] top-[20%] bottom-[20%] z-[9999]' : 'absolute top-14 right-0 w-[300px] max-h-[480px]'} bg-surface border border-white/10 rounded-3xl md:rounded-xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 md:slide-in-from-top-2 duration-300`}>
+    <div 
+      className={`${isMobile ? 'fixed inset-x-[5%] top-[20%] bottom-[20%] z-[9999]' : 'absolute top-14 right-0 w-[300px] max-h-[480px]'} bg-surface border border-white/10 rounded-3xl md:rounded-xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 md:slide-in-from-top-2 duration-300`}
+      onClick={(e) => e.stopPropagation()}
+    >
       <div className="p-4 md:p-3 border-b border-white/5 flex items-center justify-between bg-white/5">
         <h3 className="text-xs md:text-[10px] font-bold text-white uppercase tracking-widest">Notifications</h3>
         <div className="flex items-center gap-4">
-          {unreadCount > 0 && (
-            <button 
-              onClick={() => markAsRead()}
-              className="text-[10px] md:text-[9px] font-bold text-primary hover:underline uppercase tracking-tighter"
-            >
-              Mark all read
-            </button>
-          )}
           <button 
             onClick={() => setIsOpen(false)} 
             className="p-1 -mr-1 text-gray-400 hover:text-white transition-colors"
@@ -233,7 +231,8 @@ export function NotificationDropdown() {
                       <a 
                         href={notification.link}
                         className="inline-flex items-center gap-1 text-[9px] font-black text-primary hover:underline uppercase tracking-widest"
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           markAsRead(notification.id);
                           setIsOpen(false);
                         }}
@@ -245,17 +244,11 @@ export function NotificationDropdown() {
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  {!notification.read && (
-                    <button 
-                      onClick={() => markAsRead(notification.id)}
-                      className="p-1.5 rounded-lg text-gray-500 hover:text-green-500 hover:bg-green-500/10 transition-all bg-white/5"
-                      title="Mark as read"
-                    >
-                      <Check size={12} />
-                    </button>
-                  )}
                   <button 
-                    onClick={() => deleteNotification(notification.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteNotification(notification.id);
+                    }}
                     className="p-1.5 rounded-lg text-gray-500 hover:text-red-500 hover:bg-red-500/10 transition-all bg-white/5"
                     title="Delete"
                   >
@@ -266,7 +259,10 @@ export function NotificationDropdown() {
             ))}
             {displayCount < notifications.length && (
               <button 
-                onClick={() => setDisplayCount(prev => prev + 10)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDisplayCount(prev => prev + 10);
+                }}
                 className="w-full py-3 text-[10px] font-bold text-gray-500 hover:text-white uppercase tracking-widest border-t border-white/5 transition-colors"
               >
                 Load More
