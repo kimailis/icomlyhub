@@ -38,7 +38,13 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { ids } = await req.json();
+    let body: any = {};
+    try {
+      body = await req.json();
+    } catch (e) {
+      // Body might be empty
+    }
+    const { ids } = body;
 
     if (!ids || !Array.isArray(ids)) {
       // If no IDs provided, mark ALL as read
@@ -72,7 +78,13 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id } = await req.json();
+    let body: any = {};
+    try {
+      body = await req.json();
+    } catch (e) {
+      // Body might be empty
+    }
+    const { id } = body;
 
     if (id) {
         await prisma.notification.delete({
