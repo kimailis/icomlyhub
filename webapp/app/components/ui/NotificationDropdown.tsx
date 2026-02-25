@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '@/app/providers/AuthProvider';
-import { Bell, Check, Trash2, ExternalLink, Heart, MessageSquare, UserPlus, ShieldCheck, X } from 'lucide-react';
+import { Bell, Trash2, ExternalLink, X } from 'lucide-react';
 
 interface Notification {
   id: string;
@@ -182,21 +182,11 @@ export function NotificationDropdown() {
     }
   };
 
-  const getIcon = (type: string) => {
-    switch (type) {
-      case 'LIKE': return <Heart className="text-red-500" size={12} />;
-      case 'COMMENT': return <MessageSquare className="text-primary" size={12} />;
-      case 'FOLLOW': return <UserPlus className="text-blue-500" size={12} />;
-      case 'VERIFICATION': return <ShieldCheck className="text-green-500" size={12} />;
-      default: return <Bell size={12} />;
-    }
-  };
-
   if (!user) return null;
 
   const NotificationContent = (isMobile: boolean) => (
     <div 
-      className={`${isMobile ? 'fixed inset-x-[5%] top-[20%] bottom-[20%] z-[9999]' : 'absolute top-14 right-0 w-[300px] max-w-[300px] max-h-[480px]'} bg-surface border border-white/10 rounded-3xl md:rounded-xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 md:slide-in-from-top-2 duration-300`}
+      className={`${isMobile ? 'fixed left-1/2 -translate-x-1/2 top-[20%] bottom-[20%] z-[9999]' : 'absolute top-14 right-0 max-h-[480px]'} w-[300px] bg-surface border border-white/10 rounded-3xl md:rounded-xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 md:slide-in-from-top-2 duration-300`}
       onClick={(e) => e.stopPropagation()}
     >
       <div className="p-4 md:p-3 border-b border-white/5 flex items-center justify-between bg-white/5">
@@ -230,7 +220,7 @@ export function NotificationDropdown() {
         ) : notifications.length === 0 ? (
           <div className="p-12 text-center">
             <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center mx-auto mb-3 border border-white/10">
-              <Bell className="text-gray-400" size={24} />
+              <Bell className="text-white/80" size={24} />
             </div>
             <p className="text-[10px] text-gray-500 font-mono uppercase tracking-widest">No activity.</p>
           </div>
@@ -272,10 +262,10 @@ export function NotificationDropdown() {
                       e.stopPropagation();
                       deleteNotification(notification.id);
                     }}
-                    className="p-2 rounded-lg text-gray-500 hover:text-red-500 hover:bg-red-500/10 transition-all bg-white/5"
+                    className="p-1.5 rounded-lg text-gray-500 hover:text-red-500 hover:bg-red-500/10 transition-all bg-white/5"
                     title="Delete"
                   >
-                    <Trash2 size={16} />
+                    <Trash2 size={14} />
                   </button>
                 </div>
               </div>
