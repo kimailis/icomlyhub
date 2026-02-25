@@ -75,9 +75,13 @@ class EnhancedCommentManager extends CommentManager {
                 if (postAge < 0.03) continue;
 
                 let targetComments = this.calculateEnhancedTargetComments(postAge, parseInt(post.post_comments));
+                
+                // Always aim for at least 2 comments
+                if (targetComments < 2) targetComments = 2;
+                
                 if (targetComments <= parseInt(post.post_comments)) continue;
 
-                const newCommentsToAdd = Math.min(targetComments - parseInt(post.post_comments), 4);
+                const newCommentsToAdd = Math.min(targetComments - parseInt(post.post_comments), 6);
 
                 const existingCommentersRes = await this.db.query(`
                     SELECT DISTINCT "userId" FROM "Comment" WHERE "postId" = $1
@@ -122,11 +126,8 @@ class EnhancedCommentManager extends CommentManager {
     }
 
     calculateEnhancedTargetComments(postAgeHours, currentComments) {
-        let target = 0;
-        if (postAgeHours < 0.5) target = Math.floor(Math.random() * 3) + 2;
-        else if (postAgeHours < 2) target = Math.floor(Math.random() * 3) + 3;
-        else if (postAgeHours < 6) target = Math.floor(Math.random() * 4) + 4;
-        else target = Math.floor(Math.random() * 5) + 5;
+        // Target range: 2 to 10 comments
+        let target = Math.floor(Math.random() * 9) + 2; // Random between 2 and 10
         return Math.max(target, currentComments);
     }
 

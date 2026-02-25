@@ -198,53 +198,52 @@ async function generateLikes() {
 
     if (seedUsers.length === 0) return;
 
-    // Pick a few random items to like
-    const posts = await prisma.post.findMany({ take: 20, orderBy: { createdAt: 'desc' } });
-    const comments = await prisma.comment.findMany({ take: 20, orderBy: { createdAt: 'desc' } });
-    const articles = await prisma.article.findMany({ take: 20, orderBy: { publishedAt: 'desc' } });
+    // Target recent posts and articles
+    const posts = await prisma.post.findMany({ take: 10, orderBy: { createdAt: 'desc' } });
+    const articles = await prisma.article.findMany({ take: 10, orderBy: { publishedAt: 'desc' } });
 
-    let likeCount = 0;
-    for (const user of seedUsers) {
-        const personality = personalityService.getPersonality(user.name || 'Unknown');
-        const likeProb = personality?.socialBehavior.likeProbability || 0.5;
-        
-        if (Math.random() > likeProb) continue;
+    console.log(`[SocialWorker] Generating likes for ${posts.length} posts and ${articles.length} articles...`);
 
-        const coin = Math.random();
+    for (const post of posts) {
+        // Target: 0 to 35 likes per post
+        const currentLikes = await prisma.like.count({ where: { postId: post.id } });
+        const targetLikes = Math.floor(Math.random() * 36); // 0-35
         
-        if (coin > 0.6 && posts.length > 0) {
-            const post = posts[Math.floor(Math.random() * posts.length)];
-            const isUpvote = Math.random() > 0.1;
-            await prisma.like.upsert({
-                where: { userId_postId: { userId: user.id, postId: post.id } },
-                update: { isUpvote },
-                create: { userId: user.id, postId: post.id, isUpvote }
-            });
-            likeCount++;
-            if (isUpvote) await NotificationService.notifyLike(user.id, { postId: post.id });
-        } else if (coin > 0.3 && comments.length > 0) {
-            const comment = comments[Math.floor(Math.random() * comments.length)];
-            const isUpvote = Math.random() > 0.1;
-            await prisma.like.upsert({
-                where: { userId_commentId: { userId: user.id, commentId: comment.id } },
-                update: { isUpvote },
-                create: { userId: user.id, commentId: comment.id, isUpvote }
-            });
-            likeCount++;
-            if (isUpvote) await NotificationService.notifyLike(user.id, { commentId: comment.id });
-        } else if (articles.length > 0) {
-            const article = articles[Math.floor(Math.random() * articles.length)];
-            await prisma.like.upsert({
-                where: { userId_articleId: { userId: user.id, articleId: article.id } },
-                update: { isUpvote: Math.random() > 0.1 },
-                create: { userId: user.id, articleId: article.id, isUpvote: Math.random() > 0.1 }
-            });
-            likeCount++;
+        if (currentLikes < targetLikes) {
+            const needed = targetLikes - currentLikes;
+            const availableUsers = seedUsers.filter(u => u.id !== post.userId).sort(() => Math.random() - 0.5);
+            const toLike = availableUsers.slice(0, needed);
+
+            for (const user of toLike) {
+                const isUpvote = Math.random() > 0.1;
+                await prisma.like.upsert({
+                    where: { userId_postId: { userId: user.id, postId: post.id } },
+                    update: { isUpvote },
+                    create: { userId: user.id, postId: post.id, isUpvote }
+                });
+                if (isUpvote) await NotificationService.notifyLike(user.id, { postId: post.id });
+            }
         }
-
-        if (likeCount >= 10) break;
     }
-    console.log(`[SocialWorker] Generated ${likeCount} likes.`);
+
+    for (const article of articles) {
+        // Articles also get some love: 0 to 20 likes
+        const currentLikes = await prisma.like.count({ where: { articleId: article.id } });
+        const targetLikes = Math.floor(Math.random() * 21);
+        
+        if (currentLikes < targetLikes) {
+            const needed = targetLikes - currentLikes;
+            const toLike = seedUsers.sort(() => Math.random() - 0.5).slice(0, needed);
+
+            for (const user of toLike) {
+                await prisma.like.upsert({
+                    where: { userId_articleId: { userId: user.id, articleId: article.id } },
+                    update: { isUpvote: true },
+                    create: { userId: user.id, articleId: article.id, isUpvote: true }
+                });
+            }
+        }
+    }
   } catch (error) {
     console.error('[SocialWorker] Like generation failed:', error);
   }
@@ -267,11 +266,9 @@ const socialWorker = new Worker('social-generation', async (job: Job) => {
   await socialQueue.add('seed-users', {}, { repeat: { pattern: '0 0 * * *' } }); // Daily sync
   
   // Activity generation is now handled by the separate seedservice
-  /*
-  await socialQueue.add('generate-activity', {}, { repeat: { every: 3600000 } }); // Hourly
+  // But interactions and likes are still useful from the worker
   await socialQueue.add('generate-interactions', {}, { repeat: { every: 1800000 } }); // Every 30 mins
   await socialQueue.add('generate-likes', {}, { repeat: { every: 900000 } }); // Every 15 mins
-  */
   
   // Run seed users immediately on startup
   await socialQueue.add('seed-users', {});
