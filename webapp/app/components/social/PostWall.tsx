@@ -21,6 +21,7 @@ interface Post {
     id: string;
     name: string | null;
     profilePath: string | null;
+    role?: string;
   };
   _count: {
     comments: number;
@@ -240,7 +241,7 @@ export default function PostWall({ targetUserId, targetCelebId, title = "Communi
                   </div>
                 </Link>
                 <div className="flex items-center gap-2">
-                  {post.verified && (
+                  {(post.verified || post.user.role === 'pro') && (
                     <div className="flex items-center gap-1.5 px-2 py-0.5 bg-green-500/10 border border-green-500/20 rounded text-[9px] font-bold text-green-500 uppercase tracking-widest">
                       <Shield size={10} /> Verified
                     </div>

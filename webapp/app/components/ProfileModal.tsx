@@ -44,7 +44,10 @@ export const ProfileModal: React.FC = () => {
     const [followingStats, setFollowingStats] = useState<FollowingStat[]>([]);
     const [loadingStats, setLoadingStats] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
     const [updating, setUpdating] = useState(false);
+    const [updateSuccess, setUpdateSuccess] = useState(false);
+    const [updateError, setUpdateError] = useState<string | null>(null);
     const [passwordData, setPasswordData] = useState({
         current: '',
         new: '',
@@ -53,8 +56,26 @@ export const ProfileModal: React.FC = () => {
     const [profileData, setProfileData] = useState({
         name: user?.name || '',
         bio: user?.bio || '',
-        profilePath: user?.profilePath || ''
+        profilePath: user?.profilePath || '',
+        profileFolder: user?.profileFolder || ''
     });
+
+    // Sync profileData when user object changes or when entering profile view
+    useEffect(() => {
+        if (user && settingsView === 'profile' && !updating && !updateSuccess) {
+            setProfileData({
+                name: user.name || '',
+                bio: user.bio || '',
+                profilePath: user.profilePath || '',
+                profileFolder: user.profileFolder || ''
+            });
+        }
+        // Only reset if we're not currently showing success/error that we just set
+        if (!updating && !updateSuccess && !updateError) {
+            setUpdateSuccess(false);
+            setUpdateError(null);
+        }
+    }, [user, settingsView, updating, updateSuccess, updateError]);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -63,23 +84,33 @@ export const ProfileModal: React.FC = () => {
         if (!file || !token) return;
 
         setUpdating(true);
+        setUpdateError(null);
+        setUpdateSuccess(false);
         const formData = new FormData();
         formData.append('file', file);
 
         try {
             const res = await fetch('/api/upload', {
                 method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
                 body: formData,
             });
             const data = await res.json();
             if (data.url) {
-                setProfileData({ ...profileData, profilePath: data.url });
+                setProfileData({ 
+                    ...profileData, 
+                    profilePath: data.url,
+                    profileFolder: data.folder
+                });
+                // Optional: show success for upload too
             } else {
-                alert("Upload failed: " + (data.message || "Unknown error"));
+                setUpdateError("Upload failed: " + (data.message || "Unknown error"));
             }
         } catch (error) {
             console.error("Upload error:", error);
-            alert("Failed to upload image.");
+            setUpdateError("Failed to upload image.");
         } finally {
             setUpdating(false);
         }
@@ -88,20 +119,28 @@ export const ProfileModal: React.FC = () => {
     const [notificationSettings, setNotificationSettings] = useState(() => {
         if (user?.notificationSettings) {
             try {
-                return typeof user.notificationSettings === 'string' 
+                const settings = typeof user.notificationSettings === 'string' 
                     ? JSON.parse(user.notificationSettings) 
                     : user.notificationSettings;
+                return { email: false, push: false, weeklyDigest: false, ...settings };
             } catch (e) {
-                return { email: true, push: false };
+                return { email: false, push: false, weeklyDigest: false };
             }
         }
-        return { email: true, push: false };
+        return { email: false, push: false, weeklyDigest: false };
     });
 
     const displayName = user ? (user.name || user.email?.split('@')[0]) : '';
 
     const handleToggleNotification = async (key: string) => {
         if (!token || updating) return;
+        
+        // Restriction for non-pro users
+        if (user?.plan !== 'pro' && (key === 'email' || key === 'weeklyDigest')) {
+            setShowUpgradeModal(true);
+            return;
+        }
+
         setUpdating(true);
         const newSettings = { ...notificationSettings, [key]: !notificationSettings[key] };
         try {
@@ -118,16 +157,29 @@ export const ProfileModal: React.FC = () => {
     const handleUpgrade = async () => {
         if (!token || updating) return;
         setUpdating(true);
+        setUpdateError(null);
         try {
-            const res = await backend.createCheckoutSession('pro', token);
-            if (res.url) {
-                window.location.href = res.url;
-            } else {
-                alert("Subscription started (Development Mode).");
-                // For dev: just update the role if possible, or tell user
-            }
+            // Free for now: directly update the role
+            const updatedUser = await backend.updateUser({ role: 'pro' }, token);
+            updateUser(updatedUser.user || updatedUser);
+            setUpdateSuccess(true);
+            setTimeout(() => setUpdateSuccess(false), 3000);
         } catch (e) {
             console.error("Upgrade failed:", e);
+            setUpdateError("Failed to initiate upgrade. Please try again.");
+        } finally {
+            setUpdating(false);
+        }
+    };
+
+    const handleUnsubscribe = async () => {
+        if (!token || updating) return;
+        setUpdating(true);
+        try {
+            const updatedUser = await backend.updateUser({ role: 'free' }, token);
+            updateUser(updatedUser.user || updatedUser);
+        } catch (e) {
+            console.error("Unsubscribe failed:", e);
         } finally {
             setUpdating(false);
         }
@@ -155,31 +207,54 @@ export const ProfileModal: React.FC = () => {
 
     const handlePasswordUpdate = async (e: React.FormEvent) => {
         e.preventDefault();
+        setUpdateError(null);
+        setUpdateSuccess(false);
+
         if (passwordData.new !== passwordData.confirm) {
-            alert("New passwords do not match!");
+            setUpdateError("New passwords do not match!");
             return;
         }
+        
+        setUpdating(true);
         // In a real app, call backend here
-        alert("Password update simulated successfully.");
-        setSettingsView('menu');
+        // Simulating delay
+        setTimeout(() => {
+            setUpdateSuccess(true);
+            setUpdating(false);
+            setPasswordData({ current: '', new: '', confirm: '' });
+            
+            setTimeout(() => {
+                setSettingsView('menu');
+                setUpdateSuccess(false);
+            }, 3000);
+        }, 1000);
     };
 
     const handleProfileUpdate = async (e: React.FormEvent) => {
         e.preventDefault();
+        console.log("Submitting profile update with data:", profileData);
         if (!token || updating) return;
         setUpdating(true);
+        setUpdateSuccess(false);
+        setUpdateError(null);
         try {
             const updatedUser = await backend.updateUser({ 
                 name: profileData.name, 
                 bio: profileData.bio,
-                profilePath: profileData.profilePath
+                profilePath: profileData.profilePath,
+                profileFolder: profileData.profileFolder
             }, token);
             updateUser(updatedUser.user || updatedUser);
-            alert("Profile updated successfully!");
-            setSettingsView('menu');
+            // Success!
+            setUpdateSuccess(true);
+            // Stay on the screen for a bit to show the success message, then return to menu
+            setTimeout(() => {
+                setSettingsView('menu');
+                setUpdateSuccess(false);
+            }, 3000);
         } catch (e) {
             console.error("Profile update failed:", e);
-            alert("Failed to update profile.");
+            setUpdateError("Failed to update profile. Please try again.");
         } finally {
             setUpdating(false);
         }
@@ -282,8 +357,8 @@ export const ProfileModal: React.FC = () => {
                                                 <img src={stat.imageUrl} className="w-10 h-10 rounded-full bg-gray-800 object-cover" />
                                                 <div>
                                                     <div className="font-bold text-white text-sm group-hover:text-primary transition-colors">{stat.name}</div>
-                                                    <div className="text-[10px] text-gray-500">
-                                                        Trend: <span className={stat.trend === 'up' ? 'text-green-400' : 'text-gray-400'}>{stat.trend.toUpperCase()}</span>
+                                                    <div className="text-[10px] text-gray-400">
+                                                        Trend: <span className={stat.trend === 'up' ? 'text-green-400' : 'text-gray-300'}>{stat.trend.toUpperCase()}</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -295,7 +370,7 @@ export const ProfileModal: React.FC = () => {
                                         </div>
                                     ))}
                                     {followingStats.length === 0 && (
-                                        <div className="text-center py-8 text-gray-500 text-sm">
+                                        <div className="text-center py-8 text-gray-400 text-sm">
                                             You aren't following anyone yet.
                                         </div>
                                     )}
@@ -306,69 +381,63 @@ export const ProfileModal: React.FC = () => {
 
                     {activeTab === 'subscription' && (
                         <div className="space-y-6 animate-fade-in pb-10 md:pb-0">
-                            {!showHistory ? (
-                                <>
-                                    <h3 className="text-xl font-bold text-white mb-4">Plan Management</h3>
-                                    <div className="p-6 bg-gradient-to-br from-surface to-black border border-white/10 rounded-xl relative overflow-hidden">
-                                        <div className="absolute top-0 right-0 p-4 opacity-5">
-                                            <Zap size={100} />
-                                        </div>
-                                        <div className="relative z-10">
-                                            <div className="text-sm text-gray-400 uppercase tracking-widest mb-1">Current Plan</div>
-                                            <div className="text-3xl font-extrabold text-white mb-4">
-                                                {user.plan === 'pro' ? 'Insider Pro' : 'Observer Free'}
-                                            </div>
-                                            {user.plan !== 'pro' ? (
-                                                <Button 
-                                                    className="w-full font-bold" 
-                                                    onClick={handleUpgrade}
-                                                    disabled={updating}
-                                                >
-                                                    {updating ? 'Processing...' : 'Upgrade to Pro - $9/mo'}
-                                                </Button>
-                                            ) : (
-                                                <div className="text-green-400 text-sm font-bold flex items-center gap-2">
-                                                    <Check size={16} /> Active subscription
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                    {user.plan === 'pro' && (
-                                        <Button variant="outline" className="w-full gap-2 border-white/10 hover:bg-white/5" onClick={() => setShowHistory(true)}>
-                                            <FileTextIcon size={14} /> History
-                                        </Button>
-                                    )}
-                                </>
-                            ) : (
-                                <div className="animate-fade-in">
-                                    <Button size="sm" variant="ghost" onClick={() => setShowHistory(false)} className="gap-2 pl-0 hover:bg-transparent hover:text-primary">
-                                        <ArrowLeft size={14} /> Back
-                                    </Button>
-                                    <div className="mt-4 bg-surface/30 border border-white/5 rounded-xl overflow-hidden">
-                                        <table className="w-full text-sm text-left text-gray-400">
-                                            <thead className="text-xs text-gray-500 uppercase bg-black/20">
-                                                <tr>
-                                                    <th className="px-4 py-3">Date</th>
-                                                    <th className="px-4 py-3">Amount</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {MOCK_HISTORY.map((txn) => (
-                                                    <tr key={txn.id} className="border-b border-white/5 hover:bg-white/5">
-                                                        <td className="px-4 py-3 text-white">{txn.date}</td>
-                                                        <td className="px-4 py-3">{txn.amount}</td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                    <div className="mt-4 flex justify-end">
-                                        <a href={generateCSV()} download="history.csv" className="text-xs text-primary hover:underline flex items-center gap-1">
-                                            <Download size={12} /> Download CSV
-                                        </a>
-                                    </div>
+                            <h3 className="text-xl font-bold text-white mb-2">Plan Management</h3>
+                            
+                            <div className="flex items-center gap-2 mb-8">
+                                <span className="text-sm text-gray-400">Current Plan:</span>
+                                <span className="px-3 py-1 rounded-md border border-white/10 bg-white/5 text-xs font-bold text-white">
+                                    {user.plan === 'pro' ? 'Pro Plan' : 'Free Plan'}
+                                </span>
+                            </div>
+
+                            <div className="p-8 bg-[#18181b] border border-white/10 rounded-2xl relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                                    <Zap size={120} className="text-primary" />
                                 </div>
-                            )}
+                                
+                                <div className="relative z-10">
+                                    <h4 className="text-2xl font-black text-white mb-6 uppercase tracking-tight">Pro Plan</h4>
+                                    
+                                    <ul className="space-y-4 mb-8">
+                                        {[
+                                            'get newest updates',
+                                            'get weekly digest',
+                                            'view more detailed info'
+                                        ].map((bullet, i) => (
+                                            <li key={i} className="flex items-center gap-3 text-sm">
+                                                <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center shrink-0">
+                                                    <Check size={12} className="text-green-400" />
+                                                </div>
+                                                <span className="text-gray-400 group-hover:text-[#a3b18a] transition-colors">{bullet}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+
+                                    {updateError && (
+                                        <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-xs font-bold flex items-center gap-2">
+                                            <X size={14} /> {updateError}
+                                        </div>
+                                    )}
+
+                                    <Button 
+                                        className={`w-full py-6 rounded-xl font-black uppercase tracking-widest transition-all duration-300 ${
+                                            user.plan === 'pro' 
+                                            ? 'bg-white/5 border border-white/10 text-white hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400' 
+                                            : 'bg-gradient-to-r from-primary to-secondary text-white shadow-lg shadow-primary/20'
+                                        }`} 
+                                        onClick={user.plan === 'pro' ? handleUnsubscribe : handleUpgrade}
+                                        disabled={updating}
+                                    >
+                                        {updating ? 'Processing...' : user.plan === 'pro' ? 'Unsubscribe' : 'Upgrade - Free for now'}
+                                    </Button>
+
+                                    {updateSuccess && (
+                                        <div className="mt-4 text-center text-green-400 text-xs font-bold animate-fade-in flex items-center justify-center gap-2">
+                                            <Check size={14} /> Subscription Updated!
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     )}
 
@@ -378,27 +447,40 @@ export const ProfileModal: React.FC = () => {
                                 <div className="flex flex-col h-full overflow-hidden">
                                     <div className="flex-1 overflow-y-auto space-y-8 pr-1 pb-4 scrollbar-hide">
                                         <div>
-                                            <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                                            <h3 className="w-4/5 mx-auto md:w-full text-sm font-bold text-white mb-4 flex items-center gap-2">
                                                 <Bell size={18} className="text-gray-400" /> Notifications
                                             </h3>
-                                            <div className="w-[80%] md:w-full mx-auto space-y-1 bg-surface/30 rounded-xl border border-white/5 overflow-hidden">
+                                            <div className="w-4/5 mx-auto md:w-full space-y-1 bg-surface/30 rounded-xl border border-white/5 overflow-hidden">
                                                 <div className="flex items-center justify-between p-4 border-b border-white/5">
                                                     <div>
                                                         <div className="text-xs font-bold text-white">Email Updates</div>
-                                                        <div className="text-[11px] text-gray-500">Get major scoops via email.</div>
+                                                        <div className="text-[11px] text-gray-400">Get major scoops via email.</div>
                                                     </div>
                                                     <button 
                                                         onClick={() => handleToggleNotification('email')}
                                                         disabled={updating}
-                                                        className={`w-10 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none ${notificationSettings.email ? 'bg-primary' : 'bg-gray-700'}`}
+                                                        className={`w-10 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none ${notificationSettings.email && user.plan === 'pro' ? 'bg-primary' : 'bg-gray-700'}`}
                                                     >
-                                                        <div className={`w-4 h-4 bg-white rounded-full transition-transform duration-200 ${notificationSettings.email ? 'translate-x-4' : 'translate-x-0'}`} />
+                                                        <div className={`w-4 h-4 bg-white rounded-full transition-transform duration-200 ${notificationSettings.email && user.plan === 'pro' ? 'translate-x-4' : 'translate-x-0'}`} />
+                                                    </button>
+                                                </div>
+                                                <div className="flex items-center justify-between p-4 border-b border-white/5">
+                                                    <div>
+                                                        <div className="text-xs font-bold text-white">Weekly Digest</div>
+                                                        <div className="text-[11px] text-gray-400">Weekly wrap-up of all celebs.</div>
+                                                    </div>
+                                                    <button 
+                                                        onClick={() => handleToggleNotification('weeklyDigest')}
+                                                        disabled={updating}
+                                                        className={`w-10 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none ${notificationSettings.weeklyDigest && user.plan === 'pro' ? 'bg-primary' : 'bg-gray-700'}`}
+                                                    >
+                                                        <div className={`w-4 h-4 bg-white rounded-full transition-transform duration-200 ${notificationSettings.weeklyDigest && user.plan === 'pro' ? 'translate-x-4' : 'translate-x-0'}`} />
                                                     </button>
                                                 </div>
                                                 <div className="flex items-center justify-between p-4">
                                                     <div>
                                                         <div className="text-xs font-bold text-white">Push Notifications</div>
-                                                        <div className="text-[11px] text-gray-500">Live alerts on your device.</div>
+                                                        <div className="text-[11px] text-gray-400">Live alerts on your device.</div>
                                                     </div>
                                                     <button 
                                                         onClick={() => handleToggleNotification('push')}
@@ -412,43 +494,43 @@ export const ProfileModal: React.FC = () => {
                                         </div>
 
                                         <div>
-                                            <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                                            <h3 className="w-4/5 mx-auto md:w-full text-sm font-bold text-white mb-4 flex items-center gap-2">
                                                 <Shield size={18} className="text-gray-400" /> Security & Privacy
                                             </h3>
-                                            <div className="space-y-3">
+                                            <div className="w-4/5 mx-auto md:w-full space-y-3">
                                                 <button 
                                                     onClick={() => setSettingsView('profile')}
-                                                    className="w-[80%] md:w-full mx-auto flex items-center justify-between p-3 bg-surface/30 border border-white/5 rounded-lg hover:bg-surface/50 text-left transition-colors"
+                                                    className="w-full flex items-center justify-between p-3 bg-surface/30 border border-white/5 rounded-lg hover:bg-surface/50 text-left transition-colors"
                                                 >
-                                                    <span className="text-xs text-gray-300">Edit Public Profile</span>
-                                                    <ChevronRight size={16} className="text-gray-500" />
+                                                    <span className="text-xs text-gray-200">Edit Public Profile</span>
+                                                    <ChevronRight size={16} className="text-gray-400" />
                                                 </button>
                                                 <button 
                                                     onClick={() => setSettingsView('password')}
-                                                    className="w-[80%] md:w-full mx-auto flex items-center justify-between p-3 bg-surface/30 border border-white/5 rounded-lg hover:bg-surface/50 text-left transition-colors"
+                                                    className="w-full flex items-center justify-between p-3 bg-surface/30 border border-white/5 rounded-lg hover:bg-surface/50 text-left transition-colors"
                                                 >
-                                                    <span className="text-xs text-gray-300">Change Password</span>
-                                                    <ChevronRight size={16} className="text-gray-500" />
+                                                    <span className="text-xs text-gray-200">Change Password</span>
+                                                    <ChevronRight size={16} className="text-gray-400" />
                                                 </button>
                                                 <button 
                                                     onClick={() => setSettingsView('privacy')}
-                                                    className="w-[80%] md:w-full mx-auto flex items-center justify-between p-3 bg-surface/30 border border-white/5 rounded-lg hover:bg-surface/50 text-left transition-colors"
+                                                    className="w-full flex items-center justify-between p-3 bg-surface/30 border border-white/5 rounded-lg hover:bg-surface/50 text-left transition-colors"
                                                 >
-                                                    <span className="text-xs text-gray-300">Privacy Policy</span>
-                                                    <ChevronRight size={16} className="text-gray-500" />
+                                                    <span className="text-xs text-gray-200">Privacy Policy</span>
+                                                    <ChevronRight size={16} className="text-gray-400" />
                                                 </button>
                                                 <button 
                                                     onClick={() => setSettingsView('terms')}
-                                                    className="w-[80%] md:w-full mx-auto flex items-center justify-between p-3 bg-surface/30 border border-white/5 rounded-lg hover:bg-surface/50 text-left transition-colors"
+                                                    className="w-full flex items-center justify-between p-3 bg-surface/30 border border-white/5 rounded-lg hover:bg-surface/50 text-left transition-colors"
                                                 >
-                                                    <span className="text-xs text-gray-300">Terms & Conditions</span>
-                                                    <ChevronRight size={16} className="text-gray-500" />
+                                                    <span className="text-xs text-gray-200">Terms & Conditions</span>
+                                                    <ChevronRight size={16} className="text-gray-400" />
                                                 </button>
 
                                                 <div className="pt-4 border-t border-white/5 mt-4">
                                                     <button 
                                                         onClick={() => { logout(); closeProfileModal(); }}
-                                                        className="w-[80%] md:w-full mx-auto flex items-center justify-between p-3 bg-[#3a0b0b] border border-red-900/30 rounded-lg hover:bg-[#4a0d0d] text-left transition-colors font-bold group"
+                                                        className="w-full flex items-center justify-between p-3 bg-[#3a0b0b] border border-red-900/30 rounded-lg hover:bg-[#4a0d0d] text-left transition-colors font-bold group"
                                                     >
                                                         <span className="text-xs text-red-400">Log Out</span>
                                                         <LogOut size={16} className="text-red-400 group-hover:translate-x-1 transition-transform" />
@@ -463,7 +545,7 @@ export const ProfileModal: React.FC = () => {
                                     <div className="mb-4 shrink-0">
                                         <button 
                                             onClick={() => setSettingsView('menu')}
-                                            className="flex items-center gap-2 text-xs text-gray-500 hover:text-primary transition-colors mb-2"
+                                            className="flex items-center gap-2 text-xs text-gray-400 hover:text-primary transition-colors mb-2"
                                         >
                                             <ArrowLeft size={14} /> Back to Settings
                                         </button>
@@ -475,7 +557,7 @@ export const ProfileModal: React.FC = () => {
                                     </div>
 
                                     {settingsView === 'profile' ? (
-                                        <form className="space-y-5 flex-1 overflow-y-auto pr-1 scrollbar-hide pb-20 md:pb-10" onSubmit={handleProfileUpdate}>
+                                        <form className="space-y-5 flex-1 overflow-y-auto pr-1 scrollbar-hide pb-20 md:pb-10 w-4/5 mx-auto md:w-full" onSubmit={handleProfileUpdate}>
                                             <div className="space-y-4">
                                                 <div className="flex flex-col items-center gap-4 mb-4">
                                                     <div className="relative w-24 h-24 group">
@@ -509,45 +591,57 @@ export const ProfileModal: React.FC = () => {
                                                 </div>
 
                                                 <div className="space-y-1.5">
-                                                    <label className="text-[10px] font-mono text-gray-500 uppercase tracking-wider ml-1">Broadcast Name</label>
+                                                    <label className="text-[10px] font-mono text-gray-400 uppercase tracking-wider ml-1">Broadcast Name</label>
                                                     <input 
                                                         type="text" 
                                                         required
                                                         value={profileData.name}
                                                         onChange={(e) => setProfileData({...profileData, name: e.target.value})}
-                                                        className="w-[80%] md:w-full mx-auto block bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-xs text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 focus:bg-white/[0.08] transition-all" 
+                                                        className="w-full block bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-xs text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 focus:bg-white/[0.08] transition-all" 
                                                         placeholder="Your public name"
                                                     />
                                                 </div>
 
                                                 <div className="space-y-1.5">
-                                                    <label className="text-[10px] font-mono text-gray-500 uppercase tracking-wider ml-1">Public Bio</label>
+                                                    <label className="text-[10px] font-mono text-gray-400 uppercase tracking-wider ml-1">Public Bio</label>
                                                     <textarea 
                                                         value={profileData.bio}
                                                         onChange={(e) => setProfileData({...profileData, bio: e.target.value})}
-                                                        className="w-[80%] md:w-full mx-auto block bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-xs text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 focus:bg-white/[0.08] transition-all min-h-[100px] resize-none" 
+                                                        className="w-full block bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-xs text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 focus:bg-white/[0.08] transition-all min-h-[100px] resize-none" 
                                                         placeholder="Tell the community about yourself..."
                                                     />
                                                 </div>
                                             </div>
 
                                             <div className="pt-2">
-                                                <Button type="submit" disabled={updating} className="w-[80%] md:w-full mx-auto flex font-bold py-6 rounded-xl shadow-lg shadow-primary/20">
-                                                    {updating ? 'Updating Broadcast...' : 'Update Public Profile'}
+                                                {updateError && (
+                                                    <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-xs font-bold flex items-center gap-2 animate-fade-in">
+                                                        <X size={14} /> {updateError}
+                                                    </div>
+                                                )}
+                                                
+                                                <Button 
+                                                    type="submit" 
+                                                    disabled={updating || updateSuccess} 
+                                                    className={`w-full flex font-bold py-6 rounded-xl shadow-lg transition-all duration-300 ${updateSuccess ? 'bg-green-600 hover:bg-green-600 shadow-green-600/20' : 'shadow-primary/20'}`}
+                                                >
+                                                    {updating ? 'Updating Broadcast...' : updateSuccess ? (
+                                                        <span className="flex items-center gap-2"><Check size={18} /> profile updated</span>
+                                                    ) : 'Update Public Profile'}
                                                 </Button>
                                             </div>
                                         </form>
                                     ) : settingsView === 'password' ? (
-                                        <form className="space-y-5 flex-1 overflow-y-auto pr-1 scrollbar-hide pb-20 md:pb-10" onSubmit={handlePasswordUpdate}>
+                                        <form className="space-y-5 flex-1 overflow-y-auto pr-1 scrollbar-hide pb-20 md:pb-10 w-4/5 mx-auto md:w-full" onSubmit={handlePasswordUpdate}>
                                             <div className="space-y-4">
                                                 <div className="space-y-1.5">
-                                                    <label className="text-[10px] font-mono text-gray-500 uppercase tracking-wider ml-1">Current Password</label>
+                                                    <label className="text-[10px] font-mono text-gray-400 uppercase tracking-wider ml-1">Current Password</label>
                                                     <input 
                                                         type="password" 
                                                         required
                                                         value={passwordData.current}
                                                         onChange={(e) => setPasswordData({...passwordData, current: e.target.value})}
-                                                        className="w-[80%] md:w-full mx-auto block bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-xs text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 focus:bg-white/[0.08] transition-all" 
+                                                        className="w-full block bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-xs text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 focus:bg-white/[0.08] transition-all" 
                                                         placeholder="••••••••"
                                                     />
                                                 </div>
@@ -555,41 +649,54 @@ export const ProfileModal: React.FC = () => {
                                                 <div className="h-px bg-white/5 my-2" />
 
                                                 <div className="space-y-1.5">
-                                                    <label className="text-[10px] font-mono text-gray-500 uppercase tracking-wider ml-1">New Password</label>
+                                                    <label className="text-[10px] font-mono text-gray-400 uppercase tracking-wider ml-1">New Password</label>
                                                     <input 
                                                         type="password" 
                                                         required
                                                         value={passwordData.new}
                                                         onChange={(e) => setPasswordData({...passwordData, new: e.target.value})}
-                                                        className="w-[80%] md:w-full mx-auto block bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-xs text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 focus:bg-white/[0.08] transition-all" 
+                                                        className="w-full block bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-xs text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 focus:bg-white/[0.08] transition-all" 
                                                         placeholder="Minimum 8 characters"
                                                     />
                                                 </div>
 
                                                 <div className="space-y-1.5">
-                                                    <label className="text-[10px] font-mono text-gray-500 uppercase tracking-wider ml-1">Confirm New Password</label>
+                                                    <label className="text-[10px] font-mono text-gray-400 uppercase tracking-wider ml-1">Confirm New Password</label>
                                                     <input 
                                                         type="password" 
                                                         required
                                                         value={passwordData.confirm}
                                                         onChange={(e) => setPasswordData({...passwordData, confirm: e.target.value})}
-                                                        className="w-[80%] md:w-full mx-auto block bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-xs text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 focus:bg-white/[0.08] transition-all" 
+                                                        className="w-full block bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-xs text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 focus:bg-white/[0.08] transition-all" 
                                                         placeholder="Repeat new password"
                                                     />
                                                 </div>
                                             </div>
 
                                             <div className="pt-2">
-                                                <Button type="submit" className="w-[80%] md:w-full mx-auto flex font-bold py-6 rounded-xl shadow-lg shadow-primary/20">
-                                                    Update Security Credentials
+                                                {updateError && (
+                                                    <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-xs font-bold flex items-center gap-2 animate-fade-in">
+                                                        <X size={14} /> {updateError}
+                                                    </div>
+                                                )}
+                                                
+                                                <Button 
+                                                    type="submit" 
+                                                    disabled={updating || updateSuccess} 
+                                                    className={`w-full flex font-bold py-6 rounded-xl shadow-lg transition-all duration-300 ${updateSuccess ? 'bg-green-600 hover:bg-green-600 shadow-green-600/20' : 'shadow-primary/20'}`}
+                                                >
+                                                    {updating ? 'Verifying...' : updateSuccess ? (
+                                                        <span className="flex items-center gap-2"><Check size={18} /> credentials updated</span>
+                                                    ) : 'Update Security Credentials'}
                                                 </Button>
+                                                
                                                 <p className="text-[9px] text-center text-gray-500 mt-4 leading-relaxed">
                                                     Changing your password will require you to log back in on all other devices.
                                                 </p>
                                             </div>
                                         </form>
                                     ) : (
-                                        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+                                        <div className="flex-1 min-h-0 flex flex-col overflow-hidden w-4/5 mx-auto md:w-full">
                                             <div className="flex-1 bg-surface/30 rounded-xl p-4 border border-white/5 text-[10px] md:text-xs text-gray-300 whitespace-pre-wrap overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 min-h-[85%] md:min-h-0 md:max-h-[400px]">
                                                 {settingsView === 'privacy' ? PRIVACY_POLICY : TERMS_AND_CONDITIONS}
                                             </div>
@@ -601,6 +708,39 @@ export const ProfileModal: React.FC = () => {
                     )}
                 </div>
             </div>
+
+            {/* Upgrade Modal Backdrop */}
+            {showUpgradeModal && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 animate-fade-in">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setShowUpgradeModal(false)} />
+                    <div className="relative bg-[#18181b] border border-white/10 rounded-3xl p-8 max-w-sm w-full shadow-2xl space-y-6 text-center">
+                        <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+                            <Zap size={32} className="text-primary" />
+                        </div>
+                        <div>
+                            <h4 className="text-xl font-black text-white mb-2">PRO FEATURE</h4>
+                            <p className="text-gray-400 text-sm">Upgrade to pro for this feature and get exclusive updates.</p>
+                        </div>
+                        <div className="space-y-3 pt-2">
+                            <Button 
+                                className="w-full font-bold py-4 rounded-xl"
+                                onClick={() => {
+                                    setShowUpgradeModal(false);
+                                    setActiveTab('subscription');
+                                }}
+                            >
+                                View Pro Plan
+                            </Button>
+                            <button 
+                                onClick={() => setShowUpgradeModal(false)}
+                                className="text-xs text-gray-500 font-bold hover:text-white transition-colors"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

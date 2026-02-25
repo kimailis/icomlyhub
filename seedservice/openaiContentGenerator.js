@@ -249,24 +249,19 @@ class OpenAIContentGenerator {
             if (directionInstruction) {
                 if (directionInstruction.includes('personal anecdote')) {
                     postType = 'anecdote';
-                    specificPrompt = `Create a detailed personal anecdote post sharing a specific recent experience. Include concrete details like: specific locations (coffee shop, library, grocery store, etc.), times (yesterday, this morning, last weekend), people involved (names, descriptions), exact conversations, specific actions taken, emotions felt, and outcomes. Make it feel like a real story that actually happened to you with specific names, places, dates, or situations that make it believable and engaging. Avoid generic statements - be specific about what happened, where it happened, who was involved, and how it made you feel.`;
+                    specificPrompt = `Create a detailed personal anecdote post sharing a specific recent experience related to celebrity gossip or your high-end lifestyle. Include concrete details like: specific locations (clubs, high-end restaurants, red carpet events, etc.), times, people involved (names, descriptions), exact conversations, specific actions taken, emotions felt, and outcomes. Make it feel like a real story that actually happened to you with specific names, places, dates, or situations that make it believable and engaging. Avoid generic statements - be specific about what happened, where it happened, who was involved, and how it made you feel.`;
                 } else if (directionInstruction.includes('personal opinion')) {
                     postType = 'opinion';
-                    specificPrompt = `Share your personal opinion about a recent development or topic. Be authentic and thoughtful, expressing your genuine viewpoint while inviting others to share theirs. Make it conversational, not preachy.`;
+                    specificPrompt = `Share your personal opinion about a recent celebrity gossip development, trend, or lifestyle topic. Be authentic and thoughtful, expressing your genuine viewpoint while inviting others to share theirs. Make it conversational, not preachy.`;
                 } else if (directionInstruction.includes('knowledge, advice, or insight')) {
                     postType = 'sharing';
-                    specificPrompt = `Share valuable knowledge, advice, or insight from your experience. Make it practical and helpful, like you're giving a friend useful tips. Focus on actionable information that others can benefit from.`;
+                    specificPrompt = `Share valuable knowledge, advice, or insight related to the celebrity world, high-end lifestyle, or industry secrets. Make it practical and helpful, like you're giving a friend useful tips about living the hollywood dream.`;
                 } else if (directionInstruction.includes('recent news story or trend')) {
                     postType = 'news';
-                    specificPrompt = `Comment on a recent news story or trend related to your interests. Share your perspective on current events in a thoughtful way that encourages discussion. Be informative but also personal.`;
+                    specificPrompt = `Comment on a recent celebrity news story or trend. Share your perspective on current events in the hollywood world in a thoughtful way that encourages discussion. Be informative but also personal.`;
                 } else if (directionInstruction.includes('provocative')) {
                     postType = 'provocative';
-                    specificPrompt = `Create a thought-provoking post about something from recent news or trends. Be bold and challenging while staying within appropriate boundaries. Aim to spark meaningful debate and discussion.`;
-                } else if (directionInstruction.includes('product recommendation')) {
-                    // Don't handle affiliate direction here since we don't have product data
-                    // Treat it as a general recommendation post instead
-                    postType = 'sharing';
-                    specificPrompt = `Share a general recommendation or discovery you've made recently. Write about something you've found valuable or interesting, without being overly promotional. Make it feel like a genuine recommendation to friends.`;
+                    specificPrompt = `Create a thought-provoking post about something from recent celebrity news or trends. Be bold and challenging while staying within appropriate boundaries. Aim to spark meaningful debate and discussion about the hollywood scene.`;
                 }
             }
 
@@ -1661,227 +1656,8 @@ Return only the comment text, nothing else.`;
         }
     }
 
-    // Generate affiliate content specifically for product recommendations
-    async generateAffiliateContent(username, productText, productLink, category, personalityData = null) {
-        const maxAttempts = 3;
-
-        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-            try {
-                console.log(`[OpenAI Affiliate] Attempting affiliate generation for ${username} (attempt ${attempt})`);
-                console.log(`[OpenAI Affiliate] Product: ${productText.substring(0, 50)}... Category: ${category}`);
-
-                const result = await this.makeAffiliateOpenAICall(username, productText, productLink, category, personalityData);
-
-                if (result) {
-                    console.log(`[OpenAI Affiliate] Generation successful on attempt ${attempt}`);
-                    this.updateSuccessRate(true);
-                    return {
-                        content: result.content,
-                        hashtags: result.hashtags || '',
-                        isOpenAIGenerated: true,
-                        isPersonalityGenerated: true,
-                        topic: category
-                    };
-                }
-
-                console.log(`[OpenAI Affiliate] Attempt ${attempt} failed: No valid response`);
-
-            } catch (error) {
-                console.log(`[OpenAI Affiliate] Attempt ${attempt} failed: ${error.message}`);
-            }
-        }
-
-        console.log(`[OpenAI Affiliate] OpenAI affiliate generation failed after ${maxAttempts} attempts`);
-        this.updateSuccessRate(false);
-
-        // Return null to trigger fallback in the affiliate function
-        return null;
-    }
-
-    // Make specialized OpenAI API call for affiliate content
-    async makeAffiliateOpenAICall(username, productText, productLink, category, personalityData) {
-        try {
-            if (!this.openai) {
-                throw new Error('OpenAI client not initialized - check API key');
-            }
-
-            console.log(`[OpenAI Affiliate] Making affiliate-specific OpenAI request for ${username}`);
-
-            // Build personality context
-            let personalityContext = '';
-            if (personalityData) {
-                if (personalityData.personality_traits && personalityData.personality_traits.length > 0) {
-                    personalityContext += `Your personality traits: ${personalityData.personality_traits.slice(0, 3).join(', ')}. `;
-                }
-                if (personalityData.interests && personalityData.interests.length > 0) {
-                    const relevantInterests = personalityData.interests.filter(interest =>
-                        interest.toLowerCase().includes(category.toLowerCase()) ||
-                        category.toLowerCase().includes(interest.toLowerCase())
-                    );
-                    if (relevantInterests.length > 0) {
-                        personalityContext += `You're particularly interested in: ${relevantInterests.slice(0, 2).join(', ')}. `;
-                    }
-                }
-            }
-
-            const prompt = `You are ${username} on a social media platform. You want to share a product recommendation with your followers.
-
-${personalityContext}
-
-Product: ${productText}
-Product Link: ${productLink}
-Category: ${category}
-
-Create an authentic, personal product recommendation post that:
-
-1. Feels genuine and natural, like you're talking to your own social media followers
-2. Explains why YOU find this product valuable or interesting
-3. Connects to your interests and personality
-4. Mentions a specific benefit or feature that caught your attention
-5. Includes the product link naturally in the post
-6. Feels conversational, not like an advertisement
-7. Length: 300-600 characters (be detailed but engaging)
-
-Write in YOUR authentic voice based on your personality. You can:
-- Share how you discovered this product
-- Mention what problem it solves for you
-- Compare it to something you've used before
-- Express genuine excitement about trying it
-- Share a personal experience or need it addresses
-
-DO NOT:
-- Start with generic greetings like "Hey friends!" or "Hey everyone!"
-- Use overly promotional language
-- Sound like a salesperson or influencer
-- Include phrases like "affiliate link" or "sponsored"
-- Be artificially enthusiastic or "salesy"
-- Use generic social media openings
-
-Be specific and personal. Start directly with your genuine thoughts about the product or your experience.
-
-ABSOLUTELY NO HASHTAGS.
-
-Write the post now:`;
-
-            const response = await this.openai.chat.completions.create({
-                model: 'gpt-4o-mini',
-                messages: [
-                    {
-                        role: 'system',
-                        content: 'You are a social media content creator who writes authentic, personal product recommendations. You start posts with specific thoughts about products, never generic greetings. Your posts feel genuine and conversational, never promotional or salesy. ABSOLUTELY NO HASHTAGS.'
-                    },
-                    {
-                        role: 'user',
-                        content: prompt
-                    }
-                ],
-                max_tokens: 350,
-                temperature: 0.8,
-                presence_penalty: 0.3,
-                frequency_penalty: 0.3
-            });
-
-            if (response.choices && response.choices[0] && response.choices[0].message) {
-                let content = response.choices[0].message.content.trim();
-
-                // Remove any hashtags that might have been included despite instructions
-                content = content.replace(/#\w+/g, '').trim();
-
-                // Ensure the product link is included in the content
-                if (!content.includes(productLink)) {
-                    content += `\n\n${productLink}`;
-                }
-
-                // Validate content length (should be reasonable for social media)
-                if (content.length < 50) {
-                    throw new Error('Generated content too short');
-                }
-
-                // Improved truncation that preserves complete sentences
-                if (content.length > 750) {
-                    // Find the last complete sentence before character limit
-                    const truncated = content.substring(0, 700);
-                    const lastSentence = truncated.lastIndexOf('. ');
-                    const lastExclamation = truncated.lastIndexOf('! ');
-                    const lastQuestion = truncated.lastIndexOf('? ');
-
-                    // Find the latest sentence ending
-                    const lastSentenceEnd = Math.max(lastSentence, lastExclamation, lastQuestion);
-
-                    if (lastSentenceEnd > 300) {
-                        // Truncate at sentence boundary
-                        content = content.substring(0, lastSentenceEnd + 1).trim();
-                    } else {
-                        // If no good sentence boundary, truncate at word boundary
-                        const truncated = content.substring(0, 697);
-                        const lastSpace = truncated.lastIndexOf(' ');
-                        content = content.substring(0, lastSpace) + '...';
-                    }
-
-                    // Ensure link is still included after truncation
-                    if (!content.includes(productLink)) {
-                        content += `\n\n${productLink}`;
-                    }
-                }
-
-                // Check for and reject generic openings
-                const genericOpenings = [
-                    'hey friends!',
-                    'hey everyone!',
-                    'hey guys!',
-                    'hello friends!',
-                    'hi everyone!',
-                    'what\'s up friends!',
-                    'friends,',
-                    'hey y\'all!'
-                ];
-
-                const contentLower = content.toLowerCase();
-                const hasGenericOpening = genericOpenings.some(opening =>
-                    contentLower.startsWith(opening) || contentLower.includes('\n' + opening)
-                );
-
-                if (hasGenericOpening) {
-                    console.log(`[OpenAI Affiliate] Rejecting content with generic opening: ${content.substring(0, 50)}...`);
-                    throw new Error('Content contains generic greeting opening');
-                }
-
-                console.log(`[OpenAI Affiliate] Generated affiliate content: ${content.substring(0, 50)}...`);
-
-                return {
-                    content: content,
-                    hashtags: ''
-                };
-            } else {
-                throw new Error('No content received from OpenAI');
-            }
-        } catch (error) {
-            console.error(`[OpenAI Affiliate] Error in makeAffiliateOpenAICall:`, error);
-            throw error;
-        }
-    }
-
     cleanup() {
         console.log('[OpenAI Content] No cleanup needed for OpenAI HTTP-based implementation');
-    }
-
-    generateRecommendationTemplate(topic, username, personalityData, personalityHashtags) {
-        const recommendationTemplates = [
-            `Just discovered something amazing in the ${topic} world! 🌟 Been searching for the perfect solution and finally found it. The quality is incredible and it's made such a difference in my daily routine. Not sponsored, just genuinely excited to share what works. Anyone else have great ${topic} recommendations?`,
-            `Okay, I have to share this ${topic} find! 💡 Stumbled across it while researching and it's become essential to my workflow. The difference it makes is noticeable immediately. I'm usually skeptical of "game-changing" products but this one delivers. Perfect for anyone who's serious about ${topic}.`,
-            `Real talk: I'm picky about what I recommend, but this ${topic} solution earned its spot 👍 Been testing it for months and it consistently performs. The attention to detail is impressive and it actually does what it claims. Not cheap, but the value is there. What ${topic} tools have genuinely impressed you lately?`,
-            `Had to share this ${topic} discovery because it's too good to keep to myself! ✨ Found it while looking for better solutions and it's become part of my daily routine. The build quality is solid, the design is thoughtful, and it solves a real problem elegantly. Perfect for anyone who values quality in their ${topic} setup.`
-        ];
-
-        const selectedTemplate = recommendationTemplates[Math.floor(Math.random() * recommendationTemplates.length)];
-
-        return {
-            content: selectedTemplate,
-            hashtags: '',
-            isPersonalityGenerated: !!personalityData,
-            isOpenAIGenerated: false,
-            topic: topic
-        };
     }
 }
 

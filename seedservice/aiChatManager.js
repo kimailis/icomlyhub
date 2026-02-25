@@ -31,12 +31,12 @@ class AIChatManager {
     }
 
     async getSeedUsers() {
-        const res = await this.db.query('SELECT id as user_id, name as username FROM users WHERE email LIKE \'%@icomly.com\'');
+        const res = await this.db.query('SELECT "id" as user_id, "name" as username FROM "User" WHERE "email" LIKE \'%@icomly.com\'');
         return res.rows;
     }
 
     async getUsername(userId) {
-        const res = await this.db.query('SELECT name as username FROM users WHERE id = $1', [userId]);
+        const res = await this.db.query('SELECT "name" as username FROM "User" WHERE "id" = $1', [userId]);
         return res.rows.length > 0 ? res.rows[0].username : null;
     }
 

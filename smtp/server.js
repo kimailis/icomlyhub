@@ -64,15 +64,15 @@ const startServers = async () => {
     // HTTP endpoint for password reset requests (used by Backend)
     app.post('/send-email', async (req, res) => {
         try {
-            const { type, recipient, code, expires, subject, body, html, userName, highlights } = req.body;
+            const { type, recipient, code, expires, subject, body, html, userName, highlights, title, message, link } = req.body;
+            const from = '"Icomly" <noreply@icomly.com>';
 
             // Handle Password Reset type
             if (type === 'password_reset') {
-                if (!recipient || !code || !expires) {
+                if (!recipient || !code) {
                     return res.status(400).json({ error: 'Missing required fields for password_reset' });
                 }
-                const token = code; // map code to token
-                await emailManager.handlePasswordReset({ recipient, token, expires });
+                await emailManager.handlePasswordReset({ recipient, token: code, expires });
                 return res.json({ message: 'Password reset code sent successfully' });
             }
 
@@ -82,43 +82,34 @@ const startServers = async () => {
                     return res.status(400).json({ error: 'Missing required fields for weekly_digest' });
                 }
 
-                // Build digest HTML
-                const highlightsList = highlights || [];
-                let highlightsHtml = '';
-                if (highlightsList.length === 0) {
-                    highlightsHtml = '<p style="color: #9ca3af;">No major updates this week.</p>';
-                } else {
-                    highlightsHtml = '<ul style="color: #e0e0e0;">' +
-                        highlightsList.map(h => `<li style="margin-bottom: 8px;"><strong style="color: #ff4081;">${h.celebName}</strong>: ${h.summary}</li>`).join('') +
-                        '</ul>';
+                const digestSubject = emailManager.templates.weeklyDigest.subject;
+                const digestHtml = emailManager.templates.weeklyDigest.createHtml(userName, highlights || []);
+                const digestText = emailManager.templates.weeklyDigest.createText(userName, highlights || []);
+
+                await emailManager.deliverEmail(from, recipient, digestSubject, digestText, digestHtml);
+                return res.json({ message: 'Weekly digest sent successfully' });
+            }
+
+            // Handle Notification type
+            if (type === 'notification') {
+                if (!recipient || !title || !message) {
+                    return res.status(400).json({ error: 'Missing required fields for notification' });
                 }
 
-                const digestSubject = 'Your Weekly Icomly Digest 📰';
-                const digestHtml = `
-                    <div style="font-family: Arial, sans-serif; padding: 20px; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border-radius: 10px;">
-                        <h2 style="color: #ff4081;">📰 Weekly Digest for ${userName}</h2>
-                        <p style="color: #e0e0e0;">Here's what happened this week with the celebrities you follow:</p>
-                        ${highlightsHtml}
-                        <br/>
-                        <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}" 
-                           style="background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
-                           View Full Details
-                        </a>
-                    </div>
-                `;
+                const notifSubject = subject || title;
+                const notifHtml = emailManager.templates.notification.createHtml(title, message, link);
+                const notifText = emailManager.templates.notification.createText(title, message, link);
 
-                const from = '"Icomly" <noreply@icomly.com>';
-                await emailManager.deliverEmail(from, recipient, digestSubject, digestHtml, digestHtml);
-                return res.json({ message: 'Weekly digest sent successfully' });
+                await emailManager.deliverEmail(from, recipient, notifSubject, notifText, notifHtml);
+                return res.json({ message: 'Notification sent successfully' });
             }
 
             // Handle Generic type (Welcome, Alerts)
             if (type === 'generic') {
-                if (!recipient || !subject || !body) {
+                if (!recipient || !subject || (!body && !html)) {
                     return res.status(400).json({ error: 'Missing required fields for generic email' });
                 }
-                const from = '"Icomly" <noreply@icomly.com>';
-                await emailManager.deliverEmail(from, recipient, subject, body, html);
+                await emailManager.deliverEmail(from, recipient, subject, body || '', html);
                 return res.json({ message: 'Email sent successfully' });
             }
 

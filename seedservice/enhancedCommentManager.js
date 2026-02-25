@@ -1,6 +1,7 @@
 const PersonalityManager = require('./personalityManager');
 const OpenAIContentGenerator = require('./openaiContentGenerator');
 const CommentManager = require('./commentManager');
+const crypto = require('crypto');
 
 class EnhancedCommentManager extends CommentManager {
     constructor(db) {
@@ -102,10 +103,11 @@ class EnhancedCommentManager extends CommentManager {
                         const commentResult = await this.generateEnhancedComment(commenter.username, post.post_content, post.username);
                         if (!commentResult || !commentResult.content) continue;
 
+                        const id = crypto.randomUUID();
                         await this.db.query(`
-                            INSERT INTO "Comment" ("postId", "userId", "content", "createdAt", "updatedAt")
-                            VALUES ($1, $2, $3, NOW(), NOW())
-                        `, [post.post_id, commenter.user_id, commentResult.content]);
+                            INSERT INTO "Comment" ("id", "postId", "userId", "content", "createdAt", "updatedAt")
+                            VALUES ($1, $2, $3, $4, NOW(), NOW())
+                        `, [id, post.post_id, commenter.user_id, commentResult.content]);
 
                         console.log(`[Enhanced Comment] ${commenter.username} commented on ${post.username}'s post`);
                         await new Promise(resolve => setTimeout(resolve, Math.random() * 5000 + 2000));

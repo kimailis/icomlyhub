@@ -27,6 +27,9 @@ export async function GET(req: Request) {
         id: true,
         email: true,
         name: true,
+        bio: true,
+        profilePath: true,
+        profileFolder: true,
         role: true,
         notificationSettings: true,
       }

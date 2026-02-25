@@ -25,29 +25,178 @@ class EmailManager {
         // Email templates
         this.templates = {
             passwordReset: {
-                subject: 'Password Reset Code',
+                subject: 'Password Reset Code - Icomly',
                 createHtml: (code) => `
-                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 5px;">
-                        <h2 style="color: #333;">Password Reset Code</h2>
-                        <p>Your password reset code for your Icomly account is:</p>
-                        <div style="font-size: 2rem; font-weight: bold; letter-spacing: 0.5rem; color: #ff4081; margin: 20px 0;">${code}</div>
-                        <p style="color: #666; font-size: 14px;">This code will expire in 10 minutes.</p>
-                        <p style="color: #666;">If you didn't request the password reset, please ignore this email.</p>
-                        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-                        <p style="color: #999; font-size: 12px;">Regards,<br>The Icomly Team</p>
-                    </div>
+                    <!DOCTYPE html>
+                    <html>
+                    <body style="margin: 0; padding: 0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #0f172a; color: #e2e8f0;">
+                        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #0f172a; padding: 40px 20px;">
+                            <tr>
+                                <td align="center">
+                                    <table width="100%" max-width="600" border="0" cellspacing="0" cellpadding="0" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-radius: 16px; overflow: hidden; border: 1px solid #334155; max-width: 600px;">
+                                        <tr>
+                                            <td style="padding: 40px 40px 20px 40px; text-align: center;">
+                                                <h1 style="margin: 0; color: #f472b6; font-size: 28px; font-weight: 800; letter-spacing: -0.025em;">ICOMLY</h1>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding: 20px 40px 30px 40px;">
+                                                <h2 style="margin: 0 0 20px 0; color: #ffffff; font-size: 22px; font-weight: 700;">Reset your password</h2>
+                                                <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 24px; color: #94a3b8;">
+                                                    We received a request to reset the password for your Icomly account. Use the code below to proceed. This code is valid for 10 minutes.
+                                                </p>
+                                                <div style="background-color: #1e293b; border-radius: 12px; padding: 24px; text-align: center; border: 1px solid #334155; margin-bottom: 24px;">
+                                                    <span style="font-family: 'Courier New', Courier, monospace; font-size: 36px; font-weight: 800; letter-spacing: 8px; color: #f472b6;">${code}</span>
+                                                </div>
+                                                <p style="margin: 0 0 24px 0; font-size: 14px; line-height: 20px; color: #64748b; text-align: center;">
+                                                    If you didn't request this, you can safely ignore this email.
+                                                </p>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding: 0 40px 40px 40px; text-align: center;">
+                                                <div style="height: 1px; background-color: #334155; margin-bottom: 24px;"></div>
+                                                <p style="margin: 0; font-size: 12px; color: #475569;">
+                                                    &copy; 2026 Icomly Hub. All rights reserved.
+                                                </p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+                    </body>
+                    </html>
                 `,
                 createText: (code) => `
-Password Reset Code
+ICOMLY - Password Reset
 
-Your password reset code for your Icomly account is: ${code}
+We received a request to reset your password.
+Your reset code is: ${code}
 
 This code will expire in 10 minutes.
 
-If you didn't request the password reset, please ignore this email.
+If you didn't request this, please ignore this email.
+`
+            },
+            weeklyDigest: {
+                subject: 'Your Weekly Icomly Digest 📰',
+                createHtml: (userName, highlights) => `
+                    <!DOCTYPE html>
+                    <html>
+                    <body style="margin: 0; padding: 0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #0f172a; color: #e2e8f0;">
+                        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #0f172a; padding: 40px 20px;">
+                            <tr>
+                                <td align="center">
+                                    <table width="100%" max-width="600" border="0" cellspacing="0" cellpadding="0" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-radius: 16px; overflow: hidden; border: 1px solid #334155; max-width: 600px;">
+                                        <tr>
+                                            <td style="padding: 40px 40px 20px 40px; text-align: center;">
+                                                <h1 style="margin: 0; color: #f472b6; font-size: 28px; font-weight: 800; letter-spacing: -0.025em;">ICOMLY</h1>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding: 20px 40px 10px 40px;">
+                                                <h2 style="margin: 0 0 10px 0; color: #ffffff; font-size: 22px; font-weight: 700;">Weekly Digest</h2>
+                                                <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 24px; color: #94a3b8;">
+                                                    Hi ${userName}, here's a look at what happened with the celebrities you follow this week:
+                                                </p>
+                                                
+                                                ${highlights && highlights.length > 0 ? 
+                                                    highlights.map(h => `
+                                                        <div style="background-color: #1e293b; border-radius: 12px; padding: 16px; border-left: 4px solid #f472b6; margin-bottom: 16px;">
+                                                            <div style="font-weight: 800; color: #f472b6; margin-bottom: 4px; font-size: 14px; text-transform: uppercase;">${h.celebName}</div>
+                                                            <div style="color: #f8fafc; font-size: 16px; font-weight: 500;">${h.summary}</div>
+                                                        </div>
+                                                    `).join('') : 
+                                                    '<p style="text-align: center; color: #64748b; font-style: italic;">No major updates this week.</p>'
+                                                }
 
-Regards,
-The Icomly Team`
+                                                <div style="text-align: center; margin-top: 30px; margin-bottom: 10px;">
+                                                    <a href="https://icomly.com/feed" style="background-color: #f472b6; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 10px; font-weight: 700; display: inline-block; transition: background-color 0.2s;">
+                                                        View Your Full Feed
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding: 0 40px 40px 40px; text-align: center;">
+                                                <div style="height: 1px; background-color: #334155; margin-bottom: 24px;"></div>
+                                                <p style="margin: 0; font-size: 12px; color: #475569;">
+                                                    You are receiving this because you follow these celebrities on Icomly.
+                                                    <br><br>
+                                                    <a href="https://icomly.com/settings" style="color: #f472b6; text-decoration: none;">Unsubscribe</a> or <a href="https://icomly.com/settings" style="color: #f472b6; text-decoration: none;">Manage Preferences</a>
+                                                </p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+                    </body>
+                    </html>
+                `,
+                createText: (userName, highlights) => `
+ICOMLY - Weekly Digest for ${userName}
+
+${highlights && highlights.length > 0 ? 
+    highlights.map(h => `${h.celebName.toUpperCase()}: ${h.summary}`).join('\n\n') : 
+    'No major updates this week.'
+}
+
+View your full feed at: https://icomly.com/feed
+`
+            },
+            notification: {
+                subject: 'New Notification from Icomly',
+                createHtml: (title, message, link) => `
+                    <!DOCTYPE html>
+                    <html>
+                    <body style="margin: 0; padding: 0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #0f172a; color: #e2e8f0;">
+                        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #0f172a; padding: 40px 20px;">
+                            <tr>
+                                <td align="center">
+                                    <table width="100%" max-width="600" border="0" cellspacing="0" cellpadding="0" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-radius: 16px; overflow: hidden; border: 1px solid #334155; max-width: 600px;">
+                                        <tr>
+                                            <td style="padding: 40px 40px 20px 40px; text-align: center;">
+                                                <h1 style="margin: 0; color: #f472b6; font-size: 28px; font-weight: 800; letter-spacing: -0.025em;">ICOMLY</h1>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding: 20px 40px 30px 40px;">
+                                                <h2 style="margin: 0 0 20px 0; color: #ffffff; font-size: 22px; font-weight: 700;">${title}</h2>
+                                                <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 24px; color: #94a3b8;">
+                                                    ${message}
+                                                </p>
+                                                ${link ? `
+                                                <div style="text-align: center; margin-top: 10px;">
+                                                    <a href="${link}" style="background-color: #f472b6; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">
+                                                        View Details
+                                                    </a>
+                                                </div>` : ''}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding: 0 40px 40px 40px; text-align: center;">
+                                                <div style="height: 1px; background-color: #334155; margin-bottom: 24px;"></div>
+                                                <p style="margin: 0; font-size: 12px; color: #475569;">
+                                                    &copy; 2026 Icomly Hub. All rights reserved.
+                                                </p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+                    </body>
+                    </html>
+                `,
+                createText: (title, message, link) => `
+ICOMLY - ${title}
+
+${message}
+
+${link ? `View details at: ${link}` : ''}
+`
             }
         };
     }

@@ -190,6 +190,20 @@ class BackendService {
     });
   }
 
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    return this.fetchApi('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email })
+    });
+  }
+
+  async resetPassword(data: any): Promise<{ message: string }> {
+    return this.fetchApi('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
   async getMe(token: string): Promise<any> {
     return this.fetchApi('/auth/me', {
       headers: { Authorization: `Bearer ${token}` }

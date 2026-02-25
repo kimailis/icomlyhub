@@ -1,5 +1,6 @@
 const PersonalityManager = require('./personalityManager');
 const PersonalityContentGenerator = require('./personalityContentGenerator');
+const crypto = require('crypto');
 
 class CommentManager {
     constructor(db) {
@@ -71,10 +72,11 @@ class CommentManager {
                             post.username
                         );
 
+                        const id = crypto.randomUUID();
                         await this.db.query(`
-                            INSERT INTO "Comment" ("postId", "userId", "content", "createdAt", "updatedAt")
-                            VALUES ($1, $2, $3, NOW(), NOW())
-                        `, [post.post_id, commenter.user_id, comment]);
+                            INSERT INTO "Comment" ("id", "postId", "userId", "content", "createdAt", "updatedAt")
+                            VALUES ($1, $2, $3, $4, NOW(), NOW())
+                        `, [id, post.post_id, commenter.user_id, comment]);
 
                         console.log(`[Comment Manager] ${commenter.username} commented on ${post.username}'s post`);
                         await new Promise(resolve => setTimeout(resolve, Math.random() * 5000 + 1000));

@@ -89,7 +89,7 @@ export const Navbar: React.FC = () => {
                           <div className="text-sm font-bold text-white">{user.name}</div>
                           <div className="text-xs text-green-400">Online</div>
                       </div>
-                      <img src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=18181b&color=fff`} alt="User" className="w-10 h-10 rounded-full border border-white/20 group-hover:border-primary transition-colors" />
+                      <img src={user.profilePath || user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=18181b&color=fff`} alt="User" className="w-10 h-10 rounded-full border border-white/20 group-hover:border-primary transition-colors" />
                   </div>
               </div>
           ) : (
@@ -109,7 +109,7 @@ export const Navbar: React.FC = () => {
             onClick={() => user ? openProfileModal() : openAuthModal()}
           >
              {user ? (
-               <img src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=18181b&color=fff`} className="w-5 h-5 rounded-full" />
+               <img src={user.profilePath || user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=18181b&color=fff`} className="w-5 h-5 rounded-full" />
              ) : (
                <UserIcon size={18} />
              )}

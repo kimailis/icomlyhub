@@ -64,70 +64,58 @@ export class EmailService {
      * Send Welcome Email
      */
     async sendWelcomeEmail(to: string, name: string): Promise<boolean> {
-        const subject = 'Welcome to Icomly! 🌟';
-        const html = `
-            <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border-radius: 10px;">
-                <h2 style="color: #ff4081;">Welcome, ${name}!</h2>
-                <p style="color: #e0e0e0;">We're thrilled to have you join the Icomly community.</p>
-                <p style="color: #e0e0e0;">Get ready to track your favorite celebrities and stay updated with the latest sightings!</p>
-                <br/>
-                <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}" 
-                   style="background: linear-gradient(135deg, #ff4081 0%, #ec4899 100%); color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">
-                   🚀 Go to Dashboard
-                </a>
-            </div>
-        `;
-        return this.sendEmail(to, subject, html);
+        try {
+            await axios.post(this.mailServiceUrl, {
+                type: 'notification',
+                recipient: to,
+                title: `Welcome to Icomly, ${name}! 🌟`,
+                message: "We're thrilled to have you join the Icomly community. Get ready to track your favorite celebrities and stay updated with the latest sightings!",
+                link: process.env.FRONTEND_URL || 'http://localhost:3000'
+            });
+            console.log(`[EmailService] Welcome email sent to ${to} via Mail Service`);
+            return true;
+        } catch (error) {
+            console.error(`[EmailService] Failed to send welcome email to ${to}:`, error);
+            return false;
+        }
     }
 
     /**
      * Send Weekly Digest
      */
     async sendWeeklyDigest(to: string, userName: string, highlights: any[]): Promise<boolean> {
-        const subject = 'Your Weekly Icomly Digest 📰';
-
-        let highlightsHtml = '';
-        if (highlights.length === 0) {
-            highlightsHtml = '<p style="color: #9ca3af;">No major updates this week.</p>';
-        } else {
-            highlightsHtml = '<ul style="color: #e0e0e0;">' + highlights.map(h =>
-                `<li style="margin-bottom: 8px;"><strong style="color: #ff4081;">${h.celebName}</strong>: ${h.summary}</li>`
-            ).join('') + '</ul>';
+        try {
+            await axios.post(this.mailServiceUrl, {
+                type: 'weekly_digest',
+                recipient: to,
+                userName,
+                highlights
+            });
+            console.log(`[EmailService] Weekly digest sent to ${to} via Mail Service`);
+            return true;
+        } catch (error) {
+            console.error(`[EmailService] Failed to send weekly digest to ${to}:`, error);
+            return false;
         }
-
-        const html = `
-            <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border-radius: 10px;">
-                <h2 style="color: #ff4081;">📰 Weekly Digest for ${userName}</h2>
-                <p style="color: #e0e0e0;">Here's what happened this week with the celebrities you follow:</p>
-                ${highlightsHtml}
-                <br/>
-                <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}" 
-                   style="background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">
-                   View Full Details
-                </a>
-            </div>
-        `;
-        return this.sendEmail(to, subject, html);
     }
 
     /**
      * Send Celebrity Alert (when followed celeb has news)
      */
     async sendCelebrityAlert(to: string, celebName: string, headline: string, summary: string): Promise<boolean> {
-        const subject = `🔔 ${celebName} is making headlines!`;
-        const html = `
-            <div style="font-family: Arial, sans-serif; padding: 20px; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border-radius: 10px;">
-                <h2 style="color: #ff4081;">🔔 Alert: ${celebName}</h2>
-                <h3 style="color: #e0e0e0;">${headline}</h3>
-                <p style="color: #9ca3af;">${summary}</p>
-                <br/>
-                <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/profile/${celebName.toLowerCase().replace(/\s+/g, '-')}" 
-                   style="background: linear-gradient(135deg, #f97316 0%, #ef4444 100%); color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">
-                   View Profile
-                </a>
-            </div>
-        `;
-        return this.sendEmail(to, subject, html);
+        try {
+            await axios.post(this.mailServiceUrl, {
+                type: 'notification',
+                recipient: to,
+                title: `🔔 Alert: ${celebName}`,
+                message: `${headline}. ${summary}`,
+                link: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/profile/${celebName.toLowerCase().replace(/\s+/g, '-')}`
+            });
+            return true;
+        } catch (error) {
+            console.error(`[EmailService] Failed to send alert to ${to}:`, error);
+            return false;
+        }
     }
 
     /**

@@ -10,10 +10,10 @@ const PersonalityManager = require('./personalityManager');
 const CommentManager = require('./commentManager');
 const OpenAIContentGenerator = require('./openaiContentGenerator');
 const EnhancedCommentManager = require('./enhancedCommentManager');
-const { affiliateLinks, categoryToInterests } = require('./affiliateLinks');
 const AIChatManager = require('./aiChatManager');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const app = express();
 
@@ -23,8 +23,7 @@ let youtubeContent = [];
 const POST_TYPE_ROTATION = [
   'ai_post',
   'api_post', 
-  'ai_post',
-  'affiliate_ai_post'
+  'ai_post'
 ];
 
 // AI post type rotation for each AI post
@@ -52,10 +51,6 @@ const POST_DIRECTIONS = [
   {
     key: 'informational',
     instruction: 'Share informative celebrity news, tips on the high-end lifestyle, or insights about the industry in an engaging way. ABSOLUTELY NO HASHTAGS.'
-  },
-  {
-    key: 'affiliate',
-    instruction: 'Create a convincing product recommendation post that naturally incorporates the product link. Write in your authentic voice based on your personality traits and interests. Make it feel like a genuine find for someone living an outgoing, high-end life. Share why this product would be valuable to others with similar interests. ABSOLUTELY NO HASHTAGS.'
   }
 ];
 
@@ -262,12 +257,13 @@ async function createTestUsers() {
             const username = seedUsers[i];
             const email = `${username.toLowerCase()}@icomly.com`;
             const password = '$2b$10$6KVlm8VfUJ.eSPrKBc3qWepNKbPdYc.TRFw0wLgdKnC8ckZGN5zY.';
+            const id = crypto.randomUUID();
             
             await db.query(
-                `INSERT INTO "User" ("name", "email", "password", "role") 
-                 VALUES ($1, $2, $3, 'free') 
+                `INSERT INTO "User" ("id", "name", "email", "password", "role") 
+                 VALUES ($1, $2, $3, $4, 'free') 
                  ON CONFLICT ("email") DO NOTHING`,
-                [username, email, password]
+                [id, username, email, password]
             );
         }
         console.log(`Seed users ensure-sync completed.`);
@@ -291,31 +287,19 @@ async function seedPost() {
             const aiPostType = getNextAiPostType();
             const directionInstruction = getDirectionInstruction(aiPostType);
             contentResult = await getGeneratedContent(selectedUser, directionInstruction);
-        } else if (nextPostType === 'affiliate_ai_post') {
-            contentResult = await getGeneratedAffiliateContent(selectedUser.username);
         }
 
         if (contentResult && contentResult.content) {
+            const id = crypto.randomUUID();
             await db.query(
-                'INSERT INTO "Post" ("user_id", "content", "created_at", "updated_at") VALUES ($1, $2, NOW(), NOW())',
-                [selectedUser.user_id, contentResult.content]
+                'INSERT INTO "Post" ("id", "userId", "content", "createdAt", "updatedAt") VALUES ($1, $2, $3, NOW(), NOW())',
+                [id, selectedUser.user_id, contentResult.content]
             );
             console.log(`Created post for ${selectedUser.username}`);
         }
     } catch (err) {
         console.error('Error in seedPost:', err);
     }
-}
-
-async function getGeneratedAffiliateContent(username) {
-    const products = [
-        { text: 'Premium Noise Cancelling Headphones', link: 'https://amzn.to/example1', category: 'tech' },
-        { text: 'Organic Skincare Set', link: 'https://amzn.to/example2', category: 'beauty' }
-    ];
-    const product = products[Math.floor(Math.random() * products.length)];
-    if (!openaiContentGenerator) openaiContentGenerator = new OpenAIContentGenerator();
-    const result = await openaiContentGenerator.generateAffiliateContent(username, product.text, product.link, product.category);
-    return result;
 }
 
 function startSeedingInterval() {

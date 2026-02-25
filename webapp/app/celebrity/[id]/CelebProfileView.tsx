@@ -376,9 +376,9 @@ export default function CelebProfileView({ profile }: CelebProfileViewProps) {
                             {profile.verified ? 'VERIFIED' : 'HIGH-RES'}
                           </span>
                       </div>
-                      <div className="flex justify-between items-center">
-                          <span className="text-xs text-gray-500">Relationship Status</span>
-                          <span className="text-xs text-white bg-white/5 px-2 py-0.5 rounded border border-white/10">
+                      <div className="flex justify-between items-start gap-4">
+                          <span className="text-xs text-gray-500 shrink-0 mt-0.5">Relationship Status</span>
+                          <span className="text-xs text-white bg-white/5 px-2 py-0.5 rounded border border-white/10 text-left">
                               {profile.relationshipStatus || 'UNKNOWN'}
                           </span>
                       </div>

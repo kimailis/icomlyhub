@@ -28,7 +28,8 @@ export async function GET(req: Request) {
           select: {
             id: true,
             name: true,
-            profilePath: true
+            profilePath: true,
+            role: true
           }
         },
         _count: {
@@ -75,7 +76,8 @@ export async function POST(req: Request) {
           select: {
             id: true,
             name: true,
-            profilePath: true
+            profilePath: true,
+            role: true
           }
         }
       }

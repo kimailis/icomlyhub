@@ -1,15 +1,15 @@
 require('dotenv').config();
-const mysql = require('mysql2');
+const { Pool } = require('pg');
 const fs = require('fs');
 const path = require('path');
 
 // Database configuration
-const db = mysql.createConnection({
-    host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT || 3306,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME
+const pool = new Pool({
+    host: process.env.DB_HOST || 'postgres',
+    port: process.env.DB_PORT || 5432,
+    user: process.env.DB_USER || 'user',
+    password: process.env.DB_PASSWORD || 'password',
+    database: process.env.DB_NAME || 'icomly'
 });
 
 // Base directory for seed users
@@ -123,9 +123,10 @@ async function setupSeedUsersStructure() {
         ensureDirectoryExists(SEEDUSERS_DIR);
         
         // Get all seed users from database
-        const [users] = await db.promise().query(
-            'SELECT user_id, username FROM users WHERE user_id BETWEEN 1000 AND 9999 ORDER BY user_id'
+        const res = await pool.query(
+            'SELECT "id" as user_id, "name" as username FROM "User" WHERE "email" LIKE \'%@icomly.com\' ORDER BY "name"'
         );
+        const users = res.rows;
         
         console.log(`Found ${users.length} seed users to set up`);
         
@@ -173,7 +174,7 @@ async function setupSeedUsersStructure() {
     } catch (error) {
         console.error('Fatal error during setup:', error);
     } finally {
-        db.end();
+        pool.end();
     }
 }
 

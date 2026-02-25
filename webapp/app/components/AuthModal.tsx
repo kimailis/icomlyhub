@@ -8,7 +8,7 @@ import { X, Mail, Lock, Loader2, ArrowRight, ArrowLeft, Check, AlertCircle } fro
 import { Button } from './ui/Button';
 import { TERMS_AND_CONDITIONS, PRIVACY_POLICY } from '@/lib/legal';
 
-type AuthView = 'login' | 'register' | 'forgot' | 'terms' | 'privacy' | 'contact';
+type AuthView = 'login' | 'register' | 'forgot' | 'reset' | 'terms' | 'privacy' | 'contact';
 
 export const AuthModal: React.FC = () => {
   const { isAuthModalOpen, closeAuthModal, authView } = useUI();
@@ -19,11 +19,14 @@ export const AuthModal: React.FC = () => {
   const [agreed, setAgreed] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [resetCode, setResetCode] = useState('');
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   
   const firstInputRef = useRef<HTMLInputElement>(null);
 
-  // Password Validation State (Register Only)
+  // Password Validation State (Register & Reset Only)
+  const isResetOrRegister = view === 'register' || view === 'reset';
   const hasMinLength = password.length >= 8;
   const hasNumber = /\d/.test(password);
   const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
@@ -108,6 +111,7 @@ export const AuthModal: React.FC = () => {
   useEffect(() => {
     if (isAuthModalOpen) {
         setError(null);
+        setSuccessMessage(null);
     }
   }, [isAuthModalOpen, view]);
 
@@ -215,7 +219,7 @@ export const AuthModal: React.FC = () => {
             <>
                 <div className="text-center mb-6">
                     <h2 className="text-xl font-bold text-white mb-1">Reset Password</h2>
-                    <p className="text-gray-400 text-xs">Enter your email to receive a reset link.</p>
+                    <p className="text-gray-400 text-xs">Enter your email to receive a 6-digit reset code.</p>
                 </div>
 
                 {error && (
@@ -225,7 +229,19 @@ export const AuthModal: React.FC = () => {
                     </div>
                 )}
 
-                <form onSubmit={(e) => { e.preventDefault(); setError("Feature coming soon"); }} className="space-y-4">
+                <form onSubmit={async (e) => { 
+                    e.preventDefault(); 
+                    setLoading(true);
+                    setError(null);
+                    try {
+                        await backend.forgotPassword(email);
+                        setView('reset');
+                    } catch (err: any) {
+                        setError(err.message || "Failed to send reset code");
+                    } finally {
+                        setLoading(false);
+                    }
+                }} className="space-y-4">
                      <div className="space-y-1">
                         <label className="text-[10px] font-mono text-gray-500 uppercase">Email</label>
                         <div className="relative">
@@ -241,8 +257,8 @@ export const AuthModal: React.FC = () => {
                             />
                         </div>
                     </div>
-                    <Button type="submit" className="w-full py-2.5">
-                        Send Reset Link
+                    <Button type="submit" className="w-full py-2.5" disabled={loading}>
+                        {loading ? <Loader2 className="animate-spin w-4 h-4" /> : "Send Reset Code"}
                     </Button>
                     <button 
                         type="button"
@@ -250,6 +266,90 @@ export const AuthModal: React.FC = () => {
                         className="w-full text-xs text-gray-500 hover:text-white flex items-center justify-center gap-1"
                     >
                         <ArrowLeft size={12} /> Back to Login
+                    </button>
+                </form>
+            </>
+        ) : view === 'reset' ? (
+            /* --- VIEW: RESET PASSWORD (CODE + NEW PASSWORD) --- */
+            <>
+                <div className="text-center mb-6">
+                    <h2 className="text-xl font-bold text-white mb-1">Enter Reset Code</h2>
+                    <p className="text-gray-400 text-xs">Check your email for the 6-digit code.</p>
+                </div>
+
+                {error && (
+                    <div className="flex items-center gap-2 text-red-400 text-xs bg-red-500/10 p-3 rounded-lg border border-red-500/20 mb-4 animate-fade-in">
+                        <AlertCircle size={14} className="shrink-0" />
+                        {error}
+                    </div>
+                )}
+
+                <form onSubmit={async (e) => { 
+                    e.preventDefault(); 
+                    if (!isPasswordValid) {
+                        setError("Password does not meet requirements.");
+                        return;
+                    }
+                    setLoading(true);
+                    setError(null);
+                    try {
+                        await backend.resetPassword({ email, code: resetCode, password });
+                        setSuccessMessage("Password reset successfully! Please log in.");
+                        setView('login');
+                        setPassword('');
+                        setResetCode('');
+                    } catch (err: any) {
+                        setError(err.message || "Failed to reset password");
+                    } finally {
+                        setLoading(false);
+                    }
+                }} className="space-y-4">
+                     <div className="space-y-1">
+                        <label className="text-[10px] font-mono text-gray-500 uppercase">6-Digit Code</label>
+                        <input 
+                            ref={firstInputRef}
+                            type="text" 
+                            required 
+                            maxLength={6}
+                            value={resetCode}
+                            onChange={(e) => setResetCode(e.target.value.replace(/\D/g, ''))}
+                            className="w-full bg-white/5 border border-white/10 rounded-lg py-2 px-3 text-center text-xl font-bold tracking-[0.5em] text-white focus:outline-none focus:border-primary transition-all"
+                            placeholder="000000"
+                        />
+                    </div>
+
+                    <div className="space-y-1">
+                        <label className="text-[10px] font-mono text-gray-500 uppercase">New Password</label>
+                        <div className="relative">
+                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={14} />
+                            <input 
+                                type="password" 
+                                required 
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="w-full bg-white/5 border border-white/10 rounded-lg py-2 pl-9 pr-3 text-sm text-white focus:outline-none focus:border-primary transition-all placeholder:text-gray-600"
+                                placeholder="••••••••"
+                            />
+                        </div>
+                        <div className="pt-2 px-3 pb-3 bg-white/5 rounded-lg border border-white/5 mt-2 animate-fade-in">
+                            <div className="text-[10px] text-gray-400 uppercase font-mono mb-2">Requirements</div>
+                            <div className="space-y-1.5">
+                                <RequirementItem met={hasMinLength} text="8+ characters" />
+                                <RequirementItem met={hasNumber} text="One number" />
+                                <RequirementItem met={hasSpecial} text="One symbol (!@#$)" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <Button type="submit" className="w-full py-2.5" disabled={loading || !isPasswordValid || resetCode.length !== 6}>
+                        {loading ? <Loader2 className="animate-spin w-4 h-4" /> : "Reset Password"}
+                    </Button>
+                    <button 
+                        type="button"
+                        onClick={() => setView('forgot')}
+                        className="w-full text-xs text-gray-500 hover:text-white flex items-center justify-center gap-1"
+                    >
+                        <ArrowLeft size={12} /> Back
                     </button>
                 </form>
             </>
@@ -264,6 +364,13 @@ export const AuthModal: React.FC = () => {
                         {view === 'login' ? 'Access your tracking feed.' : 'Start tracking celebrity news.'}
                     </p>
                 </div>
+
+                {successMessage && (
+                    <div className="flex items-center gap-2 text-green-400 text-xs bg-green-500/10 p-3 rounded-lg border border-green-500/20 mb-4 animate-fade-in">
+                        <Check size={14} className="shrink-0" />
+                        {successMessage}
+                    </div>
+                )}
 
                 {error && (
                     <div className="flex items-center gap-2 text-red-400 text-xs bg-red-500/10 p-3 rounded-lg border border-red-500/20 mb-4 animate-fade-in">

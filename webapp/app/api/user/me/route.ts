@@ -28,6 +28,7 @@ export async function GET(req: Request) {
         name: true,
         bio: true,
         profilePath: true,
+        profileFolder: true,
         role: true,
         notificationSettings: true,
       }
@@ -64,16 +65,19 @@ export async function PUT(req: Request) {
     }
 
     const body = await req.json();
-    const { name, email, bio, profilePath, notificationSettings } = body;
+    console.log('[API /user/me PUT] Received body:', JSON.stringify(body));
+    const { name, email, bio, profilePath, profileFolder, notificationSettings, role } = body;
 
     const updatedUser = await prisma.user.update({
       where: { id: decoded.userId },
       data: {
-        ...(name && { name }),
-        ...(email && { email }),
-        ...(bio && { bio }),
-        ...(profilePath && { profilePath }),
-        ...(notificationSettings && { notificationSettings }),
+        ...(name !== undefined && { name }),
+        ...(email !== undefined && { email }),
+        ...(bio !== undefined && { bio }),
+        ...(profilePath !== undefined && { profilePath }),
+        ...(profileFolder !== undefined && { profileFolder }),
+        ...(notificationSettings !== undefined && { notificationSettings }),
+        ...(role !== undefined && { role }),
       },
       select: {
         id: true,
@@ -81,6 +85,7 @@ export async function PUT(req: Request) {
         name: true,
         bio: true,
         profilePath: true,
+        profileFolder: true,
         role: true,
         notificationSettings: true,
       }
