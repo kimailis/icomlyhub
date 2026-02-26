@@ -12,6 +12,10 @@ async function clearCache() {
 
   const result = await client.del('feed:global');
   console.log('Deleted feed:global:', result);
+  const resultPro = await client.del('feed:global:pro');
+  console.log('Deleted feed:global:pro:', resultPro);
+  const resultFree = await client.del('feed:global:free');
+  console.log('Deleted feed:global:free:', resultFree);
 
   await client.quit();
 }

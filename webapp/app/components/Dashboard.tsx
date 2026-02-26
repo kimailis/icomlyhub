@@ -116,14 +116,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialFeed = [], initialT
 
   useEffect(() => {
     const load = async () => {
-      if (initialFeed.length > 0 && initialTopCelebs.length > 0) {
+      // If we already have initial data and it matches the current user's likely plan, we can skip initial fetch.
+      // But for better reliability, especially if the SSR plan cookie might be stale, we can re-fetch once on the client.
+      if (initialFeed.length > 0 && initialTopCelebs.length > 0 && !token) {
           setLoading(false);
           return;
       }
       try {
         const [feedData, celebData] = await Promise.all([
-            backend.getFeed(),
-            backend.getTopCelebs()
+            backend.getFeed(token || undefined),
+            backend.getTopCelebs(token || undefined)
         ]);
         setFeed(feedData);
         setTopCelebs(celebData);
@@ -139,8 +141,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialFeed = [], initialT
     // Keeping this for compatibility if the worker or other parts trigger it.
     const handleUpdate = async () => {
         const [feedData, celebData] = await Promise.all([
-            backend.getFeed(),
-            backend.getTopCelebs()
+            backend.getFeed(token || undefined),
+            backend.getTopCelebs(token || undefined)
         ]);
         setFeed(feedData);
         setTopCelebs(celebData);
@@ -155,7 +157,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialFeed = [], initialT
         window.removeEventListener('feed-updated', handleUpdate);
         clearInterval(interval);
     };
-  }, []);
+  }, [token]);
 
   const toggleExpand = (e: React.MouseEvent | React.KeyboardEvent, id: string) => {
     e.stopPropagation();

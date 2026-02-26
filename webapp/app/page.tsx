@@ -1,13 +1,12 @@
 import { Dashboard } from './components/Dashboard';
 import { getFeedServer, getTopCelebsServer } from '@/lib/server/api';
+import { getSecurePlan } from '@/lib/server/auth';
 import { Suspense } from 'react';
-import { cookies } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
-  const cookieStore = await cookies();
-  const plan = cookieStore.get('plan')?.value || 'free';
+  const plan = await getSecurePlan();
 
   const [initialFeed, initialTopCelebs] = await Promise.all([
     getFeedServer(plan),

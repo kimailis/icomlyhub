@@ -41,13 +41,38 @@ export async function GET(req: Request) {
 
     const { role, ...userWithoutRole } = user;
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       ...userWithoutRole,
       plan: role,
       notificationSettings: user.notificationSettings 
         ? (typeof user.notificationSettings === 'string' ? JSON.parse(user.notificationSettings) : user.notificationSettings)
         : {}
     });
+
+    // Get token from header to refresh it in cookie if needed
+    const authHeader = req.headers.get('Authorization');
+    const token = authHeader?.split(' ')[1];
+
+    if (token) {
+        response.cookies.set('auth_token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            path: '/',
+            maxAge: 60 * 60 * 24 * 7, // 7 days
+        });
+    }
+
+    // Refresh plan cookie for SSR UI hint
+    response.cookies.set('plan', role, {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 30 * 24 * 60 * 60 // 30 days
+    });
+
+    return response;
   } catch (error) {
     console.error('API Error /api/auth/me:', error);
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 });

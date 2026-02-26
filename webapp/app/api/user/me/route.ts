@@ -39,13 +39,35 @@ export async function GET(req: Request) {
       return NextResponse.json({ message: 'User not found' }, { status: 404 });
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       ...user,
       plan: user.role,
       notificationSettings: user.notificationSettings 
         ? (typeof user.notificationSettings === 'string' ? JSON.parse(user.notificationSettings) : user.notificationSettings)
         : {}
     });
+
+    const token = req.headers.get('Authorization')?.split(' ')[1];
+    if (token) {
+        response.cookies.set('auth_token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            path: '/',
+            maxAge: 60 * 60 * 24 * 7, // 7 days
+        });
+    }
+
+    // Refresh plan cookie for SSR UI hint
+    response.cookies.set('plan', user.role, {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 30 * 24 * 60 * 60 // 30 days
+    });
+
+    return response;
   } catch (error) {
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
   }
@@ -123,7 +145,18 @@ export async function PUT(req: Request) {
         : {}
     });
 
-    // Refresh plan cookie
+    const tokenFromHeader = req.headers.get('Authorization')?.split(' ')[1];
+    if (tokenFromHeader) {
+        response.cookies.set('auth_token', tokenFromHeader, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            path: '/',
+            maxAge: 60 * 60 * 24 * 7, // 7 days
+        });
+    }
+
+    // Refresh plan cookie for SSR UI hint
     response.cookies.set('plan', updatedUser.role, {
         path: '/',
         maxAge: 60 * 60 * 24 * 7, // 7 days

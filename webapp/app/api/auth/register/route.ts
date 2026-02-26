@@ -58,6 +58,15 @@ export async function POST(req: Request) {
         }
     }, { status: 201 });
 
+    // Set auth_token cookie for secure SSR
+    response.cookies.set('auth_token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 60 * 60 * 24 * 7, // 7 days
+    });
+
     // Set plan cookie for SSR filtering
     response.cookies.set('plan', role, {
         path: '/',

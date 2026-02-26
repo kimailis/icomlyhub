@@ -96,7 +96,7 @@ export async function GET(req: Request) {
         likeCount: a._count.likes,
         commentCount: a._count.comments,
         imageUrl: a.celebrity.imageUrl,
-        timeAgo: getTimeAgo(new Date(a.publishedAt)),
+
         mentionedCelebs: [a.celebrity.name]
       })),
       ...scoops.map(s => ({
@@ -120,7 +120,7 @@ export async function GET(req: Request) {
         likeCount: s._count.likes,
         commentCount: s._count.comments,
         imageUrl: s.targetCeleb?.imageUrl,
-        timeAgo: getTimeAgo(new Date(s.createdAt)),
+
         mentionedCelebs: s.targetCeleb ? [s.targetCeleb.name] : []
       }))
     ];
@@ -156,19 +156,3 @@ export async function GET(req: Request) {
   }
 }
 
-function getTimeAgo(date: Date): string {
-  const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
-  if (seconds < 0) return "just now";
-  if (seconds < 60) return seconds + "s ago";
-  let interval = seconds / 60;
-  if (interval < 60) return Math.floor(interval) + "m ago";
-  interval = interval / 60;
-  if (interval < 24) return Math.floor(interval) + "h ago";
-  interval = interval / 24;
-  if (interval < 7) return Math.floor(interval) + "d ago";
-  interval = interval / 7;
-  if (interval < 4) return Math.floor(interval) + "w ago";
-  interval = seconds / 2592000;
-  if (interval < 12) return Math.floor(interval) + "mo ago";
-  return Math.floor(seconds / 31536000) + "y ago";
-}

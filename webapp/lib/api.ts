@@ -38,8 +38,12 @@ class BackendService {
     return response.json();
   }
 
-  async getFeed(): Promise<GossipHeadline[]> {
-    const data = await this.fetchApi('/feed');
+  async getFeed(token?: string): Promise<GossipHeadline[]> {
+    const options: RequestInit = {};
+    if (token) {
+        options.headers = { Authorization: `Bearer ${token}` };
+    }
+    const data = await this.fetchApi('/feed', options);
     return data.map((item: any) => ({
       id: item.id,
       type: item.type,
@@ -61,8 +65,12 @@ class BackendService {
     }));
   }
 
-  async getTopCelebs(): Promise<CelebProfile[]> {
-    const data = await this.fetchApi('/celebs/top');
+  async getTopCelebs(token?: string): Promise<CelebProfile[]> {
+    const options: RequestInit = {};
+    if (token) {
+        options.headers = { Authorization: `Bearer ${token}` };
+    }
+    const data = await this.fetchApi('/celebs/top', options);
     return data.map((item: any) => this.mapCeleb(item));
   }
 

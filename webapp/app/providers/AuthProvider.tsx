@@ -45,6 +45,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     setToken(null);
     localStorage.removeItem('token');
+    
+    // Clear cookies for SSR
+    document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0;';
+    document.cookie = 'plan=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0;';
+    
     router.push('/');
   };
 

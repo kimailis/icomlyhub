@@ -39,7 +39,16 @@ export async function POST(req: Request) {
         }
     });
 
-    // Set plan cookie for SSR filtering (not for security)
+    // Set auth_token cookie for secure SSR
+    response.cookies.set('auth_token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 60 * 60 * 24 * 7, // 7 days
+    });
+
+    // Set plan cookie for UI hint (not for security)
     response.cookies.set('plan', role, {
         path: '/',
         maxAge: 60 * 60 * 24 * 7, // 7 days

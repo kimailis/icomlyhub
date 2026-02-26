@@ -1,11 +1,10 @@
 import React from 'react';
 import { getMapDataServer } from '@/lib/server/api';
 import SightingsView from './SightingsView';
-import { cookies } from 'next/headers';
+import { getSecurePlan } from '@/lib/server/auth';
 
 export default async function SightingsPage() {
-  const cookieStore = await cookies();
-  const plan = cookieStore.get('plan')?.value || 'free';
+  const plan = await getSecurePlan();
   const initialSightings = await getMapDataServer(plan);
 
   return <SightingsView initialSightings={initialSightings} />;
