@@ -1775,6 +1775,6 @@ feedQueue.add('RegionalFeedGenerator', {}, { repeat: { pattern: '0 2,14 * * *' }
 feedQueue.add('BioRefresher', {}, { repeat: { pattern: '0 1 * * *' } });
 feedQueue.add('OsintCollector', {}, { repeat: { pattern: '0 3 * * *' } });
 feedQueue.add('CleanupCrew', {}, { repeat: { pattern: '0 0 * * *' } });
-feedQueue.add('WeeklyDigest', {}, { repeat: { pattern: '0 9 * * 0' } });
+feedQueue.add('WeeklyDigest', {}, { repeat: { pattern: '0 2 * * 5' } });
 feedQueue.add('NormalizeScores', {}, { repeat: { pattern: '0 0 * * *' } });
  
