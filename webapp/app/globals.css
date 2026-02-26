@@ -12,6 +12,21 @@
   }
 }
 
+/* Optimize high-resolution images scaled down (fix grainy/aliased look in Chrome) */
+img {
+  image-rendering: -webkit-optimize-contrast; /* Sharp but helps Chrome scaling */
+  image-rendering: auto;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  transform: translateZ(0); /* Force GPU acceleration for smoother interpolation */
+}
+
+/* Specifically for profile/round images to stay smooth */
+.rounded-full img, .rounded-lg img, .rounded-xl img {
+  image-rendering: smooth;
+  image-rendering: -webkit-optimize-contrast;
+}
+
 html {
   background-color: theme('colors.background');
 }

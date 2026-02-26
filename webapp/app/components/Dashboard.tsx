@@ -326,7 +326,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialFeed = [], initialT
                                       height={64}
                                       loading="lazy"
                                       decoding="async"
-                                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 brightness-[1.05] contrast-[1.02]"
                                       onError={(e) => handleImageError(e, item.celebName, item.celebId)}
                                       referrerPolicy="no-referrer"
                                   />

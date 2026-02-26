@@ -361,7 +361,7 @@ export default function SightingsView({ initialSightings }: SightingsViewProps) 
                                 className="w-full text-left flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group/item focus:bg-white/10 focus:outline-none"
                                 onClick={() => onSelectCeleb(item.celebId)}
                             >
-                                <img src={item.celebImage} className="w-8 h-8 rounded-full object-cover border border-white/10 group-hover/item:border-primary/50 transition-colors" alt="" referrerPolicy="no-referrer" />
+                                <img src={item.celebImage} className="w-8 h-8 rounded-full object-cover border border-white/10 group-hover/item:border-primary/50 transition-colors brightness-[1.05] contrast-[1.02]" alt="" referrerPolicy="no-referrer" />
                                 <div className="min-w-0 flex-1">
                                     <div className="text-xs font-bold text-white truncate group-hover/item:text-primary transition-colors">{item.celebName}</div>
                                     <div className="text-[10px] text-gray-400 truncate flex items-center gap-1.5 mt-0.5">
@@ -627,7 +627,7 @@ export default function SightingsView({ initialSightings }: SightingsViewProps) 
                           <img 
                             src={sighting.celebrity.imageUrl} 
                             alt={sighting.celebrity.name}
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 brightness-[1.05] contrast-[1.02]"
                             referrerPolicy="no-referrer"
                           />
                         </div>

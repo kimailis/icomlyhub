@@ -83,7 +83,7 @@ export default function CelebProfileView({ profile }: CelebProfileViewProps) {
           <img 
             src={profile.imageUrl} 
             alt={`${profile.name} Background`}
-            className="w-full h-full object-cover opacity-60" 
+            className="w-full h-full object-cover opacity-60 brightness-[1.05] contrast-[1.02]" 
             referrerPolicy="no-referrer" 
           />
           <div className="absolute inset-0 bg-gradient-to-t from-[#09090b] via-[#09090b]/40 to-transparent" />
@@ -94,7 +94,7 @@ export default function CelebProfileView({ profile }: CelebProfileViewProps) {
                 <img 
                     src={profile.imageUrl} 
                     alt={profile.name}
-                    className="w-full h-full object-cover" 
+                    className="w-full h-full object-cover brightness-[1.05] contrast-[1.02]" 
                     referrerPolicy="no-referrer" 
                 />
             </div>

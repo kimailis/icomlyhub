@@ -191,7 +191,7 @@ export default function CommentSection({ postId, articleId, sightingId }: Commen
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center overflow-hidden">
                     {comment.user.profilePath ? (
-                      <img src={comment.user.profilePath} className="w-full h-full object-cover" />
+                      <img src={comment.user.profilePath} className="w-full h-full object-cover brightness-[1.05] contrast-[1.02]" />
                     ) : (
                       <UserIcon size={12} className="text-primary" />
                     )}

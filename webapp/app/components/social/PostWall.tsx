@@ -234,7 +234,7 @@ export default function PostWall({ targetUserId, targetCelebId, title = "Communi
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center overflow-hidden">
                       {post.user.profilePath ? (
-                        <img src={post.user.profilePath} alt={post.user.name || 'User Profile'} className="w-full h-full object-cover" />
+                        <img src={post.user.profilePath} alt={post.user.name || 'User Profile'} className="w-full h-full object-cover brightness-[1.05] contrast-[1.02]" />
                       ) : (
                         <UserIcon size={18} className="text-primary" />
                       )}

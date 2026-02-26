@@ -308,7 +308,7 @@ export const ProfileModal: React.FC = () => {
                 <div className={`w-full md:w-64 bg-surface/30 border-b md:border-b-0 md:border-r border-white/5 p-6 flex flex-col shrink-0 pt-16 md:pt-6 ${activeTab === 'settings' && settingsView !== 'menu' ? 'hidden md:flex' : 'flex'}`}>
                     <div className="flex md:flex-col items-center gap-4 md:gap-0 mb-6 md:mb-8 text-left md:text-center">
                         <div className="w-16 h-16 md:w-20 md:h-20 rounded-full border-2 border-primary p-1 md:mb-3 shrink-0">
-                            <img src={user.profilePath || user.avatarUrl || `https://ui-avatars.com/api/?name=${displayName}`} alt="User" className="w-full h-full rounded-full object-cover" />
+                            <img src={user.profilePath || user.avatarUrl || `https://ui-avatars.com/api/?name=${displayName}`} alt="User" className="w-full h-full rounded-full object-cover brightness-[1.05] contrast-[1.02]" />
                         </div>
                         <div>
                             <h2 className="text-lg md:text-xl font-bold text-white mb-1">{displayName}</h2>
@@ -379,7 +379,7 @@ export const ProfileModal: React.FC = () => {
                                             className="flex items-center justify-between p-3 bg-surface/30 border border-white/5 rounded-xl hover:border-primary/30 hover:bg-surface/50 transition-all cursor-pointer group"
                                         >
                                             <div className="flex items-center gap-3">
-                                                <img src={stat.imageUrl} className="w-10 h-10 rounded-full bg-gray-800 object-cover" />
+                                                <img src={stat.imageUrl} className="w-10 h-10 rounded-full bg-gray-800 object-cover brightness-[1.05] contrast-[1.02]" />
                                                 <div>
                                                     <div className="font-bold text-white text-sm group-hover:text-primary transition-colors">{stat.name}</div>
                                                     <div className="text-[10px] text-gray-400">
@@ -589,7 +589,7 @@ export const ProfileModal: React.FC = () => {
                                                         <img 
                                                             src={profileData.profilePath || user.avatarUrl || `https://ui-avatars.com/api/?name=${displayName}`} 
                                                             alt="Preview" 
-                                                            className="w-full h-full rounded-full object-cover border-2 border-primary/50"
+                                                            className="w-full h-full rounded-full object-cover border-2 border-primary/50 brightness-[1.05] contrast-[1.02]"
                                                         />
                                                         <button
                                                             type="button"
