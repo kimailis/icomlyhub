@@ -4,7 +4,7 @@ import { GossipHeadline, CelebProfile } from '@/lib/types';
 
 export async function getFeedServer(plan?: string): Promise<GossipHeadline[]> {
   try {
-    const isPro = plan === 'pro';
+    const isPro = plan === 'pro' || plan === 'insider';
     const cacheKey = isPro ? 'feed:global:pro' : 'feed:global:free';
     const newsDelayMs = 3 * 60 * 60 * 1000; // 3 hours
 
@@ -141,7 +141,7 @@ export async function getFeedServer(plan?: string): Promise<GossipHeadline[]> {
 
 export async function getTopCelebsServer(plan?: string): Promise<CelebProfile[]> {
   try {
-    const isPro = plan === 'pro';
+    const isPro = plan === 'pro' || plan === 'insider';
     const cacheKey = isPro ? 'celebs:top:pro' : 'celebs:top:free';
     const sightingDelayMs = 24 * 60 * 60 * 1000; // 24 hours
     const sightingTimeLimit = new Date(Date.now() - (isPro ? 0 : sightingDelayMs));
@@ -197,7 +197,7 @@ export async function getTopCelebsServer(plan?: string): Promise<CelebProfile[]>
 
 export async function getProfileServer(id: string, plan?: string): Promise<any> {
     try {
-        const isPro = plan === 'pro';
+        const isPro = plan === 'pro' || plan === 'insider';
         const newsTimeLimit = new Date(Date.now() - (isPro ? 0 : 3 * 60 * 60 * 1000));
         const sightingTimeLimit = new Date(Date.now() - (isPro ? 0 : 24 * 60 * 60 * 1000));
 
@@ -277,7 +277,7 @@ export async function getProfileServer(id: string, plan?: string): Promise<any> 
 
 export async function getMapDataServer(plan?: string): Promise<any[]> {
   try {
-    const isPro = plan === 'pro';
+    const isPro = plan === 'pro' || plan === 'insider';
     const cacheKey = isPro ? 'sightings:geo:v2:pro' : 'sightings:geo:v2:free';
     const sightingDelayMs = 24 * 60 * 60 * 1000;
     const sightingTimeLimit = new Date(Date.now() - (isPro ? 0 : sightingDelayMs));

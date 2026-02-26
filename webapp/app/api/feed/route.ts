@@ -165,9 +165,5 @@ export async function GET(req: Request) {
     return NextResponse.json({ message: 'Failed to fetch feed' }, { status: 500 });
   }
 }
-  } catch (error) {
-    console.error('API Error /api/feed:', error);
-    return NextResponse.json({ message: 'Failed to fetch feed' }, { status: 500 });
-  }
-}
+
 

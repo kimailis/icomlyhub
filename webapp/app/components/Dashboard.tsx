@@ -118,6 +118,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialFeed = [], initialT
   // Centralized refresh function
   const refreshFeed = async (showLoader = false, forceCacheClear = false) => {
     if (showLoader) setRefreshing(true);
+    console.log(`[Dashboard] refreshFeed - plan: ${user?.plan}, token: ${token ? 'present' : 'missing'}`);
     try {
       const [feedData, celebData] = await Promise.all([
           backend.getFeed(token || undefined, forceCacheClear),
@@ -144,6 +145,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialFeed = [], initialT
       // If we have no token but were expecting one (SSR might have used a cookie),
       // we don't want to immediately fetch with 'undefined' token because it will return Free feed.
       if (!token && hasInitialData) {
+          console.log('[Dashboard] Skipping init fetch (waiting for token)');
           setLoading(false);
           return;
       }
@@ -160,10 +162,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialFeed = [], initialT
     window.addEventListener('feed-updated', handleUpdateEvent);
     
     // 3. Periodic refresh (60 seconds)
-    // Only start interval if we are reasonably sure about the token status
     const interval = setInterval(() => {
-        // Only auto-refresh if tab is visible and we have a token (or we are guest)
+        // Only auto-refresh if tab is visible
         if (document.visibilityState === 'visible') {
+            // If user is supposed to be logged in but token is missing, skip to avoid Free feed overwrite
+            if (isAuthenticated && !token) {
+                console.log('[Dashboard] Skipping auto-refresh: authenticated but token missing');
+                return;
+            }
             refreshFeed();
         }
     }, 60000);
