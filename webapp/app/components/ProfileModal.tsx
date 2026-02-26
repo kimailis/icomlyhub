@@ -355,7 +355,8 @@ export const ProfileModal: React.FC = () => {
                 </div>
 
                 {/* Content Area */}
-                <div className={`flex-1 p-6 md:p-8 relative bg-[#09090b] ${activeTab === 'settings' && settingsView !== 'menu' ? 'h-full overflow-hidden' : 'overflow-y-auto'}`}>
+                <div className={`flex-1 relative bg-[#09090b] overflow-hidden flex flex-col`}>
+                    <div className={`flex-1 p-6 md:p-8 ${activeTab === 'settings' && settingsView !== 'menu' ? 'h-full overflow-hidden' : 'overflow-y-auto'} ${activeTab === 'settings' ? 'mt-[10%] mb-[5%]' : ''}`}>
 
                     {activeTab === 'overview' && (
                         <div className="space-y-6 animate-fade-in pb-10 md:pb-0">
@@ -730,6 +731,7 @@ export const ProfileModal: React.FC = () => {
                             )}
                         </div>
                     )}
+                    </div>
                 </div>
             </div>
 

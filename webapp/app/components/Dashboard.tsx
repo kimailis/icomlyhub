@@ -352,21 +352,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialFeed = [], initialT
 
                           {/* Desktop End Block */}
                           <div className="flex-shrink-0 flex items-center gap-4 z-10 hidden md:flex">
-                              <div className="flex items-center gap-2">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-8 w-8 p-0 text-gray-500 hover:text-primary"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        onSelectCeleb(item.celebId);
-                                    }}
-                                    title="View Profile"
-                                  >
-                                      <UserIcon size={16} />
-                                  </Button>
-                              </div>
-                              <div className="h-8 w-px bg-white/5 mx-1" />
                               <div className="flex flex-col items-end gap-1 min-w-[40px]">
                                   <div className={`text-xl font-bold font-mono ${item.impactScore > 90 ? 'text-red-500' : 'text-primary'}`}>
                                       {item.impactScore}
