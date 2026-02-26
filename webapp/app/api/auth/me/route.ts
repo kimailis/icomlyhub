@@ -49,10 +49,6 @@ export async function GET(req: Request) {
         : {}
     });
 
-    // Get token from header to refresh it in cookie if needed
-    const authHeader = req.headers.get('Authorization');
-    const token = authHeader?.split(' ')[1];
-
     if (token) {
         response.cookies.set('auth_token', token, {
             httpOnly: true,

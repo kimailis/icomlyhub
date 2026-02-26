@@ -47,7 +47,6 @@ export async function GET(req: Request) {
         : {}
     });
 
-    const token = req.headers.get('Authorization')?.split(' ')[1];
     if (token) {
         response.cookies.set('auth_token', token, {
             httpOnly: true,
