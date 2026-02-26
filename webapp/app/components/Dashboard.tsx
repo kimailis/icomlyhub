@@ -26,11 +26,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialFeed = [], initialT
   const searchParams = useSearchParams();
   const tab = searchParams.get('tab');
   
-  const { user, token } = useAuth();
+  const { user, token, isAuthenticated } = useAuth();
   const { openAuthModal, openConfirmModal } = useUI();
   const [feed, setFeed] = useState<GossipHeadline[]>(initialFeed);
   const [topCelebs, setTopCelebs] = useState<CelebProfile[]>(initialTopCelebs);
   const [loading, setLoading] = useState(initialFeed.length === 0);
+  const [refreshing, setRefreshing] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [expandedCommentsId, setExpandedCommentsId] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(9);
@@ -114,47 +115,61 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialFeed = [], initialT
     });
   };
 
+  // Centralized refresh function
+  const refreshFeed = async (showLoader = false, forceCacheClear = false) => {
+    if (showLoader) setRefreshing(true);
+    try {
+      const [feedData, celebData] = await Promise.all([
+          backend.getFeed(token || undefined, forceCacheClear),
+          backend.getTopCelebs(token || undefined)
+      ]);
+      setFeed(feedData);
+      setTopCelebs(celebData);
+    } catch (e) {
+      console.error("Refresh failed:", e);
+    } finally {
+      if (showLoader) setRefreshing(false);
+    }
+  };
+
   useEffect(() => {
-    const load = async () => {
-      // If we already have initial data and it matches the current user's likely plan, we can skip initial fetch.
-      // But for better reliability, especially if the SSR plan cookie might be stale, we can re-fetch once on the client.
-      if (initialFeed.length > 0 && initialTopCelebs.length > 0 && !token) {
+    // 1. Check if we need to load data initially
+    const init = async () => {
+      // If we have SSR data AND no token yet, we wait. 
+      // If we have SSR data AND a token, we might want to refresh to ensure Pro tier data.
+      // If we have NO data, we must fetch.
+      
+      const hasInitialData = initialFeed.length > 0;
+      
+      // If we have no token but were expecting one (SSR might have used a cookie),
+      // we don't want to immediately fetch with 'undefined' token because it will return Free feed.
+      if (!token && hasInitialData) {
           setLoading(false);
           return;
       }
-      try {
-        const [feedData, celebData] = await Promise.all([
-            backend.getFeed(token || undefined),
-            backend.getTopCelebs(token || undefined)
-        ]);
-        setFeed(feedData);
-        setTopCelebs(celebData);
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoading(false);
-      }
+
+      setLoading(true);
+      await refreshFeed();
+      setLoading(false);
     };
     
-    // In Next.js, window events might still work if we emit them, 
-    // but typically we'd use polling or websockets.
-    // Keeping this for compatibility if the worker or other parts trigger it.
-    const handleUpdate = async () => {
-        const [feedData, celebData] = await Promise.all([
-            backend.getFeed(token || undefined),
-            backend.getTopCelebs(token || undefined)
-        ]);
-        setFeed(feedData);
-        setTopCelebs(celebData);
-    };
-    window.addEventListener('feed-updated', handleUpdate);
+    init();
+
+    // 2. Setup event listeners
+    const handleUpdateEvent = () => refreshFeed(true);
+    window.addEventListener('feed-updated', handleUpdateEvent);
     
-    // Add periodic refresh (60 seconds)
-    const interval = setInterval(handleUpdate, 60 * 1000);
+    // 3. Periodic refresh (60 seconds)
+    // Only start interval if we are reasonably sure about the token status
+    const interval = setInterval(() => {
+        // Only auto-refresh if tab is visible and we have a token (or we are guest)
+        if (document.visibilityState === 'visible') {
+            refreshFeed();
+        }
+    }, 60000);
     
-    load();
     return () => {
-        window.removeEventListener('feed-updated', handleUpdate);
+        window.removeEventListener('feed-updated', handleUpdateEvent);
         clearInterval(interval);
     };
   }, [token]);
@@ -229,8 +244,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialFeed = [], initialT
             </div>
             
             <h1 className="text-xl md:text-4xl font-extrabold text-white mb-1 md:mb-2 flex items-center gap-2 tracking-tight">
-                <Zap className="text-yellow-400 fill-yellow-400 w-5 h-5 md:w-8 md:h-8" />
+                <Zap className={`text-yellow-400 fill-yellow-400 w-5 h-5 md:w-8 md:h-8 ${refreshing ? 'animate-pulse' : ''}`} />
                 The Daily Spill
+                {refreshing && <Loader2 className="animate-spin h-4 w-4 text-primary ml-2" />}
             </h1>
             <p className="text-gray-400 text-[10px] md:text-sm font-mono">
                 LATEST SCOOPS // HOT OFF THE PRESS // VIRAL
@@ -248,10 +264,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialFeed = [], initialT
       {/* Tab Navigation */}
       <div className="flex items-center gap-1 p-1 bg-white/5 rounded-2xl border border-white/10 w-fit mb-8">
           <button 
-            onClick={() => setActiveTab('news')}
+            onClick={() => {
+                if (activeTab === 'news') {
+                    refreshFeed(true, true);
+                } else {
+                    setActiveTab('news');
+                }
+            }}
             className={`px-6 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${activeTab === 'news' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-gray-500 hover:text-gray-300'}`}
           >
-            <Zap size={14} /> Latest Scoops
+            <Zap size={14} className={refreshing ? 'animate-spin' : ''} /> Latest Scoops
           </button>
           <button 
             onClick={() => setActiveTab('community')}

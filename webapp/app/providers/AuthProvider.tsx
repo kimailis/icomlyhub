@@ -39,6 +39,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(newUser);
     setToken(newToken);
     localStorage.setItem('token', newToken);
+    
+    // Set cookies for SSR
+    document.cookie = `auth_token=${newToken}; path=/; max-age=604800; samesite=lax`;
+    document.cookie = `plan=${newUser.plan || 'free'}; path=/; max-age=604800; samesite=lax`;
+    
+    // Notify app to refresh data
+    window.dispatchEvent(new CustomEvent('feed-updated'));
   };
 
   const logout = () => {

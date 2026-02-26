@@ -9,6 +9,9 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
   try {
+    const url = new URL(req.url);
+    const forceRefresh = url.searchParams.get('refresh') === 'true';
+
     // Check Plan
     let plan = 'free';
     const authHeader = req.headers.get('Authorization');
@@ -16,29 +19,37 @@ export async function GET(req: Request) {
         const token = authHeader.split(' ')[1];
         try {
             const decoded = jwt.verify(token, JWT_SECRET) as any;
-            if (decoded && decoded.userId) {
-                const user = await prisma.user.findUnique({
-                    where: { id: decoded.userId },
-                    select: { role: true }
-                });
-                if (user) plan = user.role;
+            if (decoded) {
+                // Try to get role from token first
+                if (decoded.role) {
+                  plan = decoded.role;
+                } else if (decoded.userId) {
+                  // Fallback to DB if not in token
+                  const user = await prisma.user.findUnique({
+                      where: { id: decoded.userId },
+                      select: { role: true }
+                  });
+                  if (user) plan = user.role;
+                }
             }
         } catch (e) {
-            // Invalid token, treat as free
+            console.warn('[API/Feed] Token verification failed:', (e as Error).message);
         }
     }
 
-    const isPro = plan === 'pro';
+    const isPro = plan === 'pro' || plan === 'insider';
     const cacheKey = isPro ? 'feed:global:pro' : 'feed:global:free';
-    const newsDelayMs = 3 * 60 * 60 * 1000;
-    const timeLimit = new Date(Date.now() - (isPro ? 0 : newsDelayMs));
 
-    const cachedFeed = await redisClient.get(cacheKey);
-    if (cachedFeed) {
-      return NextResponse.json(JSON.parse(cachedFeed));
+    if (!forceRefresh) {
+      const cachedFeed = await redisClient.get(cacheKey);
+      if (cachedFeed) {
+        return NextResponse.json(JSON.parse(cachedFeed));
+      }
     }
 
-    const timeWindow = new Date(Date.now() - 48 * 60 * 60 * 1000);
+    const newsDelayMs = 3 * 60 * 60 * 1000;
+    const timeLimit = new Date(Date.now() - (isPro ? 0 : newsDelayMs));
+    const timeWindow = new Date(Date.now() - 72 * 60 * 60 * 1000); // 72 hours for better coverage
 
     // Fetch Articles
     const articles = await prisma.article.findMany({
@@ -48,7 +59,7 @@ export async function GET(req: Request) {
             lte: timeLimit
         } 
       },
-      take: 40,
+      take: 60,
       orderBy: { publishedAt: 'desc' },
       include: {
         celebrity: {
@@ -65,7 +76,10 @@ export async function GET(req: Request) {
       where: {
         verified: true,
         isFeedCandidate: true,
-        createdAt: { gte: timeWindow }
+        createdAt: { 
+          gte: timeWindow,
+          lte: timeLimit // Also apply time limit to scoops for consistency if not pro
+        }
       },
       take: 20,
       orderBy: { createdAt: 'desc' },
@@ -90,14 +104,13 @@ export async function GET(req: Request) {
         publishedAt: a.publishedAt.toISOString(),
         impactScore: a.impactScore,
         category: a.category,
-        celebId: a.celebrity.id,
-        celebName: a.celebrity.name,
+        celebId: a.celebrity?.id,
+        celebName: a.celebrity?.name,
         timestamp: new Date(a.publishedAt).getTime(),
         likeCount: a._count.likes,
         commentCount: a._count.comments,
-        imageUrl: a.celebrity.imageUrl,
-
-        mentionedCelebs: [a.celebrity.name]
+        imageUrl: a.celebrity?.imageUrl,
+        mentionedCelebs: a.celebrity ? [a.celebrity.name] : []
       })),
       ...scoops.map(s => ({
         id: s.id,
@@ -120,17 +133,14 @@ export async function GET(req: Request) {
         likeCount: s._count.likes,
         commentCount: s._count.comments,
         imageUrl: s.targetCeleb?.imageUrl,
-
         mentionedCelebs: s.targetCeleb ? [s.targetCeleb.name] : []
       }))
     ];
 
     // Sort by timestamp
-    unifiedFeed.sort((a, b) => b.timestamp - a.timestamp);
+    unifiedFeed.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
     // DE-DUPLICATION and DIVERSITY:
-    // 1. Keep only one article per celeb in the top 50
-    // 2. Prevent exact same headlines
     const finalFeed: any[] = [];
     const seenCelebs = new Set<string>();
     const seenHeadlines = new Set<string>();
@@ -150,6 +160,11 @@ export async function GET(req: Request) {
 
     await redisClient.set(cacheKey, JSON.stringify(finalFeed), { EX: 300 });
     return NextResponse.json(finalFeed);
+  } catch (error) {
+    console.error('API Error /api/feed:', error);
+    return NextResponse.json({ message: 'Failed to fetch feed' }, { status: 500 });
+  }
+}
   } catch (error) {
     console.error('API Error /api/feed:', error);
     return NextResponse.json({ message: 'Failed to fetch feed' }, { status: 500 });

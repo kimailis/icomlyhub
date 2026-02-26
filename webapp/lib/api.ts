@@ -38,12 +38,13 @@ class BackendService {
     return response.json();
   }
 
-  async getFeed(token?: string): Promise<GossipHeadline[]> {
+  async getFeed(token?: string, forceRefresh: boolean = false): Promise<GossipHeadline[]> {
     const options: RequestInit = {};
     if (token) {
         options.headers = { Authorization: `Bearer ${token}` };
     }
-    const data = await this.fetchApi('/feed', options);
+    const query = forceRefresh ? '?refresh=true' : '';
+    const data = await this.fetchApi(`/feed${query}`, options);
     return data.map((item: any) => ({
       id: item.id,
       type: item.type,
@@ -51,7 +52,7 @@ class BackendService {
       summary: item.summary,
       celebName: item.celebrity?.name || item.celebName,
       celebId: item.celebrity?.id || item.celebId,
-      mentionedCelebs: item.celebrity ? [item.celebrity.name] : [],
+      mentionedCelebs: item.celebrity ? [item.celebrity.name] : (item.mentionedCelebs || []),
       source: item.source,
       sourceUrl: item.sourceUrl,
       timeAgo: this.getTimeAgo(new Date(item.publishedAt)),

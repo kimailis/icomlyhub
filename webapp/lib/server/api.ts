@@ -19,17 +19,17 @@ export async function getFeedServer(plan?: string): Promise<GossipHeadline[]> {
     }
 
     const timeLimit = new Date(Date.now() - (isPro ? 0 : newsDelayMs));
-    const twentyFourHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000); 
+    const timeWindow = new Date(Date.now() - 72 * 60 * 60 * 1000); 
 
     // Fetch Articles
     const articles = await prisma.article.findMany({
       where: { 
         publishedAt: { 
-            gte: twentyFourHoursAgo,
+            gte: timeWindow,
             lte: timeLimit
         } 
       },
-      take: 40,
+      take: 60,
       orderBy: { publishedAt: 'desc' },
       include: {
         celebrity: {
@@ -46,7 +46,10 @@ export async function getFeedServer(plan?: string): Promise<GossipHeadline[]> {
       where: {
         verified: true,
         isFeedCandidate: true,
-        createdAt: { gte: twentyFourHoursAgo }
+        createdAt: { 
+          gte: timeWindow,
+          lte: timeLimit
+        }
       },
       take: 20,
       orderBy: { createdAt: 'desc' },
@@ -59,10 +62,10 @@ export async function getFeedServer(plan?: string): Promise<GossipHeadline[]> {
       }
     });
 
-    const unifiedFeed: GossipHeadline[] = [
+    const unifiedFeed: any[] = [
       ...articles.map(a => ({
         id: a.id,
-        type: 'ARTICLE' as const,
+        type: 'ARTICLE',
         headline: a.headline,
         summary: a.summary,
         source: a.source,
@@ -70,18 +73,18 @@ export async function getFeedServer(plan?: string): Promise<GossipHeadline[]> {
         publishedAt: a.publishedAt.toISOString(),
         impactScore: a.impactScore,
         category: a.category,
-        celebId: a.celebrity.id,
-        celebName: a.celebrity.name,
+        celebId: a.celebrity?.id,
+        celebName: a.celebrity?.name,
         timestamp: new Date(a.publishedAt).getTime(),
         likeCount: a._count.likes,
         commentCount: a._count.comments,
-        imageUrl: a.celebrity.imageUrl,
+        imageUrl: a.celebrity?.imageUrl,
         timeAgo: getTimeAgo(new Date(a.publishedAt)),
-        mentionedCelebs: [a.celebrity.name]
+        mentionedCelebs: a.celebrity ? [a.celebrity.name] : []
       })),
       ...scoops.map(s => ({
         id: s.id,
-        type: 'SCOOP' as const,
+        type: 'SCOOP',
         headline: `User Scoop: ${s.targetCeleb?.name || 'Celebrity Update'}`,
         summary: s.content,
         source: s.user.name || 'Anonymous Agent',
@@ -106,9 +109,25 @@ export async function getFeedServer(plan?: string): Promise<GossipHeadline[]> {
     ];
 
     // Sort by timestamp
-    unifiedFeed.sort((a, b) => b.timestamp! - a.timestamp!);
+    unifiedFeed.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
-    const finalFeed = unifiedFeed.slice(0, 50);
+    // DE-DUPLICATION and DIVERSITY:
+    const finalFeed: GossipHeadline[] = [];
+    const seenCelebs = new Set<string>();
+    const seenHeadlines = new Set<string>();
+
+    for (const item of unifiedFeed) {
+      const headlineKey = item.headline.toLowerCase().trim();
+      if (seenHeadlines.has(headlineKey)) continue;
+      
+      if (item.celebId && seenCelebs.has(item.celebId)) continue;
+
+      finalFeed.push(item);
+      seenHeadlines.add(headlineKey);
+      if (item.celebId) seenCelebs.add(item.celebId);
+      
+      if (finalFeed.length >= 50) break;
+    }
 
     if (redisClient.isOpen) {
       await redisClient.set(cacheKey, JSON.stringify(finalFeed), { EX: 300 });

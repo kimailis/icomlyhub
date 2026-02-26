@@ -64,7 +64,15 @@ export const Navbar: React.FC = () => {
         {/* Desktop Nav */}
         <div className="hidden md:flex items-center gap-4">
           <div className="flex items-center gap-1 mr-2">
-             <Link href="/">
+             <Link 
+               href="/"
+               onClick={(e) => {
+                 if (pathname === '/') {
+                   // If already on home, trigger refresh via event
+                   window.dispatchEvent(new CustomEvent('feed-updated'));
+                 }
+               }}
+             >
                <Button variant="ghost" className={`gap-2 ${pathname === '/' ? 'text-primary bg-primary/10' : 'text-gray-400'}`}>
                   <Radar size={18}/> Feed
                </Button>
@@ -101,7 +109,13 @@ export const Navbar: React.FC = () => {
 
         {/* Mobile Nav */}
         <div className="flex md:hidden w-full justify-around items-center py-2 px-2">
-          <NavItem href="/" icon={Radar} label="Feed" />
+          <div onClick={() => {
+            if (pathname === '/') {
+              window.dispatchEvent(new CustomEvent('feed-updated'));
+            }
+          }}>
+            <NavItem href="/" icon={Radar} label="Feed" />
+          </div>
           <NavItem href="/sightings" icon={Map} label="Map" />
           {user && <NotificationDropdown />}
           <div 
