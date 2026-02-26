@@ -363,19 +363,35 @@ const isPersonAlive = async (celebName: string): Promise<boolean> => {
             validateStatus: (status) => status < 500
         });
 
-        if (res.status === 404) return true; // No page = assume alive (will fail image check anyway)
+        if (res.status === 404) return true; // No page = assume alive
 
         const extract = (res.data?.extract || '').toLowerCase();
         const description = (res.data?.description || '').toLowerCase();
 
-        // Check for death indicators in the first sentence or description
-        const deathIndicators = [' was a ', ' was an ', 'died ', 'deceased', ' death ', 'passed away', '(died', '– died'];
+        // Strong indicators of being alive
+        const aliveIndicators = [' is a ', ' is an ', ' is the '];
+        const isAliveExplicit = aliveIndicators.some(ind => extract.includes(ind) || description.includes(ind));
+
+        // Strong indicators of death
+        const deathIndicators = ['died in ', 'died on ', 'deceased', ' death ', 'passed away', '(died ', '– died'];
         for (const indicator of deathIndicators) {
             if (extract.includes(indicator) || description.includes(indicator)) {
                 console.log(`[isPersonAlive] ${celebName} appears deceased (found: "${indicator}")`);
                 return false;
             }
         }
+
+        // Contextual indicator: "was a" only if "is a" isn't there
+        if (!isAliveExplicit) {
+            const pastIndicators = [' was a ', ' was an ', ' was the '];
+            for (const indicator of pastIndicators) {
+                if (extract.includes(indicator) || description.includes(indicator)) {
+                    console.log(`[isPersonAlive] ${celebName} appears deceased (found past tense: "${indicator}")`);
+                    return false;
+                }
+            }
+        }
+
         return true;
     } catch (e) {
         console.error(`[isPersonAlive] Check failed for ${celebName}:`, e);
