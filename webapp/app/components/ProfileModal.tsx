@@ -135,6 +135,23 @@ export const ProfileModal: React.FC = () => {
         return { email: false, push: false, weeklyDigest: false };
     });
 
+    // Sync notification settings when user changes
+    useEffect(() => {
+        if (user?.notificationSettings) {
+            try {
+                const settings = typeof user.notificationSettings === 'string' 
+                    ? JSON.parse(user.notificationSettings) 
+                    : user.notificationSettings;
+                setNotificationSettings(prev => ({ 
+                    ...prev, 
+                    ...settings 
+                }));
+            } catch (e) {
+                console.error("Failed to sync notification settings:", e);
+            }
+        }
+    }, [user]);
+
     const displayName = user ? (user.name || user.email?.split('@')[0]) : '';
 
     const handleToggleNotification = async (key: string) => {

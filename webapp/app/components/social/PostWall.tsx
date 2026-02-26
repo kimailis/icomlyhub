@@ -8,7 +8,6 @@ import { MessageSquare, ThumbsUp, ThumbsDown, Send, User as UserIcon, Shield, Ac
 import CommentSection from './CommentSection';
 import { ShareButton } from '../ui/ShareButton';
 import { RelativeTime } from '@/app/components/ui/RelativeTime';
-import Link from 'next/link';
 import { AdBanner } from '../AdBanner';
 import { ChevronDown as LoadMoreIcon } from 'lucide-react';
 
@@ -232,7 +231,7 @@ export default function PostWall({ targetUserId, targetCelebId, title = "Communi
             <React.Fragment key={post.id}>
               <div className="group p-4 rounded-3xl bg-surface/40 border border-white/5 hover:border-white/10 transition-all space-y-3">
                 <div className="flex items-center justify-between">
-                  <Link href={`/user/${post.user.id}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                  <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center overflow-hidden">
                       {post.user.profilePath ? (
                         <img src={post.user.profilePath} alt={post.user.name || 'User Profile'} className="w-full h-full object-cover" />
@@ -244,7 +243,7 @@ export default function PostWall({ targetUserId, targetCelebId, title = "Communi
                       <h4 className="text-sm font-bold text-white leading-tight">{post.user.name || 'Anonymous'}</h4>
                       <RelativeTime date={post.createdAt} className="text-[10px] text-gray-500 font-mono" />
                     </div>
-                  </Link>
+                  </div>
                   <div className="flex items-center gap-2">
                     {(post.verified || post.user.role === 'pro') && (
                       <div className="flex items-center gap-1.5 px-2 py-0.5 bg-green-500/10 border border-green-500/20 rounded text-[9px] font-bold text-green-500 uppercase tracking-widest">
@@ -343,7 +342,7 @@ export default function PostWall({ targetUserId, targetCelebId, title = "Communi
                 onClick={handleLoadMore}
                 className="w-full md:w-auto min-w-[200px] gap-2 shadow-xl shadow-secondary/10"
               >
-                  <LoadMoreIcon size={18} /> Load More Juice
+                  <LoadMoreIcon size={18} /> Load More
               </Button>
           </div>
         )}

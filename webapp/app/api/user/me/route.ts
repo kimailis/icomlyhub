@@ -97,15 +97,14 @@ export async function PUT(req: Request) {
       if (updatedUser.email) {
         const prefs = updatedUser.notificationSettings ? JSON.parse(updatedUser.notificationSettings) : {};
         
-        // If they have any notification enabled, subscribe/update them
-        // If they disabled all, we could unsubscribe them, but usually we just update prefs
+        // Map UI keys (email, weeklyDigest, push) to SMTP keys (gossip_updates, weekly_digest, notifications)
         await emailService.subscribe(
           updatedUser.email, 
           updatedUser.name || updatedUser.email.split('@')[0],
           {
-            weekly_digest: prefs.weeklyDigest !== false,
-            gossip_updates: prefs.gossipUpdates !== false,
-            notifications: prefs.notifications !== false
+            weekly_digest: prefs.weeklyDigest === true,
+            gossip_updates: prefs.email === true,
+            notifications: prefs.push === true
           }
         );
       }

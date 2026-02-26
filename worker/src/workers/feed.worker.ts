@@ -1,6 +1,7 @@
 import { Queue, Worker, Job } from 'bullmq';
 import { geminiOptimizedService } from '../services/gemini-optimized.service';
 import { openaiOptimizedService } from '../services/openai-optimized.service';
+import { ImageService } from '../services/image.service';
 import prisma from '../config/prisma';
 import redisClient from '../config/redis';
 import axios from 'axios';
@@ -127,7 +128,7 @@ const ALIAS_MAP: Record<string, string> = {
     "the rock": "Dwayne Johnson"
 };
 
-const cleanCelebName = (rawName: string): string => {
+export const cleanCelebName = (rawName: string): string => {
     let name = rawName;
     const separators = [' and ', ' & ', ' with ', ' feat ', ' + ', ',', ' And ', ' AND '];
     for (const sep of separators) {
@@ -247,7 +248,13 @@ const WIKI_MAPPING: Record<string, string> = {
     "Mantra": "Mantra (rapper)" // Assuming this is the intended one if it appears in feeds
 };
 
-const getWikipediaImage = async (celebName: string): Promise<string | null> => {
+const getWikipediaImage = async (celebName: string, celebId?: string): Promise<string | null> => {
+    // If celebId is provided, check for local image first
+    if (celebId) {
+        const localPath = ImageService.getLocalImagePath(celebId);
+        if (localPath) return localPath;
+    }
+
     const fetchImage = async (query: string) => {
         try {
             const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(query)}&prop=pageimages&format=json&pithumbsize=600&origin=*&redirects=1`;
@@ -260,21 +267,33 @@ const getWikipediaImage = async (celebName: string): Promise<string | null> => {
         } catch { return null; }
     };
 
+    let remoteUrl: string | null = null;
+
     // 1. Try mapped name first
     if (WIKI_MAPPING[celebName]) {
-        const img = await fetchImage(WIKI_MAPPING[celebName]);
-        if (img) return img;
+        remoteUrl = await fetchImage(WIKI_MAPPING[celebName]);
     }
 
     // 2. Try direct name
-    let img = await fetchImage(celebName);
-    if (img) return img;
-
-    const simpleName = getAvatarName(celebName);
-    if (simpleName !== celebName) {
-        return await fetchImage(simpleName);
+    if (!remoteUrl) {
+        remoteUrl = await fetchImage(celebName);
     }
-    return null;
+
+    // 3. Try simple name
+    if (!remoteUrl) {
+        const simpleName = getAvatarName(celebName);
+        if (simpleName !== celebName) {
+            remoteUrl = await fetchImage(simpleName);
+        }
+    }
+
+    // Localize if celebId is provided
+    if (celebId && remoteUrl) {
+        const localPath = await ImageService.downloadCelebImage(celebId, remoteUrl);
+        if (localPath) return localPath;
+    }
+
+    return remoteUrl;
 };
 
 // --- ARCHETYPE LOGIC ---
@@ -443,7 +462,7 @@ const seedCelebsJob = async () => {
             const cleanName = cleanCelebName(celebData.name);
             const slug = slugify(cleanName);
             const avatarName = getAvatarName(cleanName);
-            const wikiImage = await getWikipediaImage(cleanName);
+            const wikiImage = await getWikipediaImage(cleanName, slug);
 
             await prisma.celebrity.upsert({
                 where: { id: slug },
@@ -907,23 +926,20 @@ const osintCollector = async () => {
     }
 };
 
-const globalFeedGenerator = async () => {
+export const globalFeedGenerator = async () => {
     try {
-        const topics = ["Romance", "Scandal", "Career", "Fashion", "Viral"];
-        const randomTopic = topics[Math.floor(Math.random() * topics.length)];
-        // We are in a simulation where the year is 2026, but we want REAL news (which is likely 2024/2025).
-        // We instruct Gemini to find the "latest" real news, then we will time-shift it.
         const currentYear = new Date().getFullYear(); 
 
         const prompt = `
-TASK: Search for and retrieve 5 REAL, TRENDING celebrity news stories.
+TASK: Search for and retrieve 5 REAL, TRENDING celebrity news stories from different continents.
 CONTEXT: Today is ${getCurrentDateString()}.
 1. USE GOOGLE SEARCH to find actual breaking news from the LAST 24-48 HOURS.
 2. FOCUS on Major Stars (A-List).
-3. ENSURE each story is for a DIFFERENT celebrity.
-4. VERIFY the events are REAL and occurring NOW.
-5. Each summary MUST be a detailed paragraph (at least 3-4 sentences) providing extensive detail, background context, and juicy specifics. Avoid brief 1-2 sentence summaries.
-6. IMPORTANT: sourceUrl MUST be the DIRECT, PERMANENT link to the original news article. DO NOT use search results, temporary redirects (like vertexaisearch.cloud.google.com), or landing pages.
+3. ENSURE each story is for a DIFFERENT celebrity from a DIFFERENT country.
+4. Aim for global diversity (e.g., 1 from North America, 1 from Europe, 1 from Asia, 1 from South America/Africa/Oceania).
+5. VERIFY the events are REAL and occurring NOW.
+6. Each summary MUST be a detailed paragraph (at least 3-4 sentences) providing extensive detail, background context, and juicy specifics. Avoid brief 1-2 sentence summaries.
+7. IMPORTANT: sourceUrl MUST be the DIRECT, PERMANENT link to the original news article. DO NOT use search results, temporary redirects (like vertexaisearch.cloud.google.com), or landing pages.
 
 CRITICAL: Return ONLY a valid JSON object. NO preamble, NO markdown blocks, NO commentary.
 Ensure all double quotes INSIDE string values are properly escaped with a backslash (\\").
@@ -963,7 +979,7 @@ Format: JSON object { "articles": [{ "headline": "text", "summary": "text", "sou
 
                 // STRICT: Only allow creation if we find a real image (no hallucinations)
                 // Try fetching image first
-                let img = await getWikipediaImage(cleanName);
+                let img = await getWikipediaImage(cleanName, slug);
                 const existingCeleb = await prisma.celebrity.findUnique({ where: { id: slug } });
 
                 // If celeb doesn't exist and we can't find a real image, skip it to prevent junk profiles
@@ -1119,7 +1135,9 @@ Format: JSON object { "articles": [{ "headline": "text", "summary": "text", "sou
         publishedAt: a.publishedAt,
         impactScore: a.impactScore,
         category: a.category,
-        celebrity: a.celebrity,
+        celebId: a.celebrity.id,
+        celebName: a.celebrity.name,
+        imageUrl: a.celebrity.imageUrl,
         likeCount: a._count.likes,
         commentCount: a._count.comments,
         timestamp: new Date(a.publishedAt).getTime()
@@ -1128,41 +1146,45 @@ Format: JSON object { "articles": [{ "headline": "text", "summary": "text", "sou
     await redisClient.set('feed:global', JSON.stringify(finalFeed), { EX: 900 });
 };
 
-const regionalFeedGenerator = async () => {
-    console.log(`[RegionalFeed] Starting Merged Regional Pulse...`);
-    try {
-        const regions = ['Asia', 'Europe', 'North America'];
-        const prompt = `
-TASK: Generate the TOP trending celebrity gossip story for EACH of these regions: ${regions.join(', ')}.
+export const regionalFeedGenerator = async () => {
+    console.log(`[RegionalFeed] Starting Regional Pulse...`);
+    const regions = ['Asia', 'Europe', 'North America', 'South America', 'Africa', 'Oceania', 'Middle East'];
+    
+    for (const region of regions) {
+        try {
+            console.log(`[RegionalFeed] Generating for ${region}...`);
+            const prompt = `
+TASK: Generate the TOP trending celebrity gossip story for the region: ${region}.
 CONTEXT: Today is ${getCurrentDateString()}.
-1. Provide ONE major trending news story per region.
-2. For each, provide a detailed 3-4 sentence summary.
-3. Use your knowledge of recent events and celebrity status.
+1. Provide ONE major trending news story for THIS region.
+2. Provide a detailed 3-4 sentence summary.
+3. For Asia, ENSURE it is NOT always from India (try East Asia, South East Asia, etc. if trending).
+4. For Europe/North America, avoid repeating common global news if possible.
 
 Format JSON: { 
-  "articles": [
-    { "headline": "text", "summary": "text", "source": "Entertainment Weekly", "sourceUrl": "https://ew.com", "celebName": "FULL NAME", "buzzScore": 50, "category": "text", "region": "Region Name" }
-  ] 
+  "article": { "headline": "text", "summary": "text", "source": "Regional News", "sourceUrl": "https://news.google.com", "celebName": "FULL NAME", "buzzScore": 50, "category": "text" }
 }`;
 
-        // Use OpenAI for regional feed generation to diversify API usage
-        const responseText = await openaiOptimizedService.generateText(prompt);
-        let data;
-        try {
-            data = JSON.parse(responseText);
-        } catch (e) {
-            // Fallback to Gemini if OpenAI JSON is malformed
-            data = await geminiOptimizedService.generateContent(prompt);
-        }
+            const responseText = await openaiOptimizedService.generateText(prompt);
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch (e) {
+                // Fallback to Gemini
+                data = await geminiOptimizedService.generateContent(prompt);
+            }
 
-        if (data.articles && Array.isArray(data.articles)) {
-            for (const item of data.articles) {
+            const item = data.article;
+            if (item) {
                 const normalizedName = normalizePersonName(item.celebName);
                 const cleanName = cleanCelebName(normalizedName);
                 const slug = slugify(cleanName);
                 
                 const existingCeleb = await prisma.celebrity.findUnique({ where: { id: slug } });
-                if (!existingCeleb) continue;
+                if (!existingCeleb) {
+                    console.log(`[RegionalFeed] Celeb ${cleanName} not found, skipping.`);
+                    continue;
+                }
 
                 // Duplicate check
                 const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -1190,11 +1212,15 @@ Format JSON: {
                         celebrityId: existingCeleb.id
                     }
                 });
-                console.log(`[RegionalFeed] Added ${item.region} story for ${cleanName}`);
+                console.log(`[RegionalFeed] Added ${region} story for ${cleanName}`);
             }
+            
+            // Short delay to avoid rate limits
+            await delay(1000);
+            
+        } catch (e) {
+            console.error(`[RegionalFeed] Failed for ${region}:`, e);
         }
-    } catch (e) {
-        console.error(`[RegionalFeed] Merged pulse failed:`, e);
     }
 };
 
@@ -1225,7 +1251,7 @@ const profileRefresher = async (job?: Job) => {
         const isPlaceholder = c.imageUrl.includes('ui-avatars.com') || c.imageUrl.toLowerCase().endsWith('.svg');
         if (isPlaceholder) {
             const clean = cleanCelebName(c.name);
-            const newImg = await getWikipediaImage(clean);
+            const newImg = await getWikipediaImage(clean, c.id);
             if (newImg && !newImg.toLowerCase().endsWith('.svg')) {
                 await prisma.celebrity.update({ where: { id: c.id }, data: { imageUrl: newImg } });
                 console.log(`[ProfileRefresher] Fixed image for ${c.name}: ${newImg}`);
@@ -1403,7 +1429,7 @@ const processCelebrityForSeed = async (
         return false;
     }
 
-    const image = await getWikipediaImage(cleanName);
+    const image = await getWikipediaImage(cleanName, slug);
     if (!image) {
         console.log(`    [Skip] ${cleanName} - No Wikipedia image`);
         return false;

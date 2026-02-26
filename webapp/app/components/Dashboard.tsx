@@ -10,7 +10,7 @@ import { Activity, Loader2, Zap, Clock, ExternalLink, ChevronDown as LoadMoreIco
 import { Button } from './ui/Button';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { useUI } from '@/app/providers/UIProvider';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import PostWall from './social/PostWall';
 import CommentSection from './social/CommentSection';
 import { ShareButton } from './ui/ShareButton';
@@ -23,6 +23,9 @@ interface DashboardProps {
 
 export const Dashboard: React.FC<DashboardProps> = ({ initialFeed = [], initialTopCelebs = [] }) => {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const tab = searchParams.get('tab');
+  
   const { user, token } = useAuth();
   const { openAuthModal, openConfirmModal } = useUI();
   const [feed, setFeed] = useState<GossipHeadline[]>(initialFeed);
@@ -30,8 +33,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialFeed = [], initialT
   const [loading, setLoading] = useState(initialFeed.length === 0);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [expandedCommentsId, setExpandedCommentsId] = useState<string | null>(null);
-  const [visibleCount, setVisibleCount] = useState(20);
-  const [activeTab, setActiveTab] = useState<'news' | 'community'>('news');
+  const [visibleCount, setVisibleCount] = useState(9);
+  const [activeTab, setActiveTab] = useState<'news' | 'community'>(
+    tab === 'community' ? 'community' : 'news'
+  );
 
   const shouldShowAds = !user || user.plan === 'free';
 
@@ -158,7 +163,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialFeed = [], initialT
   };
 
   const handleLoadMore = () => {
-      setVisibleCount(prev => prev + 10);
+      setVisibleCount(prev => prev + 9);
   };
 
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>, name: string, id?: string) => {
@@ -170,11 +175,26 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialFeed = [], initialT
 
       const seed = name || id || 'Unknown';
 
+      // First fallback: try Wikipedia FilePath redirect (very reliable for famous celebs)
+      if (!currentSrc.includes('wikipedia.org') && !currentSrc.includes('ui-avatars.com')) {
+        const wikiName = seed.replace(/\s+/g, '_');
+        // We guess it's a .jpg (most common). If this fails, it'll trigger onError again
+        target.src = `https://en.wikipedia.org/wiki/Special:FilePath/${encodeURIComponent(wikiName)}.jpg?width=300`;
+        return;
+      }
+
+      // Second fallback: Try .png if .jpg failed for Wikipedia
+      if (currentSrc.includes('wikipedia.org') && currentSrc.endsWith('.jpg?width=300')) {
+        const wikiName = seed.replace(/\s+/g, '_');
+        target.src = `https://en.wikipedia.org/wiki/Special:FilePath/${encodeURIComponent(wikiName)}.png?width=300`;
+        return;
+      }
+
       if (currentSrc.includes('ui-avatars.com')) {
-        // Second fallback: DiceBear initials
+        // Last fallback: DiceBear initials
         target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(seed)}&backgroundColor=18181b&fontSize=40`;
       } else {
-        // First fallback: UI Avatars
+        // UI Avatars
         target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(seed)}&background=18181b&color=fff&size=200`;
       }
   };
@@ -243,7 +263,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialFeed = [], initialT
         <div className="space-y-4" role="feed">
           {displayedFeed.map((item, index) => {
             const isExpanded = expandedId === item.id;
-            const showAd = shouldShowAds && (index + 1) % 5 === 0;
+            const showAd = shouldShowAds && (index + 1) % 3 === 0;
             
             return (
               <React.Fragment key={item.id}>
@@ -268,7 +288,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialFeed = [], initialT
                       >
                           {/* Top Row: Image + Metadata + Score */}
                           <div className="flex items-center gap-3 w-full md:w-auto">
-                              <div className="flex-shrink-0 w-12 h-12 md:w-16 md:h-16 rounded-lg overflow-hidden bg-black/50 border border-white/5 relative z-10">
+                              <div 
+                                className="flex-shrink-0 w-12 h-12 md:w-16 md:h-16 rounded-lg overflow-hidden bg-black/50 border border-white/5 relative z-10 cursor-pointer hover:border-primary/50 transition-colors"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onSelectCeleb(item.celebId);
+                                }}
+                              >
                                   <img 
                                       src={item.imageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.celebName || 'Unknown')}&background=18181b&color=fff&size=200`} 
                                       alt={item.celebName || 'Celebrity'} 
@@ -293,13 +319,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialFeed = [], initialT
                                   </div>
                               </div>
 
-                              {/* Mobile Score & Chevron */}
-                              <div className="flex flex-shrink-0 items-center gap-3 md:hidden z-20">
-                                  <div className="flex flex-col items-end gap-0.5">
+                              {/* Mobile Score & Action */}
+                              <div className="flex flex-shrink-0 items-center gap-2 md:hidden z-20">
+                                  <div className="flex flex-col items-end gap-0.5 min-w-[32px]">
                                       <div className={`text-lg font-bold font-mono ${item.impactScore > 90 ? 'text-red-500' : 'text-primary'}`}>
                                           {item.impactScore}
                                       </div>
-                                      <div className="text-[8px] text-gray-600 font-mono uppercase">HEAT!!!</div>
                                   </div>
                                   <div className={`text-gray-500 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
                                       <ChevronDown size={18} />
@@ -320,18 +345,33 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialFeed = [], initialT
                                       <Clock size={10} /> <RelativeTime date={item.timestamp || new Date().getTime()} />
                                   </div>
                               </div>
-                              <h3 className="text-lg font-bold text-white leading-tight pr-4 truncate">
+                              <h3 className="text-lg font-bold text-white leading-tight pr-4 truncate group-hover:text-primary/90 transition-colors">
                                   {item.headline}
                               </h3>
                           </div>
 
                           {/* Desktop End Block */}
                           <div className="flex-shrink-0 flex items-center gap-4 z-10 hidden md:flex">
-                              <div className="flex flex-col items-end gap-1">
+                              <div className="flex items-center gap-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 text-gray-500 hover:text-primary"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onSelectCeleb(item.celebId);
+                                    }}
+                                    title="View Profile"
+                                  >
+                                      <UserIcon size={16} />
+                                  </Button>
+                              </div>
+                              <div className="h-8 w-px bg-white/5 mx-1" />
+                              <div className="flex flex-col items-end gap-1 min-w-[40px]">
                                   <div className={`text-xl font-bold font-mono ${item.impactScore > 90 ? 'text-red-500' : 'text-primary'}`}>
                                       {item.impactScore}
                                   </div>
-                                  <div className="text-[10px] text-gray-600 font-mono uppercase tracking-widest">HEAT!!!</div>
+                                  <div className="text-[10px] text-gray-600 font-mono uppercase tracking-widest">HEAT</div>
                               </div>
                               <div className={`text-gray-500 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
                                   <ChevronDown size={20} />
@@ -479,7 +519,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialFeed = [], initialT
                     onClick={handleLoadMore}
                     className="w-full md:w-auto min-w-[200px] gap-2 shadow-xl shadow-secondary/10"
                   >
-                      <LoadMoreIcon size={18} /> Load More Juice
+                      <LoadMoreIcon size={18} /> Load More
                   </Button>
               </div>
           )}

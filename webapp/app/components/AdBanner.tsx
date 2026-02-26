@@ -31,6 +31,12 @@ export const AdBanner: React.FC = () => {
                  data-ad-format="fluid"
                  data-ad-layout-key="-fb+5w+4e-db+86"
                  data-full-width-responsive="true"></ins>
+
+            {/* Visual Placeholder when ad is not loaded or for dev */}
+            <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center opacity-[0.03] group-hover:opacity-[0.07] transition-opacity">
+                <div className="text-4xl font-black uppercase tracking-[0.2em]">Sponsor Space</div>
+                <div className="text-[10px] font-mono mt-2 tracking-widest">AD UNIT ACTIVE // SLOT_001</div>
+            </div>
         </div>
     </div>
   );

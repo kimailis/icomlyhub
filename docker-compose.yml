@@ -85,6 +85,8 @@ services:
     depends_on:
       - postgres
       - redis
+    volumes:
+      - ./uploads:/app/uploads
 
   seedservice:
     build:

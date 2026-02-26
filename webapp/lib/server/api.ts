@@ -4,8 +4,15 @@ import { GossipHeadline, CelebProfile } from '@/lib/types';
 
 export async function getFeedServer(): Promise<GossipHeadline[]> {
   try {
-    const cachedFeed = await redisClient.get('feed:global');
-    if (cachedFeed) return JSON.parse(cachedFeed);
+    if (process.env.NEXT_PHASE !== 'phase-production-build') {
+      try {
+        if (!redisClient.isOpen) await redisClient.connect();
+        const cachedFeed = await redisClient.get('feed:global');
+        if (cachedFeed) return JSON.parse(cachedFeed);
+      } catch (e) {
+        console.warn('Redis Cache Skip (Feed):', (e as Error).message);
+      }
+    }
 
     const twentyFourHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000); // 48h for more content
 
@@ -93,7 +100,9 @@ export async function getFeedServer(): Promise<GossipHeadline[]> {
 
     const finalFeed = unifiedFeed.slice(0, 50);
 
-    await redisClient.set('feed:global', JSON.stringify(finalFeed), { EX: 300 });
+    if (redisClient.isOpen) {
+      await redisClient.set('feed:global', JSON.stringify(finalFeed), { EX: 300 });
+    }
     return finalFeed;
   } catch (error) {
     console.error('getFeedServer error:', error);
@@ -103,8 +112,15 @@ export async function getFeedServer(): Promise<GossipHeadline[]> {
 
 export async function getTopCelebsServer(): Promise<CelebProfile[]> {
   try {
-    const cachedCelebs = await redisClient.get('celebs:top');
-    if (cachedCelebs) return JSON.parse(cachedCelebs);
+    if (process.env.NEXT_PHASE !== 'phase-production-build') {
+      try {
+        if (!redisClient.isOpen) await redisClient.connect();
+        const cachedCelebs = await redisClient.get('celebs:top');
+        if (cachedCelebs) return JSON.parse(cachedCelebs);
+      } catch (e) {
+        console.warn('Redis Cache Skip (TopCelebs):', (e as Error).message);
+      }
+    }
 
     const celebs = await prisma.celebrity.findMany({
       take: 10,
@@ -132,7 +148,9 @@ export async function getTopCelebsServer(): Promise<CelebProfile[]> {
       category: item.category
     }));
 
-    await redisClient.set('celebs:top', JSON.stringify(mappedCelebs), { EX: 1800 });
+    if (redisClient.isOpen) {
+      await redisClient.set('celebs:top', JSON.stringify(mappedCelebs), { EX: 1800 });
+    }
     return mappedCelebs;
   } catch (error) {
     console.error('getTopCelebsServer error:', error);
@@ -211,9 +229,16 @@ export async function getProfileServer(id: string): Promise<any> {
 
 export async function getMapDataServer(): Promise<any[]> {
   try {
-    const cachedMap = await redisClient.get('sightings:geo:v2');
-    if (cachedMap) {
-      return JSON.parse(cachedMap);
+    if (process.env.NEXT_PHASE !== 'phase-production-build') {
+      try {
+        if (!redisClient.isOpen) await redisClient.connect();
+        const cachedMap = await redisClient.get('sightings:geo:v2');
+        if (cachedMap) {
+          return JSON.parse(cachedMap);
+        }
+      } catch (e) {
+        console.warn('Redis Cache Skip (Map):', (e as Error).message);
+      }
     }
 
     const sightings = await prisma.sighting.findMany({
@@ -260,7 +285,9 @@ export async function getMapDataServer(): Promise<any[]> {
         date: s.date.toISOString()
     }));
 
-    await redisClient.set('sightings:geo:v2', JSON.stringify(mappedSightings), { EX: 1800 });
+    if (redisClient.isOpen) {
+      await redisClient.set('sightings:geo:v2', JSON.stringify(mappedSightings), { EX: 1800 });
+    }
     return mappedSightings;
   } catch (error) {
     console.error('getMapDataServer error:', error);

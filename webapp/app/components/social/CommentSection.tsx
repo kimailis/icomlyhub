@@ -7,7 +7,6 @@ import { Button } from '@/app/components/ui/Button';
 import { ThumbsUp, ThumbsDown, MessageSquare, Send, User as UserIcon, Trash2 } from 'lucide-react';
 import { formatRelativeTime } from '@/lib/utils';
 import { RelativeTime } from '@/app/components/ui/RelativeTime';
-import Link from 'next/link';
 
 interface Comment {
   id: string;
@@ -189,7 +188,7 @@ export default function CommentSection({ postId, articleId, sightingId }: Commen
           comments.map((comment) => (
             <div key={comment.id} className="p-3 rounded-2xl bg-surface/30 border border-white/5 space-y-1">
               <div className="flex items-center justify-between">
-                <Link href={`/user/${comment.user.id}`} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                <div className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center overflow-hidden">
                     {comment.user.profilePath ? (
                       <img src={comment.user.profilePath} className="w-full h-full object-cover" />
@@ -198,7 +197,7 @@ export default function CommentSection({ postId, articleId, sightingId }: Commen
                     )}
                   </div>
                   <span className="text-xs font-bold text-gray-300">{comment.user.name || 'Anonymous User'}</span>
-                </Link>
+                </div>
                 <div className="flex items-center gap-2">
                   <RelativeTime date={comment.createdAt} className="text-[10px] text-gray-600 font-mono" />
                   {user?.id === comment.user.id && (

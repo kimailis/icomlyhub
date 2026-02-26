@@ -248,7 +248,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-4 space-y-6 pb-20">
-      <Button variant="ghost" onClick={() => router.back()} className="gap-2 text-gray-400 hover:text-white">
+      <Button variant="ghost" onClick={() => router.push('/?tab=community')} className="gap-2 text-gray-400 hover:text-white">
         <ArrowLeft size={16} /> Back
       </Button>
 

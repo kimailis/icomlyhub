@@ -1,5 +1,6 @@
 import { Dashboard } from './components/Dashboard';
 import { getFeedServer, getTopCelebsServer } from '@/lib/server/api';
+import { Suspense } from 'react';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,5 +10,14 @@ export default async function Home() {
     getTopCelebsServer()
   ]);
 
-  return <Dashboard initialFeed={initialFeed} initialTopCelebs={initialTopCelebs} />;
+  return (
+    <Suspense fallback={
+        <div className="flex flex-col items-center justify-center min-h-[60vh] text-gray-400 space-y-4">
+            <div className="animate-spin h-10 w-10 border-t-2 border-primary rounded-full"></div>
+            <p className="text-sm font-mono tracking-widest uppercase animate-pulse">Initializing Dashboard...</p>
+        </div>
+    }>
+        <Dashboard initialFeed={initialFeed} initialTopCelebs={initialTopCelebs} />
+    </Suspense>
+  );
 }
