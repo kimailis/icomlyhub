@@ -85,7 +85,7 @@ export async function POST(req: Request) {
     const { password: _, role, ...userWithoutPassword } = user;
     
     console.log(`[Google Auth] Authentication successful for: ${email}`);
-    return NextResponse.json({
+    const response = NextResponse.json({
         token,
         user: {
             ...userWithoutPassword,
@@ -94,6 +94,15 @@ export async function POST(req: Request) {
             notificationSettings: user.notificationSettings ? JSON.parse(user.notificationSettings) : {}
         }
     });
+
+    // Set plan cookie for SSR filtering
+    response.cookies.set('plan', role, {
+        path: '/',
+        maxAge: 60 * 60 * 24 * 7, // 7 days
+        sameSite: 'lax',
+    });
+
+    return response;
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Google authentication failed';
     console.error('[Google Auth] Fatal error:', message);

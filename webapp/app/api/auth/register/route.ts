@@ -48,7 +48,7 @@ export async function POST(req: Request) {
     // Return user without password, mapping role to plan
     const { password: _, role, ...userWithoutPassword } = user;
     
-    return NextResponse.json({
+    const response = NextResponse.json({
         token,
         user: {
             ...userWithoutPassword,
@@ -57,6 +57,15 @@ export async function POST(req: Request) {
             notificationSettings: {}
         }
     }, { status: 201 });
+
+    // Set plan cookie for SSR filtering
+    response.cookies.set('plan', role, {
+        path: '/',
+        maxAge: 60 * 60 * 24 * 7, // 7 days
+        sameSite: 'lax',
+    });
+
+    return response;
   } catch (error) {
     console.error('Registration error:', error);
     return NextResponse.json({ message: 'Registration failed', error }, { status: 500 });

@@ -1,12 +1,39 @@
 import { NextResponse } from 'next/server';
 import redisClient from '@/lib/redis';
 import prisma from '@/lib/prisma';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'secret';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const cachedFeed = await redisClient.get('feed:global');
+    // Check Plan
+    let plan = 'free';
+    const authHeader = req.headers.get('Authorization');
+    if (authHeader?.startsWith('Bearer ')) {
+        const token = authHeader.split(' ')[1];
+        try {
+            const decoded = jwt.verify(token, JWT_SECRET) as any;
+            if (decoded && decoded.userId) {
+                const user = await prisma.user.findUnique({
+                    where: { id: decoded.userId },
+                    select: { role: true }
+                });
+                if (user) plan = user.role;
+            }
+        } catch (e) {
+            // Invalid token, treat as free
+        }
+    }
+
+    const isPro = plan === 'pro';
+    const cacheKey = isPro ? 'feed:global:pro' : 'feed:global:free';
+    const newsDelayMs = 3 * 60 * 60 * 1000;
+    const timeLimit = new Date(Date.now() - (isPro ? 0 : newsDelayMs));
+
+    const cachedFeed = await redisClient.get(cacheKey);
     if (cachedFeed) {
       return NextResponse.json(JSON.parse(cachedFeed));
     }
@@ -15,7 +42,12 @@ export async function GET() {
 
     // Fetch Articles
     const articles = await prisma.article.findMany({
-      where: { publishedAt: { gte: timeWindow } },
+      where: { 
+        publishedAt: { 
+            gte: timeWindow,
+            lte: timeLimit
+        } 
+      },
       take: 40,
       orderBy: { publishedAt: 'desc' },
       include: {
@@ -116,7 +148,7 @@ export async function GET() {
       if (finalFeed.length >= 50) break;
     }
 
-    await redisClient.set('feed:global', JSON.stringify(finalFeed), { EX: 300 });
+    await redisClient.set(cacheKey, JSON.stringify(finalFeed), { EX: 300 });
     return NextResponse.json(finalFeed);
   } catch (error) {
     console.error('API Error /api/feed:', error);

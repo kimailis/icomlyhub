@@ -1,13 +1,39 @@
 import { NextResponse } from 'next/server';
 import redisClient from '@/lib/redis';
 import prisma from '@/lib/prisma';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'secret';
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   // await params in Next.js 15
   const { id } = await params;
 
   try {
-    const cacheKey = `profile:${id}`;
+    // Check Plan
+    let plan = 'free';
+    const authHeader = request.headers.get('Authorization');
+    if (authHeader?.startsWith('Bearer ')) {
+        const token = authHeader.split(' ')[1];
+        try {
+            const decoded = jwt.verify(token, JWT_SECRET) as any;
+            if (decoded && decoded.userId) {
+                const user = await prisma.user.findUnique({
+                    where: { id: decoded.userId },
+                    select: { role: true }
+                });
+                if (user) plan = user.role;
+            }
+        } catch (e) {
+            // Invalid token
+        }
+    }
+
+    const isPro = plan === 'pro';
+    const cacheKey = isPro ? `profile:${id}:pro` : `profile:${id}:free`;
+    const newsTimeLimit = new Date(Date.now() - (isPro ? 0 : 3 * 60 * 60 * 1000));
+    const sightingTimeLimit = new Date(Date.now() - (isPro ? 0 : 24 * 60 * 60 * 1000));
+
     const cachedProfile = await redisClient.get(cacheKey);
     if (cachedProfile) {
       return NextResponse.json(JSON.parse(cachedProfile));
@@ -31,6 +57,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
           bioLastUpdated: true,
           category: true,
           articles: {
+            where: { publishedAt: { lte: newsTimeLimit } },
             take: 50,
             orderBy: { publishedAt: 'desc' },
             select: {
@@ -45,6 +72,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
             }
           },
           sightings: {
+            where: { date: { lte: sightingTimeLimit } },
             take: 10,
             orderBy: { date: 'desc' },
             select: {
@@ -67,7 +95,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
           }
         }
       }),
-      prisma.article.count({ where: { celebrityId: id } }),
+      prisma.article.count({ 
+        where: { 
+            celebrityId: id,
+            publishedAt: { lte: newsTimeLimit }
+        } 
+      }),
       prisma.follow.count({ where: { celebrityId: id } })
     ]);
 

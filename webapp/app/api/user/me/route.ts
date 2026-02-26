@@ -115,13 +115,22 @@ export async function PUT(req: Request) {
       // Don't fail the whole request if email sync fails
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       ...updatedUser,
       plan: updatedUser.role,
       notificationSettings: updatedUser.notificationSettings 
         ? (typeof updatedUser.notificationSettings === 'string' ? JSON.parse(updatedUser.notificationSettings) : updatedUser.notificationSettings)
         : {}
     });
+
+    // Refresh plan cookie
+    response.cookies.set('plan', updatedUser.role, {
+        path: '/',
+        maxAge: 60 * 60 * 24 * 7, // 7 days
+        sameSite: 'lax',
+    });
+
+    return response;
   } catch (error) {
     console.error('API Error /api/user/me [PUT]:', error);
     return NextResponse.json({ message: 'Failed to update user' }, { status: 500 });

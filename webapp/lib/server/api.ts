@@ -2,23 +2,33 @@ import prisma from '@/lib/prisma';
 import redisClient from '@/lib/redis';
 import { GossipHeadline, CelebProfile } from '@/lib/types';
 
-export async function getFeedServer(): Promise<GossipHeadline[]> {
+export async function getFeedServer(plan?: string): Promise<GossipHeadline[]> {
   try {
+    const isPro = plan === 'pro';
+    const cacheKey = isPro ? 'feed:global:pro' : 'feed:global:free';
+    const newsDelayMs = 3 * 60 * 60 * 1000; // 3 hours
+
     if (process.env.NEXT_PHASE !== 'phase-production-build') {
       try {
         if (!redisClient.isOpen) await redisClient.connect();
-        const cachedFeed = await redisClient.get('feed:global');
+        const cachedFeed = await redisClient.get(cacheKey);
         if (cachedFeed) return JSON.parse(cachedFeed);
       } catch (e) {
         console.warn('Redis Cache Skip (Feed):', (e as Error).message);
       }
     }
 
-    const twentyFourHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000); // 48h for more content
+    const timeLimit = new Date(Date.now() - (isPro ? 0 : newsDelayMs));
+    const twentyFourHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000); 
 
     // Fetch Articles
     const articles = await prisma.article.findMany({
-      where: { publishedAt: { gte: twentyFourHoursAgo } },
+      where: { 
+        publishedAt: { 
+            gte: twentyFourHoursAgo,
+            lte: timeLimit
+        } 
+      },
       take: 40,
       orderBy: { publishedAt: 'desc' },
       include: {
@@ -101,7 +111,7 @@ export async function getFeedServer(): Promise<GossipHeadline[]> {
     const finalFeed = unifiedFeed.slice(0, 50);
 
     if (redisClient.isOpen) {
-      await redisClient.set('feed:global', JSON.stringify(finalFeed), { EX: 300 });
+      await redisClient.set(cacheKey, JSON.stringify(finalFeed), { EX: 300 });
     }
     return finalFeed;
   } catch (error) {
@@ -110,12 +120,17 @@ export async function getFeedServer(): Promise<GossipHeadline[]> {
   }
 }
 
-export async function getTopCelebsServer(): Promise<CelebProfile[]> {
+export async function getTopCelebsServer(plan?: string): Promise<CelebProfile[]> {
   try {
+    const isPro = plan === 'pro';
+    const cacheKey = isPro ? 'celebs:top:pro' : 'celebs:top:free';
+    const sightingDelayMs = 24 * 60 * 60 * 1000; // 24 hours
+    const sightingTimeLimit = new Date(Date.now() - (isPro ? 0 : sightingDelayMs));
+
     if (process.env.NEXT_PHASE !== 'phase-production-build') {
       try {
         if (!redisClient.isOpen) await redisClient.connect();
-        const cachedCelebs = await redisClient.get('celebs:top');
+        const cachedCelebs = await redisClient.get(cacheKey);
         if (cachedCelebs) return JSON.parse(cachedCelebs);
       } catch (e) {
         console.warn('Redis Cache Skip (TopCelebs):', (e as Error).message);
@@ -127,6 +142,9 @@ export async function getTopCelebsServer(): Promise<CelebProfile[]> {
       orderBy: { noiseRating: 'desc' },
       include: {
         sightings: {
+          where: {
+            date: { lte: sightingTimeLimit }
+          },
           take: 1,
           orderBy: { date: 'desc' },
           select: { location: true, date: true, confidence: true }
@@ -149,7 +167,7 @@ export async function getTopCelebsServer(): Promise<CelebProfile[]> {
     }));
 
     if (redisClient.isOpen) {
-      await redisClient.set('celebs:top', JSON.stringify(mappedCelebs), { EX: 1800 });
+      await redisClient.set(cacheKey, JSON.stringify(mappedCelebs), { EX: 1800 });
     }
     return mappedCelebs;
   } catch (error) {
@@ -158,17 +176,23 @@ export async function getTopCelebsServer(): Promise<CelebProfile[]> {
   }
 }
 
-export async function getProfileServer(id: string): Promise<any> {
+export async function getProfileServer(id: string, plan?: string): Promise<any> {
     try {
+        const isPro = plan === 'pro';
+        const newsTimeLimit = new Date(Date.now() - (isPro ? 0 : 3 * 60 * 60 * 1000));
+        const sightingTimeLimit = new Date(Date.now() - (isPro ? 0 : 24 * 60 * 60 * 1000));
+
         const [celebrity, followerCount] = await Promise.all([
             prisma.celebrity.findUnique({
                 where: { id },
                 include: {
                     articles: {
+                        where: { publishedAt: { lte: newsTimeLimit } },
                         take: 10,
                         orderBy: { publishedAt: 'desc' }
                     },
                     sightings: {
+                        where: { date: { lte: sightingTimeLimit } },
                         take: 10,
                         orderBy: { date: 'desc' }
                     },
@@ -183,7 +207,12 @@ export async function getProfileServer(id: string): Promise<any> {
 
         if (!celebrity) return null;
 
-        const totalArticles = await prisma.article.count({ where: { celebrityId: id } });
+        const totalArticles = await prisma.article.count({ 
+            where: { 
+                celebrityId: id,
+                publishedAt: { lte: newsTimeLimit }
+            } 
+        });
 
         return {
             id: celebrity.id,
@@ -227,12 +256,17 @@ export async function getProfileServer(id: string): Promise<any> {
     }
 }
 
-export async function getMapDataServer(): Promise<any[]> {
+export async function getMapDataServer(plan?: string): Promise<any[]> {
   try {
+    const isPro = plan === 'pro';
+    const cacheKey = isPro ? 'sightings:geo:v2:pro' : 'sightings:geo:v2:free';
+    const sightingDelayMs = 24 * 60 * 60 * 1000;
+    const sightingTimeLimit = new Date(Date.now() - (isPro ? 0 : sightingDelayMs));
+
     if (process.env.NEXT_PHASE !== 'phase-production-build') {
       try {
         if (!redisClient.isOpen) await redisClient.connect();
-        const cachedMap = await redisClient.get('sightings:geo:v2');
+        const cachedMap = await redisClient.get(cacheKey);
         if (cachedMap) {
           return JSON.parse(cachedMap);
         }
@@ -243,7 +277,10 @@ export async function getMapDataServer(): Promise<any[]> {
 
     const sightings = await prisma.sighting.findMany({
       where: {
-        date: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
+        date: { 
+            gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+            lte: sightingTimeLimit
+        }
       },
       select: {
         id: true,
@@ -286,7 +323,7 @@ export async function getMapDataServer(): Promise<any[]> {
     }));
 
     if (redisClient.isOpen) {
-      await redisClient.set('sightings:geo:v2', JSON.stringify(mappedSightings), { EX: 1800 });
+      await redisClient.set(cacheKey, JSON.stringify(mappedSightings), { EX: 1800 });
     }
     return mappedSightings;
   } catch (error) {
