@@ -31,8 +31,7 @@ export async function GET(req: Request) {
     const isPro = plan === 'pro';
     const cacheKey = isPro ? 'feed:global:pro' : 'feed:global:free';
     const newsDelayMs = 3 * 60 * 60 * 1000;
-    // Both free and pro see feed 3h late
-    const timeLimit = new Date(Date.now() - newsDelayMs);
+    const timeLimit = new Date(Date.now() - (isPro ? 0 : newsDelayMs));
 
     const cachedFeed = await redisClient.get(cacheKey);
     if (cachedFeed) {
