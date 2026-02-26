@@ -19,17 +19,14 @@ export async function GET(req: Request) {
         const token = authHeader.split(' ')[1];
         try {
             const decoded = jwt.verify(token, JWT_SECRET) as any;
-            if (decoded) {
-                // Try to get role from token first
-                if (decoded.role) {
-                  plan = decoded.role;
-                } else if (decoded.userId) {
-                  // Fallback to DB if not in token
-                  const user = await prisma.user.findUnique({
-                      where: { id: decoded.userId },
-                      select: { role: true }
-                  });
-                  if (user) plan = user.role;
+            if (decoded && decoded.userId) {
+                // ALWAYS fetch fresh role from DB to avoid stale JWT roles
+                const user = await prisma.user.findUnique({
+                    where: { id: decoded.userId },
+                    select: { role: true }
+                });
+                if (user) {
+                  plan = user.role;
                 }
             }
         } catch (e) {
@@ -39,6 +36,8 @@ export async function GET(req: Request) {
 
     const isPro = plan === 'pro' || plan === 'insider';
     const cacheKey = isPro ? 'feed:global:pro' : 'feed:global:free';
+
+    console.log(`[API/Feed] plan: ${plan}, isPro: ${isPro}, cacheKey: ${cacheKey}, userId: ${authHeader?.startsWith('Bearer ') ? 'present' : 'missing'}`);
 
     if (!forceRefresh) {
       const cachedFeed = await redisClient.get(cacheKey);
