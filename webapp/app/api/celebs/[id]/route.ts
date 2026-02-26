@@ -31,7 +31,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
     const isPro = plan === 'pro';
     const cacheKey = isPro ? `profile:${id}:pro` : `profile:${id}:free`;
-    const newsTimeLimit = new Date(Date.now() - (isPro ? 0 : 3 * 60 * 60 * 1000));
+    const newsDelayMs = 3 * 60 * 60 * 1000;
+    // Both free and pro see news 3h late
+    const newsTimeLimit = new Date(Date.now() - newsDelayMs);
+    // Locations: Pro=0ms, Free=24h
     const sightingTimeLimit = new Date(Date.now() - (isPro ? 0 : 24 * 60 * 60 * 1000));
 
     const cachedProfile = await redisClient.get(cacheKey);

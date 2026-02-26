@@ -617,9 +617,19 @@ const backfillCelebJob = async (name: string, skipSearch: boolean = false) => {
             if (data.articles && Array.isArray(data.articles)) {
                 await prisma.article.createMany({
                     data: data.articles.map((a: any) => {
-                        // Force date to NOW for "Breaking News" feel
+                        // Use provided publishedAt if valid and recent, else fallback to "now" simulation
                         let publishedAt = new Date();
-                        publishedAt.setMinutes(publishedAt.getMinutes() - Math.floor(Math.random() * 120));
+                        if (a.publishedAt) {
+                            const parsed = new Date(a.publishedAt);
+                            const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+                            if (!isNaN(parsed.getTime()) && parsed > sevenDaysAgo && parsed <= new Date()) {
+                                publishedAt = parsed;
+                            } else {
+                                publishedAt.setMinutes(publishedAt.getMinutes() - Math.floor(Math.random() * 120));
+                            }
+                        } else {
+                            publishedAt.setMinutes(publishedAt.getMinutes() - Math.floor(Math.random() * 120));
+                        }
 
                         let sourceUrl = a.sourceUrl;
                         if (isHomepageOrInvalid(sourceUrl)) {
@@ -990,10 +1000,11 @@ const notifyFollowers = async (celebId: string, celebName: string, headline: str
 export const globalFeedGenerator = async () => {
     try {
         const currentYear = new Date().getFullYear(); 
+        const randomSeed = Math.floor(Math.random() * 1000000); // Break cache variety
 
         const prompt = `
 TASK: Search for and retrieve 5 REAL, TRENDING celebrity news stories from different continents.
-CONTEXT: Today is ${getCurrentDateString()}.
+CONTEXT: Today is ${getCurrentDateString()}. Random Seed: ${randomSeed}.
 1. USE GOOGLE SEARCH to find actual breaking news from the LAST 24-48 HOURS.
 2. FOCUS on Major Stars (A-List).
 3. ENSURE each story is for a DIFFERENT celebrity from a DIFFERENT country.
@@ -1007,7 +1018,7 @@ Ensure all double quotes INSIDE string values are properly escaped with a backsl
 
 Format: JSON object { "articles": [{ "headline": "text", "summary": "text", "source": "text", "sourceUrl": "text", "celebName": "FULL NAME", "buzzScore": 50, "trend": "up", "category": "text", "publishedAt": "ISO Date" }] }.`;
 
-        const data = await geminiOptimizedService.generateContent(prompt, { useSearch: true });
+        const data = await geminiOptimizedService.generateContent(prompt, { useSearch: true, ttl: 1800 }); // 30 min cache for feed
 
         if (data.articles && Array.isArray(data.articles)) {
             const processedCelebs = new Set<string>();
@@ -1029,12 +1040,20 @@ Format: JSON object { "articles": [{ "headline": "text", "summary": "text", "sou
                 }
                 processedCelebs.add(slug);
 
-                // Check for valid publishedAt date
+                // Use provided publishedAt if valid and recent, else fallback to "now" simulation
                 let publishedDate = new Date();
-                
-                // FORCE DATE TO NOW (Simulation Mode with Real Data)
-                publishedDate = new Date();
-                publishedDate.setMinutes(publishedDate.getMinutes() - Math.floor(Math.random() * 120));
+                if (item.publishedAt) {
+                    const parsed = new Date(item.publishedAt);
+                    const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
+                    if (!isNaN(parsed.getTime()) && parsed > fortyEightHoursAgo && parsed <= new Date()) {
+                        publishedDate = parsed;
+                    } else {
+                        // FORCE DATE TO NOW (Simulation Mode with Real Data)
+                        publishedDate.setMinutes(publishedDate.getMinutes() - Math.floor(Math.random() * 120));
+                    }
+                } else {
+                    publishedDate.setMinutes(publishedDate.getMinutes() - Math.floor(Math.random() * 120));
+                }
 
                 const avatarName = getAvatarName(cleanName);
 
@@ -1107,8 +1126,8 @@ Format: JSON object { "articles": [{ "headline": "text", "summary": "text", "sou
                         await tx.noiseHistory.createMany({ data: historyData });
                     }
 
-                    // Check if this article already exists (by headline in last 48h OR any article for this celeb in last 24h)
-                    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+                    // Check if this article already exists (by headline in last 48h OR any article for this celeb in last 12h)
+                    const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000);
                     const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
                     
                     const existingArticle = await tx.article.findFirst({
@@ -1121,15 +1140,22 @@ Format: JSON object { "articles": [{ "headline": "text", "summary": "text", "sou
                                 },
                                 {
                                     celebrityId: c.id,
-                                    publishedAt: { gte: twentyFourHoursAgo }
+                                    publishedAt: { gte: twelveHoursAgo }
                                 }
                             ]
                         }
                     });
 
-                    if (existingArticle) {
-                        console.log(`[GlobalFeed] Skipping ${cleanName} - article already exists or too recent (within 24h).`);
-                        return; // Exit transaction early, skip this article
+                    if (existingArticle && existingArticle.headline.toLowerCase() === item.headline.toLowerCase()) {
+                        console.log(`[GlobalFeed] Skipping ${cleanName} - identical article already exists.`);
+                        return; 
+                    }
+                    
+                    if (existingArticle && !item.headline.toLowerCase().includes(existingArticle.headline.toLowerCase().substring(0, 10))) {
+                        // Different headline, allow even if within 12h
+                    } else if (existingArticle) {
+                        console.log(`[GlobalFeed] Skipping ${cleanName} - article already exists or too recent (within 12h).`);
+                        return; 
                     }
 
                     // Create article with smart search URL
@@ -1218,9 +1244,10 @@ export const regionalFeedGenerator = async () => {
     for (const region of regions) {
         try {
             console.log(`[RegionalFeed] Generating for ${region}...`);
+            const randomSeed = Math.floor(Math.random() * 1000000);
             const prompt = `
 TASK: Generate the TOP trending celebrity gossip story for the region: ${region}.
-CONTEXT: Today is ${getCurrentDateString()}.
+CONTEXT: Today is ${getCurrentDateString()}. Random Seed: ${randomSeed}.
 1. Provide ONE major trending news story for THIS region.
 2. Provide a detailed 3-4 sentence summary.
 3. For Asia, ENSURE it is NOT always from India (try East Asia, South East Asia, etc. if trending).
@@ -1759,9 +1786,9 @@ const feedWorker = new Worker('feed-generation', async (job: Job) => {
 });
 
 setTimeout(() => {
+    feedQueue.add('GlobalFeedGenerator', {});
     feedQueue.add('SeedCelebs', {});
     feedQueue.add('MassiveSeed', {}); // Start seeding on startup
-    feedQueue.add('GlobalFeedGenerator', {});
     feedQueue.add('ProfileRefresher', { priority: true });
     feedQueue.add('NormalizeScores', {});
     feedQueue.add('RegionalFeedGenerator', {});

@@ -1,18 +1,47 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import redisClient from '@/lib/redis';
+import jwt from 'jsonwebtoken';
 
-export async function GET() {
+const JWT_SECRET = process.env.JWT_SECRET || 'secret';
+
+export async function GET(request: Request) {
   try {
-    const cachedMap = await redisClient.get('sightings:geo:v2');
+    // Check Plan
+    let plan = 'free';
+    const authHeader = request.headers.get('Authorization');
+    if (authHeader?.startsWith('Bearer ')) {
+        const token = authHeader.split(' ')[1];
+        try {
+            const decoded = jwt.verify(token, JWT_SECRET) as any;
+            if (decoded && decoded.userId) {
+                const user = await prisma.user.findUnique({
+                    where: { id: decoded.userId },
+                    select: { role: true }
+                });
+                if (user) plan = user.role;
+            }
+        } catch (e) {
+            // Invalid token
+        }
+    }
+
+    const isPro = plan === 'pro';
+    const cacheKey = isPro ? 'sightings:geo:v2:pro' : 'sightings:geo:v2:free';
+    const sightingTimeLimit = new Date(Date.now() - (isPro ? 0 : 24 * 60 * 60 * 1000));
+
+    const cachedMap = await redisClient.get(cacheKey);
     if (cachedMap) {
       return NextResponse.json(JSON.parse(cachedMap));
     }
 
-    // Get ALL recent sightings (last 7 days)
+    // Get ALL recent sightings (last 7 days, but up to sightingTimeLimit)
     const sightings = await prisma.sighting.findMany({
       where: {
-        date: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
+        date: { 
+            gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+            lte: sightingTimeLimit
+        }
       },
       select: {
         id: true,
@@ -51,7 +80,7 @@ export async function GET() {
     }
 
     // Cache for 30 minutes
-    await redisClient.set('sightings:geo:v2', JSON.stringify(uniqueSightings), { EX: 1800 });
+    await redisClient.set(cacheKey, JSON.stringify(uniqueSightings), { EX: 1800 });
     
     return NextResponse.json(uniqueSightings);
   } catch (error) {

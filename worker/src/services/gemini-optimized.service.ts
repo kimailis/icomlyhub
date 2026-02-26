@@ -7,7 +7,7 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
 export class GeminiOptimizedService {
   private modelName: string;
   private CACHE_TTL = 24 * 60 * 60; // 24 hours in seconds
-  private SEARCH_CACHE_TTL = 72 * 60 * 60; // 72 hours for search results
+  private SEARCH_CACHE_TTL = 1 * 60 * 60; // 1 hour for search results (Reduced from 72h for freshness)
   private GROUNDING_FEE = 0.035; // $0.035 per search request
   
   // Cost tracking
@@ -29,7 +29,7 @@ export class GeminiOptimizedService {
     }
   }
 
-  async generateContent(prompt: string, options?: { skipCache?: boolean; useSearch?: boolean }, retryCount = 0): Promise<any> {
+  async generateContent(prompt: string, options?: { skipCache?: boolean; useSearch?: boolean; ttl?: number }, retryCount = 0): Promise<any> {
     await this.ensureRedisConnected();
     
     // Generate cache key (include useSearch in hash)
@@ -102,7 +102,7 @@ export class GeminiOptimizedService {
       
       // Cache the result in Redis
       try {
-        const ttl = options?.useSearch ? this.SEARCH_CACHE_TTL : this.CACHE_TTL;
+        const ttl = options?.ttl || (options?.useSearch ? this.SEARCH_CACHE_TTL : this.CACHE_TTL);
         await redisClient.set(cacheKey, JSON.stringify(data), { EX: ttl });
       } catch (err) {
         console.error('[Gemini] Redis cache write error:', err);
