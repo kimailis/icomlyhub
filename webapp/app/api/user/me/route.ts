@@ -42,7 +42,9 @@ export async function GET(req: Request) {
     return NextResponse.json({
       ...user,
       plan: user.role,
-      notificationSettings: user.notificationSettings ? JSON.parse(user.notificationSettings) : {}
+      notificationSettings: user.notificationSettings 
+        ? (typeof user.notificationSettings === 'string' ? JSON.parse(user.notificationSettings) : user.notificationSettings)
+        : {}
     });
   } catch (error) {
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
@@ -116,7 +118,9 @@ export async function PUT(req: Request) {
     return NextResponse.json({
       ...updatedUser,
       plan: updatedUser.role,
-      notificationSettings: updatedUser.notificationSettings ? JSON.parse(updatedUser.notificationSettings) : {}
+      notificationSettings: updatedUser.notificationSettings 
+        ? (typeof updatedUser.notificationSettings === 'string' ? JSON.parse(updatedUser.notificationSettings) : updatedUser.notificationSettings)
+        : {}
     });
   } catch (error) {
     console.error('API Error /api/user/me [PUT]:', error);

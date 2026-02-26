@@ -44,7 +44,9 @@ export async function GET(req: Request) {
     return NextResponse.json({
       ...userWithoutRole,
       plan: role,
-      notificationSettings: user.notificationSettings ? JSON.parse(user.notificationSettings) : {}
+      notificationSettings: user.notificationSettings 
+        ? (typeof user.notificationSettings === 'string' ? JSON.parse(user.notificationSettings) : user.notificationSettings)
+        : {}
     });
   } catch (error) {
     console.error('API Error /api/auth/me:', error);

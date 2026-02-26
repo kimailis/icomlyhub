@@ -142,10 +142,12 @@ export const ProfileModal: React.FC = () => {
                 const settings = typeof user.notificationSettings === 'string' 
                     ? JSON.parse(user.notificationSettings) 
                     : user.notificationSettings;
-                setNotificationSettings(prev => ({ 
-                    ...prev, 
+                setNotificationSettings({ 
+                    email: false, 
+                    push: false, 
+                    weeklyDigest: false, 
                     ...settings 
-                }));
+                });
             } catch (e) {
                 console.error("Failed to sync notification settings:", e);
             }

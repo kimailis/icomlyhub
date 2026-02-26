@@ -2,6 +2,7 @@ import { Queue, Worker, Job } from 'bullmq';
 import { geminiOptimizedService } from '../services/gemini-optimized.service';
 import { openaiOptimizedService } from '../services/openai-optimized.service';
 import { ImageService } from '../services/image.service';
+import { emailService } from '../services/email.service';
 import prisma from '../config/prisma';
 import redisClient from '../config/redis';
 import axios from 'axios';
@@ -621,6 +622,11 @@ const backfillCelebJob = async (name: string, skipSearch: boolean = false) => {
                         };
                     })
                 });
+
+                // Notify followers for each article
+                for (const a of data.articles) {
+                    notifyFollowers(slug, cleanName, a.headline, a.summary);
+                }
             }
 
             // 4. Sighting
@@ -926,6 +932,45 @@ const osintCollector = async () => {
     }
 };
 
+/**
+ * Notify followers of a celebrity about a new article
+ */
+const notifyFollowers = async (celebId: string, celebName: string, headline: string, summary: string) => {
+    try {
+        console.log(`[Notification] Checking followers for ${celebName} (${celebId})...`);
+        const followers = await prisma.follow.findMany({
+            where: { celebrityId: celebId },
+            include: {
+                user: {
+                    select: {
+                        email: true,
+                        notificationSettings: true
+                    }
+                }
+            }
+        });
+
+        console.log(`[Notification] Found ${followers.length} followers for ${celebName}`);
+
+        for (const follow of followers) {
+            const user = follow.user;
+            if (!user.email) continue;
+
+            const prefs = user.notificationSettings 
+                ? (typeof user.notificationSettings === 'string' ? JSON.parse(user.notificationSettings) : user.notificationSettings)
+                : {};
+
+            // Only notify if user has email updates enabled
+            if (prefs.email === true) {
+                console.log(`[Notification] Sending alert to ${user.email} for ${celebName}`);
+                await emailService.sendCelebrityAlert(user.email, celebName, headline, summary, celebId);
+            }
+        }
+    } catch (error) {
+        console.error(`[Notification] Failed to notify followers for ${celebId}:`, error);
+    }
+};
+
 export const globalFeedGenerator = async () => {
     try {
         const currentYear = new Date().getFullYear(); 
@@ -1091,6 +1136,10 @@ Format: JSON object { "articles": [{ "headline": "text", "summary": "text", "sou
                         }
                     });
 
+                    // Notify followers outside the transaction (or at least after create)
+                    // We don't await this to avoid slowing down feed generation
+                    notifyFollowers(c.id, cleanName, item.headline, item.summary);
+
                     // If new, queue backfill for metadata
                     if (!existingCeleb) {
                         await feedQueue.add('BackfillCeleb', { name: cleanName });
@@ -1213,6 +1262,9 @@ Format JSON: {
                     }
                 });
                 console.log(`[RegionalFeed] Added ${region} story for ${cleanName}`);
+                
+                // Notify followers
+                notifyFollowers(existingCeleb.id, cleanName, item.headline, item.summary);
             }
             
             // Short delay to avoid rate limits

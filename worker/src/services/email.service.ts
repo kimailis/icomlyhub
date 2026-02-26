@@ -86,6 +86,25 @@ export class EmailService {
             return false;
         }
     }
+
+    /**
+     * Send Celebrity Alert (when followed celeb has news)
+     */
+    async sendCelebrityAlert(to: string, celebName: string, headline: string, summary: string, celebId: string): Promise<boolean> {
+        try {
+            await axios.post(this.mailServiceUrl, {
+                type: 'notification',
+                recipient: to,
+                title: `🔔 Alert: ${celebName}`,
+                message: `${headline}. ${summary}`,
+                link: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/celebrity/${celebId}`
+            });
+            return true;
+        } catch (error) {
+            console.error(`[EmailService] Failed to send alert to ${to}:`, error);
+            return false;
+        }
+    }
 }
 
 export const emailService = new EmailService();
