@@ -7,7 +7,8 @@ import crypto from 'crypto';
 import { emailService } from '@/lib/services/email.service';
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-const JWT_SECRET = process.env.JWT_SECRET || 'secret';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) throw new Error('JWT_SECRET is required');
 
 export async function POST(req: Request) {
   try {

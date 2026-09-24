@@ -3,7 +3,8 @@ import prisma from '@/lib/prisma';
 import redisClient from '@/lib/redis';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'secret';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) throw new Error('JWT_SECRET is required');
 
 export async function GET(request: Request) {
   try {

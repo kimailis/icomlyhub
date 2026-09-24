@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'secret';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) throw new Error('JWT_SECRET is required');
 
 /**
  * Marks a celebrity profile as "viewed" for the current user.
@@ -10,7 +11,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'secret';
  */
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const authHeader = req.headers.get('Authorization');
@@ -20,7 +21,7 @@ export async function POST(
 
     const token = authHeader.split(' ')[1];
     let decoded: any;
-    
+
     try {
       decoded = jwt.verify(token, JWT_SECRET);
     } catch (e) {
@@ -28,19 +29,19 @@ export async function POST(
     }
 
     const userId = decoded.userId;
-    const celebId = params.id;
+    const { id: celebId } = await params;
 
     // Update lastViewedAt timestamp for this follow relationship
     await prisma.follow.update({
-        where: {
-            userId_celebrityId: {
-                userId,
-                celebrityId: celebId
-            }
-        },
-        data: {
-            lastViewedAt: new Date()
+      where: {
+        userId_celebrityId: {
+          userId,
+          celebrityId: celebId
         }
+      },
+      data: {
+        lastViewedAt: new Date()
+      }
     });
 
     return NextResponse.json({ success: true });
